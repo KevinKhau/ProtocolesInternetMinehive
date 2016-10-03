@@ -14,23 +14,21 @@ public class ServeurTCP {
 	
 	class Messagerie extends Thread{
 		Socket socketClient;
+		PrintWriter pw;
 		
-		public Messagerie(Socket socketClient){
+		public Messagerie(Socket socketClient,PrintWriter pw){
 			this.socketClient = socketClient;
+			this.pw = pw;
 		}
 		
 		public void run(){
 				try {
-					PrintWriter pw = new PrintWriter(new OutputStreamWriter(socketClient.getOutputStream()));
 					while(true){
-						pw.write("Nombre de clients" + nombreClients);
+						pw.write("Nombre de clients: " + nombreClients + "\n");
+						pw.flush();
 						Thread.sleep(10000);
 					}
 				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					nombreClients--;
-					e.printStackTrace();
-				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					nombreClients--;
 					e.printStackTrace();
@@ -49,12 +47,12 @@ public class ServeurTCP {
 				PrintWriter pw = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
 				String message = br.readLine();
 				System.out.println("(UserAddress/Port) " + UserAddress + "/" + UserPort + " : " + message );
-				pw.write("Bienvenue !");
+				pw.write("Bienvenue !\n");
 				pw.flush();
-				Messagerie m = new Messagerie(socket);
+				Messagerie m = new Messagerie(socket,pw);
 				m.start();
-				br.close();
-				pw.close();
+				
+				
 			}
 			
 		}catch(Exception e){
