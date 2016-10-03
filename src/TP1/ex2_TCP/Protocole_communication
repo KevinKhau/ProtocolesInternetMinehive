@@ -1,0 +1,7 @@
+Le serveur envoie une fois toutes les dix secondes : "n clients sont connectés." où n est le nombre de clients connectés.
+Quand un client se connecte, il envoie un message "Bonjour" au serveur.
+De plus, dès qu'un client se connecte, le serveur envoie :
+	* au nouveau client : "Bienvenue !"
+	* à tous les clients, nouveau client inclus : "Nouveau client : [IP][Port]"
+[OPT] Quand un client déjà connecté envoie un message au serveur, le serveur retransmet ce message à tous les autres clients.
+Quand un client interrompt la connexion, il n'envoie rien, mais le serveur envoie à tous les autres clients : "Déconnexion du client : [IP][Port]"
