@@ -10,8 +10,6 @@ import java.net.SocketException;
  * long message, alors les lettres de C2 remplaceront la première partie de C1,
  * sans troncaturer le message. Le byte[] receiveData doit être vidé.
  * 
- * @author kkhau
- *
  */
 public class ServeurUDP {
 
@@ -19,6 +17,7 @@ public class ServeurUDP {
 		int port = 9876;
 		try (DatagramSocket serverSocket = new DatagramSocket(port)) {
 			while (true) {
+				//@TODO Question 3
 				byte[] receiveData = new byte[1024];
 				DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
 				serverSocket.receive(receivePacket);
