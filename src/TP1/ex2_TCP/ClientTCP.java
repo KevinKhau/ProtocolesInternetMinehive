@@ -1,6 +1,9 @@
 package TP1.ex2_TCP;
 
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.UnknownHostException;
@@ -10,8 +13,14 @@ public class ClientTCP {
 	public static void main(String[] args) {
 		int port = 1027;
 		String addressName = "localhost";
-		try (Socket socket = new Socket(addressName, port)) {
-			
+		try (Socket socket = new Socket(addressName, port);
+				DataOutputStream outToServer = new DataOutputStream(socket.getOutputStream());
+				BufferedReader inFromServer = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
+			outToServer.writeBytes("Bonjour\n");
+			while (true) {
+				String rcv = inFromServer.readLine();
+				System.out.println("Reçu du serveur : " + rcv);
+			}
 		} catch (UnknownHostException ex) {
 			System.err.println("Hôte inconnu : " + addressName);
 		} catch (SocketException ex) {
