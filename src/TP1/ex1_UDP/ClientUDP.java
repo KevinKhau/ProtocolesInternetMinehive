@@ -20,6 +20,11 @@ public class ClientUDP {
 			DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, IPAddress, port);
 			clientSocket.send(sendPacket);
 			sendPacket.getData();
+			byte[] receiveData = new byte[1024];
+			DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+			clientSocket.receive(receivePacket);
+			String sentenceServ = new String(receivePacket.getData());
+			System.out.println(sentenceServ);
 		} catch (UnknownHostException e) {
 			System.err.println("InetAddress.getByName(" + addressName +")");
 		} catch (IOException e) {
