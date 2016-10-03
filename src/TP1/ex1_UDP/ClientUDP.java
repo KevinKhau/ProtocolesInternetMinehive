@@ -13,6 +13,7 @@ public class ClientUDP {
 		int port = 9876;
 		String addressName = "localhost";
 		try (Scanner inFromUser = new Scanner(System.in); DatagramSocket clientSocket = new DatagramSocket();) {
+			
 			InetAddress IPAddress = InetAddress.getByName(addressName);
 			byte[] sendData = new byte[1024];
 			String sentence = inFromUser.nextLine();
@@ -20,15 +21,17 @@ public class ClientUDP {
 			DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, IPAddress, port);
 			clientSocket.send(sendPacket);
 			sendPacket.getData();
+			
 			byte[] receiveData = new byte[1024];
 			DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
 			clientSocket.receive(receivePacket);
 			String sentenceServ = new String(receivePacket.getData());
-			System.out.println(sentenceServ);
+			System.out.println("Reçu du serveur : " + sentenceServ);
+			
 		} catch (UnknownHostException e) {
-			System.err.println("InetAddress.getByName(" + addressName +")");
+			System.err.println("Hôte inconnu : " + addressName);
 		} catch (IOException e) {
-			System.err.println("Echec d'envoi d'un DatagramPacket");
+			System.err.println("Echec de traitement d'un DatagramPacket");
 			e.printStackTrace();
 		}
 	}
