@@ -11,6 +11,7 @@ public class ClientTCP {
 		int port = 1027;
 		String addressName = "localhost";
 		try (Socket socket = new Socket(addressName, port)) {
+			
 		} catch (UnknownHostException ex) {
 			System.err.println("Hôte inconnu : " + addressName);
 		} catch (SocketException ex) {
