@@ -33,7 +33,7 @@ public class ClientTCP extends Thread {
 	}
 
 	public static void main(String[] args) {
-		final int NB_CLIENTS = 5;
+		final int NB_CLIENTS = 8;
 		int waitTimeMs = 1000;
 		ClientTCP[] clients = new ClientTCP[NB_CLIENTS];
 
@@ -41,12 +41,16 @@ public class ClientTCP extends Thread {
 			clients[i] = new ClientTCP();
 		}
 
+		int wait = 0;
 		for (ClientTCP c : clients) {
-			try {
-				c.start();
-				Thread.sleep(waitTimeMs);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
+			c.start();
+			wait++;
+			if (wait % 2 == 0) {
+				try {
+					Thread.sleep(waitTimeMs);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 	}
