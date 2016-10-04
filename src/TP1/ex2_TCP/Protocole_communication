@@ -1,5 +1,5 @@
 Le serveur attend sur l'adresse "localhost", port 1027. Pour se connecter au serveur, les clients utilisent ces données.
-Le serveur envoie une fois toutes les dix secondes : "n clients sont connectés." où n est le nombre de clients connectés.
+Le serveur envoie une fois toutes les dix secondes : "Nombre de clients: n" où n est le nombre de clients connectés.
 Quand un client se connecte, il envoie un message "Bonjour" au serveur.
 Après connexion et réception de "Bonjour" du client, le serveur envoie :
 	* au nouveau client : "Bienvenue !"

@@ -9,8 +9,14 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 
 public class ClientTCP extends Thread {
+	final int ID;
 	int port = 1027;
 	String addressName = "localhost";
+
+	public ClientTCP(int id) {
+		super();
+		this.ID = id;
+	}
 
 	@Override
 	public void run() {
@@ -20,7 +26,7 @@ public class ClientTCP extends Thread {
 			outToServer.writeBytes("Bonjour\n");
 			while (true) {
 				String rcv = inFromServer.readLine();
-				System.out.println("Reçu du serveur : " + rcv);
+				System.out.println("'Serveur' à 'Client " + ID + "' : " + rcv);
 			}
 		} catch (UnknownHostException ex) {
 			System.err.println("Hôte inconnu : " + addressName);
@@ -34,11 +40,11 @@ public class ClientTCP extends Thread {
 
 	public static void main(String[] args) {
 		final int NB_CLIENTS = 8;
-		int waitTimeMs = 1000;
+		final int waitTimeMs = 1000;
 		ClientTCP[] clients = new ClientTCP[NB_CLIENTS];
 
 		for (int i = 0; i < NB_CLIENTS; i++) {
-			clients[i] = new ClientTCP();
+			clients[i] = new ClientTCP(i + 1);
 		}
 
 		int wait = 0;
