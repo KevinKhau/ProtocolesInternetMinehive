@@ -9,21 +9,20 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 
 public class ClientTCP extends Thread {
-	final int ID;
-	int port = 1027;
+	int ID;
+	final int serverPort = 1027;
 	String addressName = "localhost";
 
-	public ClientTCP(int id) {
-		super();
-		this.ID = id;
-	}
 
 	@Override
-	public void run() {
-		try (Socket socket = new Socket(addressName, port);
+	public synchronized void run() {
+		try (Socket socket = new Socket(addressName, serverPort);
 				DataOutputStream outToServer = new DataOutputStream(socket.getOutputStream());
 				BufferedReader inFromServer = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 			outToServer.writeBytes("Bonjour\n");
+			String firstMsg = inFromServer.readLine();
+			ID = Integer.parseInt(firstMsg.substring(firstMsg.lastIndexOf(" ")+1).replace(".", ""));
+			System.out.println(firstMsg);
 			while (true) {
 				String rcv = inFromServer.readLine();
 				System.out.println("'Serveur' à 'Client " + ID + "' : " + rcv);
@@ -31,20 +30,23 @@ public class ClientTCP extends Thread {
 		} catch (UnknownHostException ex) {
 			System.err.println("Hôte inconnu : " + addressName);
 		} catch (SocketException ex) {
-			System.err.println("Connexion impossible : " + addressName);
+			System.err.println("Connexion non établie ou interrompue : " + addressName);
 		} catch (IOException e) {
 			System.err.println("Echec de traitement d'un DatagramPacket");
 			e.printStackTrace();
 		}
 	}
 
+	/**
+	 * Lance 8 clients, 2 par 2, intercalés d'une seconde
+	 */
 	public static void main(String[] args) {
 		final int NB_CLIENTS = 8;
 		final int waitTimeMs = 1000;
 		ClientTCP[] clients = new ClientTCP[NB_CLIENTS];
 
 		for (int i = 0; i < NB_CLIENTS; i++) {
-			clients[i] = new ClientTCP(i + 1);
+			clients[i] = new ClientTCP();
 		}
 
 		int wait = 0;
@@ -59,6 +61,7 @@ public class ClientTCP extends Thread {
 				}
 			}
 		}
+		//TODO Fermer certaines sockets pour tester la diminution du nombre de clients, socket.close()
 	}
 
 }

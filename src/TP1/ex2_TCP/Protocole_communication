@@ -1,8 +1,8 @@
 Le serveur attend sur l'adresse "localhost", port 1027. Pour se connecter au serveur, les clients utilisent ces données.
-Le serveur envoie une fois toutes les dix secondes : "Nombre de clients: n" où n est le nombre de clients connectés.
+Le serveur envoie une fois toutes les dix secondes, en même temps à tous les clients : "Nombre de clients: n" où n est le nombre de clients connectés.
 Quand un client se connecte, il envoie un message "Bonjour" au serveur.
 Après connexion et réception de "Bonjour" du client, le serveur envoie :
-	* au nouveau client : "Bienvenue !"
-	* à tous les clients, nouveau client inclus : "Nouveau client : [IP][Port]"
+	* au nouveau client : "Bienvenue ! Vous êtes le client [ID]." où ID est un identifiant de client unique déterminé par le serveur
+	* à tous les clients, nouveau client inclus : "Un nouvel ami est arrivé : 'Client [ID]' ([IP]/[Port])"
 [OPT] Quand un client déjà connecté envoie un message au serveur, le serveur retransmet ce message à tous les autres clients.
 Quand un client interrompt la connexion, il n'envoie rien, mais le serveur envoie à tous les autres clients : "Déconnexion du client : [IP][Port]"
