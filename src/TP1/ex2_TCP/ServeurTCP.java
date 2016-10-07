@@ -61,9 +61,14 @@ public class ServeurTCP {
 		public void run() {
 			while (true) {
 				try {
-					// TODO ConcurrentModificationException aléatoire à corriger
-					for (Messagerie m : messageries) {
-						m.send();
+					synchronized (this) {
+						// TODO ConcurrentModificationException aléatoire à corriger
+						for (Messagerie m : messageries) { // TODO en threads pour simultané
+							if (m.socket.isClosed()) { // TODO Marche ?
+								removeMessenger(m); // TODO Corriger ConcurrentModifierException
+							}
+							m.send();
+						}
 					}
 					Thread.sleep(sleepTimeMs);
 				} catch (InterruptedException e) {
@@ -77,11 +82,12 @@ public class ServeurTCP {
 			// TODO ID attribué par count pas totalement unique, parce qu'on
 			// revient sur le même nombre après Integer.MAX*2
 			m.welcome(count);
-			for (Messagerie messagerie : messageries) {
+			for (Messagerie messagerie : messageries) { // TODO en threads pour simultané
 				messagerie.alertNewcomer(count);
 			}
 			count++;
 			if (messageries.size() == 1) {
+				// TODO notify() à la place si reprise
 				start();
 			}
 		}
@@ -103,7 +109,7 @@ public class ServeurTCP {
 	// TODO Vérifier que partout, nombreClients == manager.messageries.size() ==
 	// [Print Writers ouverts]
 	public void demarrer() {
-		try (ServerSocket server = new ServerSocket(port)) {
+		try (ServerSocket server = new ServerSocket(connectionPort)) {
 		System.out.println("Lancement serveur : port " + connectionPort + ".");
 			while (true) {
 				Socket socket = server.accept();
