@@ -38,7 +38,6 @@ public class ServeurTCP {
 
 	public void demarrer() {
 		try (ServerSocket server = new ServerSocket(port)) {
-			
 			while (true) {
 				Socket socket = server.accept();
 				nombreClients++;
