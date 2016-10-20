@@ -5,49 +5,79 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.net.BindException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.util.LinkedList;
 
 // TODO Repérer quand une connexion est fermée, et retirer les clients correspondants (par exemple quand arrêt d'un programme ClientTCP)
 public class ServeurTCP {
 	// TODO Déplacer nombreClients dans le Manager ?
-	static int nombreClients = 0;
 	final int connectionPort = 1027;
 	Manager manager = new Manager();
+	public final static String RUOK = "RUOK";
+	public final static int activeDelay = 5000;
 
 	/**
 	 * Envoie des messages à un client spécifique
 	 */
 	class Messagerie {
 		Socket socket;
-		PrintWriter pw;
-
-		public Messagerie(Socket socket, PrintWriter pw) {
+		PrintWriter out;
+		BufferedReader in;
+		
+		int clientID;
+		
+		public Messagerie(Socket socket, PrintWriter pw, BufferedReader br) {
 			this.socket = socket;
-			this.pw = pw;
+			this.out = pw;
+			this.in = br;
 		}
 
 		public void welcome(int id) {
-			pw.write("Bienvenue ! Vous êtes le client " + id + ".\n");
-			pw.flush();
+			clientID = id;
+			out.println("Bienvenue ! Vous êtes le client " + id + ".");
 		}
 
-		public void send() {
-			pw.write("Nombre de clients: " + nombreClients + ".\n");
-			pw.flush();
+		public void send(int nombreClients) {
+			out.println("Nombre de clients: " + nombreClients + ".");
+		}
+
+		/**
+		 * Vérifie en parallèle que le client est toujours actif.
+		 */
+		public void checkOK() {
+			new Thread() {
+				@Override
+				public void run() {
+					out.println(RUOK);
+					try {
+						if (!in.readLine().equals(ClientTCP.IMOK)) {
+							socket.close();
+						}
+					} catch (IOException e) {
+						System.err.println("Le client "  + Messagerie.this.clientID + " ne répond pas. Fermeture de la connexion.");
+						try {
+							socket.close();
+						} catch (IOException e1) {
+							e1.printStackTrace();
+						}
+					}
+				}
+			}.start();
 		}
 
 		public void alertNewcomer(int id) {
-			pw.write("Un nouvel ami est arrivé : 'Client " + id + "' (" + socket.getInetAddress() + "/"
-					+ socket.getPort() + ")\n");
-			pw.flush();
+			out.println("Un nouvel ami est arrivé : 'Client " + id + "' (" + socket.getInetAddress() + "/"
+					+ socket.getPort() + ")");
+			out.flush();
 		}
 	}
 
 	/**
-	 * Synchronize les messages pour des communications simultanées
+	 * Synchronise les messages pour des communications simultanées
 	 */
 	class Manager extends Thread {
 		final int sleepTimeMs = 10000;
@@ -62,12 +92,12 @@ public class ServeurTCP {
 			while (true) {
 				try {
 					synchronized (this) {
-						// TODO ConcurrentModificationException aléatoire à corriger
-						for (Messagerie m : messageries) { // TODO en threads pour simultané
-							if (m.socket.isClosed()) { // TODO Marche ?
-								removeMessenger(m); // TODO Corriger ConcurrentModifierException
+						for (Messagerie m : messageries) {
+							if (m.socket.isClosed()) {
+								removeMessenger(m);
 							}
-							m.send();
+							m.send(messageries.size());
+							m.checkOK();
 						}
 					}
 					Thread.sleep(sleepTimeMs);
@@ -79,10 +109,9 @@ public class ServeurTCP {
 
 		public synchronized void addMessenger(Messagerie m) {
 			messageries.add(m);
-			// TODO ID attribué par count pas totalement unique, parce qu'on
-			// revient sur le même nombre après Integer.MAX*2
 			m.welcome(count);
-			for (Messagerie messagerie : messageries) { // TODO en threads pour simultané
+			for (Messagerie messagerie : messageries) { // TODO en threads pour
+														// simultané
 				messagerie.alertNewcomer(count);
 			}
 			count++;
@@ -92,8 +121,8 @@ public class ServeurTCP {
 			}
 		}
 
-		// TODO Trouver quand appeler cette méthode.
 		public synchronized void removeMessenger(Messagerie m) {
+			System.out.println("Suppression du client " + m.clientID + ".");
 			messageries.remove(m);
 			if (messageries.isEmpty()) {
 				try {
@@ -106,30 +135,32 @@ public class ServeurTCP {
 
 	}
 
-	// TODO Vérifier que partout, nombreClients == manager.messageries.size() ==
-	// [Print Writers ouverts]
 	public void demarrer() {
 		try (ServerSocket server = new ServerSocket(connectionPort)) {
-		System.out.println("Lancement serveur : port " + connectionPort + ".");
+			System.out.println("Lancement serveur : port " + connectionPort + ".");
 			while (true) {
 				Socket socket = server.accept();
-				nombreClients++;
+				socket.setSoTimeout(activeDelay);
 				InetAddress userAddress = socket.getInetAddress();
 				int userPort = socket.getPort();
 
 				// TODO Vérifier scrupuleusement s'ils sont fermés
 				// convenablement
 				BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-				PrintWriter pw = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
+				PrintWriter pw = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
 				String message = br.readLine();
 				System.out.println("(UserAddress/Port) " + userAddress + "/" + userPort + " : " + message);
-				manager.addMessenger(new Messagerie(socket, pw));
+				manager.addMessenger(new Messagerie(socket, pw, br));
 
 			}
+		} catch (SocketTimeoutException e) {
+			System.err.println("Le client n'a pas répondu à temps.");
+		} catch (BindException e) {
+			System.err.println("Socket serveur déjà en cours d'utilisation.");
 		} catch (IllegalArgumentException e) {
-			System.err.println("Valeur de port invalide, doit être entre 0 et 65535");
+			System.err.println("Valeur de port invalide, doit être entre 0 et 65535.");
 		} catch (IOException e) {
-			System.err.println("Problème de traitement de la socket : port " + connectionPort);
+			System.err.println("Problème de traitement de la socket : port " + connectionPort + ".");
 			e.printStackTrace();
 		}
 	}
