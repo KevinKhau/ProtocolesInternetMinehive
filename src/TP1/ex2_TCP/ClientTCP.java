@@ -13,6 +13,7 @@ public class ClientTCP extends Thread {
 	int ID;
 	final int serverPort = 1027;
 	String addressName = "localhost";
+	boolean running = true;
 	public final static String IMOK = "IMOK";
 
 	@Override
@@ -24,7 +25,7 @@ public class ClientTCP extends Thread {
 			String firstMsg = inFromServer.readLine();
 			ID = Integer.parseInt(firstMsg.substring(firstMsg.lastIndexOf(" ") + 1).replace(".", ""));
 			System.out.println("'Serveur' : " + firstMsg);
-			while (true) {
+			while (running) {
 				String rcv = inFromServer.readLine();
 				if (rcv.equals(ServeurTCP.RUOK)) {
 					outToServer.println(IMOK);
@@ -43,7 +44,11 @@ public class ClientTCP extends Thread {
 	}
 
 	/**
-	 * Lance 8 threads clients, 2 par 2, intercalés d'une seconde
+	 * Lance 8 threads clients, 2 par 2, intercalés d'une seconde.
+	 * 8 threads actifs d'après le serveur.
+	 * Après 10 secondes, interrompt la moitié d'entre eux.
+	 * 4 threads supprimés par le serveur.
+	 * 4 threads actifs d'après le serveur.
 	 */
 	public static void main(String[] args) throws InterruptedException {
 		final int NB_CLIENTS = 8;
@@ -65,9 +70,10 @@ public class ClientTCP extends Thread {
 
 		Thread.sleep(10000);
 		
-//		for (int i = 0; i < clients.length / 2; i++) {
-//			clients[i].stop
-//		}
+		for (int i = 0; i < clients.length / 2; i++) {
+			System.out.println("Client désactivé");
+			clients[i].running = false;
+		}
 	}
 
 }

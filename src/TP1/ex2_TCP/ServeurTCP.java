@@ -51,18 +51,30 @@ public class ServeurTCP {
 			new Thread() {
 				@Override
 				public void run() {
-					out.println(RUOK);
-					try {
-						if (!in.readLine().equals(ClientTCP.IMOK)) {
-							System.err.println("Le client " + Messagerie.this.clientID + " a donné une réponse anormale. Fermeture de la connexion.");
-							socket.close();
-						}
-					} catch (IOException e) {
-						System.err.println("Le client " + Messagerie.this.clientID + " ne répond pas. Fermeture de la connexion.");
+					while (true) {
+						out.println(RUOK);
 						try {
-							socket.close();
-						} catch (IOException e1) {
-							e1.printStackTrace();
+							String rep = in.readLine(); 
+							if (rep == null || !rep.equals(ClientTCP.IMOK)) {
+								System.err.println("Le client " + Messagerie.this.clientID
+										+ " a donné une réponse anormale. Fermeture de la connexion.");
+								socket.close();
+								break;
+							}
+						} catch (IOException e) {
+							System.err.println("Le client " + Messagerie.this.clientID
+									+ " ne répond pas. Fermeture de la connexion.");
+							try {
+								socket.close();
+							} catch (IOException e1) {
+								e1.printStackTrace();
+							}
+							break;
+						}
+						try {
+							Thread.sleep(2000);
+						} catch (InterruptedException e) {
+							e.printStackTrace();
 						}
 					}
 				}
@@ -104,7 +116,6 @@ public class ServeurTCP {
 						}
 						messageries.forEach(m -> {
 							m.send(messageries.size());
-							m.checkOK();
 						});
 					}
 					Thread.sleep(sleepTimeMs);
@@ -119,6 +130,7 @@ public class ServeurTCP {
 			m.welcome(count);
 			messageries.forEach(i -> i.alertNewcomer(count));
 			count++;
+			m.checkOK();
 			if (messageries.size() == 1) {
 				try {
 					start(); // 1ère fois, à run()
@@ -152,7 +164,6 @@ public class ServeurTCP {
 				String message = br.readLine();
 				System.out.println("(UserAddress/Port) " + userAddress + "/" + userPort + " : " + message);
 				manager.addMessenger(new Messagerie(socket, pw, br));
-
 			}
 		} catch (SocketTimeoutException e) {
 			System.err.println("Le client n'a pas répondu à temps.");

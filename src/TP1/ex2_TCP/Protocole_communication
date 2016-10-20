@@ -1,8 +1,8 @@
 Le serveur attend sur l'adresse "localhost", port 1027. Pour se connecter au serveur, les clients utilisent ces données.
 Quand un client se connecte, il envoie un message "Bonjour" au serveur.
 Le serveur envoie une fois toutes les dix secondes, en même temps à tous les clients : (1) "Nombre de clients: n" où n est le nombre de clients connectés.
-Il envoie immédiatement après "RUOK".
 Après connexion et réception de "Bonjour" du client, le serveur envoie :
 	* au nouveau client : "Bienvenue ! Vous êtes le client [ID]." où ID est un identifiant de client unique déterminé par le serveur
 	* à tous les clients, nouveau client inclus : "Un nouvel ami est arrivé : 'Client [ID]' ([IP]/[Port])"
-Si au "RUOK" du serveur, un client n'a rien répondu sous 3 secondes, alors le serveur envoie à tous : "Déconnexion du client : [IP][Port]" avant de fermer la socket correspondante.
+Pour vérifier qu'un client est bien actif, le serveur envoie toutes les 2s "RUOK".
+Si au "RUOK" du serveur, un client n'a rien répondu sous 500ms, alors le serveur envoie à tous : "Déconnexion du client : [IP][Port]" avant de fermer la socket correspondante.
