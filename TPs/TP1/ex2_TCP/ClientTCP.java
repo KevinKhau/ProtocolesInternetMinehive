@@ -71,7 +71,7 @@ public class ClientTCP extends Thread {
 		Thread.sleep(10000);
 		
 		for (int i = 0; i < clients.length / 2; i++) {
-			System.out.println("Client désactivé");
+			System.out.println("Client " + clients[i].ID + " désactivé");
 			clients[i].running = false;
 		}
 	}

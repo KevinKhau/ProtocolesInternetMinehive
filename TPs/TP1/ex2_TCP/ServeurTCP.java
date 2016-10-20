@@ -106,6 +106,7 @@ public class ServeurTCP {
 		/**
 		 * Appelle la méthode .send() de chaque messagerie toutes les 10s
 		 */
+		@Override
 		public void run() {
 			while (true) {
 				try {
@@ -115,7 +116,12 @@ public class ServeurTCP {
 							wait(); // pour ne pas faire tourner inutilement le while(true)
 						}
 						messageries.forEach(m -> {
-							m.send(messageries.size());
+							new Thread() {
+								@Override
+								public void run() {
+									m.send(messageries.size());
+								}
+							}.start();
 						});
 					}
 					Thread.sleep(sleepTimeMs);
