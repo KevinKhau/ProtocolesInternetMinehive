@@ -1,6 +1,7 @@
 package TP1.ex2_TCP;
 
 import java.io.BufferedReader;
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
@@ -12,18 +13,16 @@ import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.util.LinkedList;
 
-// TODO Repérer quand une connexion est fermée, et retirer les clients correspondants (par exemple quand arrêt d'un programme ClientTCP)
 public class ServeurTCP {
-	// TODO Déplacer nombreClients dans le Manager ?
 	final int connectionPort = 1027;
 	Manager manager = new Manager();
 	public final static String RUOK = "RUOK";
-	public final static int activeDelay = 5000;
+	public final static int activeDelay = 500;
 
 	/**
 	 * Envoie des messages à un client spécifique
 	 */
-	class Messagerie {
+	class Messagerie implements Closeable {
 		Socket socket;
 		PrintWriter out;
 		BufferedReader in;
@@ -55,10 +54,11 @@ public class ServeurTCP {
 					out.println(RUOK);
 					try {
 						if (!in.readLine().equals(ClientTCP.IMOK)) {
+							System.err.println("Le client " + Messagerie.this.clientID + " a donné une réponse anormale. Fermeture de la connexion.");
 							socket.close();
 						}
 					} catch (IOException e) {
-						System.err.println("Le client "  + Messagerie.this.clientID + " ne répond pas. Fermeture de la connexion.");
+						System.err.println("Le client " + Messagerie.this.clientID + " ne répond pas. Fermeture de la connexion.");
 						try {
 							socket.close();
 						} catch (IOException e1) {
@@ -73,6 +73,12 @@ public class ServeurTCP {
 			out.println("Un nouvel ami est arrivé : 'Client " + id + "' (" + socket.getInetAddress() + "/"
 					+ socket.getPort() + ")");
 			out.flush();
+		}
+
+		@Override
+		public void close() throws IOException {
+			out.close();
+			in.close();
 		}
 	}
 
@@ -92,13 +98,14 @@ public class ServeurTCP {
 			while (true) {
 				try {
 					synchronized (this) {
-						for (Messagerie m : messageries) {
-							if (m.socket.isClosed()) {
-								removeMessenger(m);
-							}
+						messageries.removeIf(m -> inactive(m)); // Java 8 <3
+						if (messageries.isEmpty()) {
+							wait(); // pour ne pas faire tourner inutilement le while(true)
+						}
+						messageries.forEach(m -> {
 							m.send(messageries.size());
 							m.checkOK();
-						}
+						});
 					}
 					Thread.sleep(sleepTimeMs);
 				} catch (InterruptedException e) {
@@ -110,27 +117,23 @@ public class ServeurTCP {
 		public synchronized void addMessenger(Messagerie m) {
 			messageries.add(m);
 			m.welcome(count);
-			for (Messagerie messagerie : messageries) { // TODO en threads pour
-														// simultané
-				messagerie.alertNewcomer(count);
-			}
+			messageries.forEach(i -> i.alertNewcomer(count));
 			count++;
 			if (messageries.size() == 1) {
-				// TODO notify() à la place si reprise
-				start();
+				try {
+					start(); // 1ère fois, à run()
+				} catch (IllegalThreadStateException e) {
+					notify(); // par la suite, à wait()
+				}
 			}
 		}
 
-		public synchronized void removeMessenger(Messagerie m) {
-			System.out.println("Suppression du client " + m.clientID + ".");
-			messageries.remove(m);
-			if (messageries.isEmpty()) {
-				try {
-					wait();
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
+		public boolean inactive(Messagerie m) {
+			if (m.socket.isClosed()) {
+				System.out.println("Suppression du client " + m.clientID + ".");
+				return true;
 			}
+			return false;
 		}
 
 	}
@@ -144,8 +147,6 @@ public class ServeurTCP {
 				InetAddress userAddress = socket.getInetAddress();
 				int userPort = socket.getPort();
 
-				// TODO Vérifier scrupuleusement s'ils sont fermés
-				// convenablement
 				BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 				PrintWriter pw = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
 				String message = br.readLine();
@@ -158,6 +159,7 @@ public class ServeurTCP {
 		} catch (BindException e) {
 			System.err.println("Socket serveur déjà en cours d'utilisation.");
 		} catch (IllegalArgumentException e) {
+			e.printStackTrace();
 			System.err.println("Valeur de port invalide, doit être entre 0 et 65535.");
 		} catch (IOException e) {
 			System.err.println("Problème de traitement de la socket : port " + connectionPort + ".");

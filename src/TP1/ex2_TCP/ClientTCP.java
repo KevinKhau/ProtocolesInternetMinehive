@@ -43,9 +43,9 @@ public class ClientTCP extends Thread {
 	}
 
 	/**
-	 * Lance 8 clients, 2 par 2, intercalés d'une seconde
+	 * Lance 8 threads clients, 2 par 2, intercalés d'une seconde
 	 */
-	public static void main(String[] args) {
+	public static void main(String[] args) throws InterruptedException {
 		final int NB_CLIENTS = 8;
 		final int waitTimeMs = 1000;
 		ClientTCP[] clients = new ClientTCP[NB_CLIENTS];
@@ -59,15 +59,15 @@ public class ClientTCP extends Thread {
 			c.start();
 			wait++;
 			if (wait % 2 == 0) {
-				try {
-					Thread.sleep(waitTimeMs);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
+				Thread.sleep(waitTimeMs);
 			}
 		}
-		// TODO Fermer certaines sockets pour tester la diminution du nombre de
-		// clients, socket.close()
+
+		Thread.sleep(10000);
+		
+//		for (int i = 0; i < clients.length / 2; i++) {
+//			clients[i].stop
+//		}
 	}
 
 }
