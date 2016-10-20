@@ -56,19 +56,11 @@ public class ServeurTCP {
 						try {
 							String rep = in.readLine(); 
 							if (rep == null || !rep.equals(ClientTCP.IMOK)) {
-								System.err.println("Le client " + Messagerie.this.clientID
-										+ " a donné une réponse anormale. Fermeture de la connexion.");
-								socket.close();
+								close();
 								break;
 							}
 						} catch (IOException e) {
-							System.err.println("Le client " + Messagerie.this.clientID
-									+ " ne répond pas. Fermeture de la connexion.");
-							try {
-								socket.close();
-							} catch (IOException e1) {
-								e1.printStackTrace();
-							}
+							close();
 							break;
 						}
 						try {
@@ -88,9 +80,16 @@ public class ServeurTCP {
 		}
 
 		@Override
-		public void close() throws IOException {
-			out.close();
-			in.close();
+		public void close() {
+			try {
+				System.err.println("Le client " + Messagerie.this.clientID
+						+ " ne répond pas. Fermeture de la connexion.");
+				socket.close();
+				out.close();
+				in.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
