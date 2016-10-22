@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.BindException;
-import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
@@ -34,9 +33,9 @@ public class Server {
 	Map<Player, HostData> inGame = new HashMap<>();
 	List<HostData> hostsData = new ArrayList<>();
 
-	public static final int RUOK_DELAY = 300000;
-	public static final int KICK_DELAY = 60000;
-
+	public static final int ACTIVE_DELAY = 30000;
+	public static final int CONNECTED_DELAY = 3000;
+	
 	public static void main(String[] args) {
 		Server server = new Server();
 		server.launch();
@@ -62,9 +61,6 @@ public class Server {
 		addUser(valloris);
 		addUser(somaya);
 
-		addAvailable(christophe, null);
-		addAvailable(alhassane, null);
-
 		HostData empty = new HostData("Partie_1", "ChocoboLand", 7777);
 		addInGame(valloris, empty);
 		addInGame(somaya, empty);
@@ -76,8 +72,9 @@ public class Server {
 
 	public boolean addAvailable(Player player, Handler handler) {
 		if (!isFull()) {
-			if (available.containsKey(player)) { //TODO
-				available.get(player).kick();
+			Handler h = available.get(player);
+			if (h != null) {
+				h.kick();
 			}
 			available.put(player, handler);
 			return true;
@@ -95,8 +92,6 @@ public class Server {
 			while (true) {
 				new Thread(new Handler(server.accept())).start();;
 			}
-		} catch (SocketTimeoutException e) {
-			System.err.println("Le client n'a pas répondu à temps.");
 		} catch (BindException e) {
 			System.err.println("Socket serveur déjà en cours d'utilisation.");
 		} catch (IllegalArgumentException e) {
@@ -145,15 +140,15 @@ public class Server {
 			try {
 				do {
 					msg = in.receive();
-					player = identification(msg);
+					player = login(msg);
 				} while (player == null);
-				System.out.println("Utilisateur connecté.");
+				System.out.println("Utilisateur '" + player.username + "' connecté depuis " + socket.getRemoteSocketAddress());
 				addAvailable(player, this);
 				while (socket.isBound() && socket.isConnected() && !socket.isClosed()) {
-					Thread.sleep(5000);
-					System.out.println(socket.getRemoteSocketAddress() + ":ping");
+					Thread.sleep(20000);
+					System.out.println(socket.getRemoteSocketAddress() + ", le serveur reste à l'écoute");
 				}
-				System.out.println("Handler end");
+				System.out.println(socket.getRemoteSocketAddress() + " : Handler end");
 			} catch (SocketTimeoutException e) {
 				System.err.println("Le client n'a pas répondu à temps.");
 			} catch (BindException e) {
@@ -161,7 +156,11 @@ public class Server {
 			} catch (IllegalArgumentException e) {
 				System.err.println("Valeur de port invalide, doit être entre 0 et 65535.");
 			} catch (SocketException e) {
-				System.err.println("Connexion perdue avec le client : " + socket.getRemoteSocketAddress() +  ".");
+				String name = "";
+				if (player != null) {
+					name = "Utilisateur '" + player.username + "' ; ";
+				}
+				System.err.println(name + "Connexion perdue avec le client : " + socket.getRemoteSocketAddress() +  ".");
 			} catch (IOException e) {
 				System.err.println("Pas de réponse de la socket client : " + socket.getRemoteSocketAddress() +  ".");
 			} catch (InterruptedException e) {
@@ -175,14 +174,13 @@ public class Server {
 		 * l'envoi du IDOK ou IDNO.
 		 * 
 		 * @param Message
-		 *            de type REGI avec username et password du client
+		 *            Reçu du client, de type REGI avec username et password du client
 		 * @return Un joueur identifié ou créé avec succès, ou null sinon.
 		 */
-		public Player identification(Message message) {
-			
+		public Player login(Message message) {
 			/* Serveur saturé */
-			if (!isFull()) {
-				out.send(Message.IDNO, null, "Le serveur est plein. Réessayez ultérieurement");
+			if (isFull()) {
+				out.send(Message.IDNO, null, "Le serveur est plein. Réessayez ultérieurement.");
 				return null;
 			}
 			
@@ -237,7 +235,7 @@ public class Server {
 		}
 		
 		/**
-		 * Le serveur interrompt la connexion avec ce client
+		 * Le serveur interrompt la connexion avec ce client. Player ne doit pas être null, et donc la connexion doit déjà avoir été établie.
 		 */
 		public void kick() {
 			out.send(Message.KICK);

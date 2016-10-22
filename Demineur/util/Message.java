@@ -58,8 +58,7 @@ public class Message {
 	public static final String IDKH = "IDKH";
 
 	public static final String POSTFIX = "";
-	public static final String SPACE_REPLACEMENT = "#";
-	public static final String SEPARATOR = " ";
+	public static final String SEPARATOR = "#";
 
 	private String type;
 	private String[] args;
@@ -70,6 +69,9 @@ public class Message {
 
 	public Message(String type, String[] args, String content) {
 		super();
+		if (type == null || type == "") {
+			throw new NullPointerException("Tentative de création d'un message réseau sans type. Interdit.");
+		}
 		this.type = type;
 		this.args = args;
 		this.content = content;
@@ -97,14 +99,24 @@ public class Message {
 	}
 
 	public String getContent() {
-		if (content == null) {
-			return null;
-		}
-		return content.replace("#", " ");
+		return content;
 	}
 
 	public static String encode(Message message) {
-		return encode(message.getType(), message.getArgs(), message.getContent());
+		StringBuilder sb = new StringBuilder(message.type);
+		if (message.args != null) {
+			int expected = getExpectedArgsLength(message.type);
+			if (expected != -1 && expected != message.args.length) {
+				System.err.println("~Encodage, '" + message.toString() + ": Mauvais nombre d'arguments, " + expected + " attendus");
+			}
+			for (String s : message.args) {
+				sb.append(SEPARATOR).append(s);
+			}
+		}
+		if (message.content != null) {
+			sb.append(SEPARATOR).append(message.content);
+		}
+		return sb.toString();
 	}
 	
 	public static String encode(String type) {
@@ -116,30 +128,18 @@ public class Message {
 	}
 
 	public static String encode(String type, String[] args, String content) {
-		StringBuilder sb = new StringBuilder(type);
-		if (args != null) {
-			for (String s : args) {
-				sb.append(' ').append(s.replace(" ", SPACE_REPLACEMENT));
-			}
-		}
-		if (content != null) {
-			sb.append(' ').append(content.replace(" ", SPACE_REPLACEMENT));
-		}
-		return sb.toString();
+		return encode(new Message(type, args, content));
 	}
 
 	public static Message decode(String receive) {
-		String[] slices = receive.split(" ");
-		for (String s : slices) {
-			s = s.replace("#", " ");
-		}
+		String[] slices = receive.split(SEPARATOR);
 		String type = slices[0];
 		int nbArgs = getExpectedArgsLength(type);
 		if (nbArgs == -1) {
 			return new Message(type, null, null);
 		}
 		String[] args = new String[nbArgs];
-		String content = "";
+		String content = null;
 		try {
 			for (int i = 0; i < nbArgs; i++) {
 				args[i] = slices[i + 1];
@@ -148,7 +148,7 @@ public class Message {
 			System.err.println("~Décodage, '" + receive + "' : Mauvais nombre d'arguments, " + nbArgs + " attendus.");
 		}
 		if (slices.length > nbArgs + 1) {
-			content = slices[nbArgs + 1].replace(SPACE_REPLACEMENT, " ");
+			content = slices[nbArgs + 1];
 		}
 		return new Message(type, args, content);
 	}
@@ -281,7 +281,7 @@ public class Message {
 				sb.append(' ').append(s);
 			}
 		}
-		if (content != null) {
+		if (content != null && content != "") {
 			sb.append(' ').append(content);
 		}
 		return sb.toString();

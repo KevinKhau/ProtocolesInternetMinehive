@@ -7,6 +7,10 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.Reader;
 
+/**
+ * Abstraction supérieure de BufferedReader : Utiliser .receive() qui traite les
+ * messages après réception
+ */
 public class MyBufferedReader extends BufferedReader {
 
 	public MyBufferedReader(Reader in) {
