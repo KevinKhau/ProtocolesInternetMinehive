@@ -6,6 +6,7 @@ import static util.StringUtil.getSpaces;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.Reader;
+import java.net.SocketException;
 
 /**
  * Abstraction supérieure de BufferedReader : Utiliser .receive() qui traite les
@@ -31,7 +32,7 @@ public class MyBufferedReader extends BufferedReader {
 		
 		if (raw == null) {
 			System.err.println("Message vide reçu. Interruption.");
-			throw new IOException();
+			throw new SocketException();
 		}
 		Message msg = decode(raw);
 		
