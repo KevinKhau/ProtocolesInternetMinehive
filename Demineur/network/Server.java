@@ -1,5 +1,7 @@
 package network;
 
+import static util.Message.validArguments;
+
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
@@ -18,20 +20,17 @@ import util.Message;
 import util.MyBufferedReader;
 import util.MyPrintWriter;
 
-import static util.Message.*;
-
 /**
  * Reste attentif à la connexion de nouveaux clients ou hôtes
  */
 public class Server {
 
 	final int connectionPort = 5555;
-	Manager manager = new Manager();
 
 	Map<String, Player> users = new HashMap<>();
 
 	public static final int MAX_ONLINE = 110;
-	Map<String, Player> available = new HashMap<>();
+	Map<Player, Handler> available = new HashMap<>();
 	Map<Player, HostData> inGame = new HashMap<>();
 	List<HostData> hostsData = new ArrayList<>();
 
@@ -63,8 +62,8 @@ public class Server {
 		addUser(valloris);
 		addUser(somaya);
 
-		addAvailable(christophe);
-		addAvailable(alhassane);
+		addAvailable(christophe, null);
+		addAvailable(alhassane, null);
 
 		HostData empty = new HostData("Partie_1", "ChocoboLand", 7777);
 		addInGame(valloris, empty);
@@ -75,9 +74,12 @@ public class Server {
 		users.put(player.username, player);
 	}
 
-	public boolean addAvailable(Player player) {
-		if ((available.size() + inGame.size()) <= MAX_ONLINE) {
-			available.put(player.username, player);
+	public boolean addAvailable(Player player, Handler handler) {
+		if (!isFull()) {
+			if (available.containsKey(player)) { //TODO
+				available.get(player).kick();
+			}
+			available.put(player, handler);
 			return true;
 		}
 		return false;
@@ -91,7 +93,7 @@ public class Server {
 		try (ServerSocket server = new ServerSocket(connectionPort)) {
 			System.out.println("Lancement serveur : IP=" + server.getInetAddress() + ", port=" + connectionPort + ".");
 			while (true) {
-				new Handler(server.accept());
+				new Thread(new Handler(server.accept())).start();;
 			}
 		} catch (SocketTimeoutException e) {
 			System.err.println("Le client n'a pas répondu à temps.");
@@ -106,38 +108,52 @@ public class Server {
 		}
 	}
 
-	/**
-	 * Gère l'ensemble des connexions clients
-	 *
-	 */
-	class Manager extends Thread {
-
-		public void addConnection(Socket socket) {
-
-		}
-
+	public boolean isFull() {
+		return available.size() + inGame.size() >= MAX_ONLINE;
 	}
-
+	
+	
 	/**
 	 * Gère un seul client
 	 *
 	 */
-	class Handler extends Thread {
+	class Handler implements Runnable {
 
+		Socket socket;
+		
 		MyPrintWriter out;
 		MyBufferedReader in;
-
+		
 		Player player;
 
 		public Handler(Socket socket) {
 			super();
-			InetAddress addr = socket.getInetAddress();
-			int port = socket.getPort();
-			System.out.println("Nouvelle connexion : IP=" + addr + ", port=" + port);
+			System.out.println("Nouvelle connexion : " + socket.getRemoteSocketAddress());
 			try {
+				this.socket = socket;
 				this.out = new MyPrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
 				this.in = new MyBufferedReader(new InputStreamReader(socket.getInputStream()));
-				execute();
+			} catch (IOException e) {
+				System.err.println("Pas de réponse de la socket client : " + socket.getRemoteSocketAddress() +  ".");
+				e.printStackTrace();
+			}
+		}
+
+		@Override
+		public void run() {
+			Message msg = null;
+			try {
+				do {
+					msg = in.receive();
+					player = identification(msg);
+				} while (player == null);
+				System.out.println("Utilisateur connecté.");
+				addAvailable(player, this);
+				while (socket.isBound() && socket.isConnected() && !socket.isClosed()) {
+					Thread.sleep(5000);
+					System.out.println(socket.getRemoteSocketAddress() + ":ping");
+				}
+				System.out.println("Handler end");
 			} catch (SocketTimeoutException e) {
 				System.err.println("Le client n'a pas répondu à temps.");
 			} catch (BindException e) {
@@ -145,21 +161,13 @@ public class Server {
 			} catch (IllegalArgumentException e) {
 				System.err.println("Valeur de port invalide, doit être entre 0 et 65535.");
 			} catch (SocketException e) {
-				System.err.println("Connexion perdue avec le client : IP=" + addr + ", port=" + port + ".");
+				System.err.println("Connexion perdue avec le client : " + socket.getRemoteSocketAddress() +  ".");
 			} catch (IOException e) {
-				System.err.println("Pas de réponse de la socket client : IP=" + addr + ", port=" + port + ".");
+				System.err.println("Pas de réponse de la socket client : " + socket.getRemoteSocketAddress() +  ".");
+			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
-		}
-
-		public void execute() throws IOException {
-			Message msg;
-			do {
-				msg = in.receive();
-				player = identification(msg);
-			} while (player == null);
-			System.out.println("Utilisateur connecté.");
-			addAvailable(player);
+			
 		}
 
 		/**
@@ -171,13 +179,20 @@ public class Server {
 		 * @return Un joueur identifié ou créé avec succès, ou null sinon.
 		 */
 		public Player identification(Message message) {
+			
+			/* Serveur saturé */
+			if (!isFull()) {
+				out.send(Message.IDNO, null, "Le serveur est plein. Réessayez ultérieurement");
+				return null;
+			}
+			
 			/* Anomalies */
 			if (message == null) {
 				System.err.println("Le client ne semble pas répondre");
 				return null;
 			}
 			if (!message.getType().equals(Message.REGI)) {
-				System.err.println("identification : Message de type autre que " + Message.REGI + " reçu");
+				out.send(Message.IDNO, null, "Vous devez d'abord vous connecter : REGI Username Password");
 				return null;
 			}
 
@@ -202,7 +217,7 @@ public class Server {
 			}
 
 			/* Déjà connecté */
-			if (available.get(username) != null) {
+			if (available.containsKey(p)) {
 				System.out.println("reconnexion");
 				out.send(Message.IDOK, null, "Bon retour " + username + " !");
 				return p;
@@ -219,6 +234,19 @@ public class Server {
 			/* Connexion classique */
 			out.send(Message.IDOK, null, "Bonjour " + username + " !");
 			return p;
+		}
+		
+		/**
+		 * Le serveur interrompt la connexion avec ce client
+		 */
+		public void kick() {
+			out.send(Message.KICK);
+			System.out.println("Fermeture de la socket de '" + player.username + "', " + socket.getRemoteSocketAddress());
+			try {
+				socket.close();
+			} catch (IOException e) {
+				System.err.println("Impossible de fermer la socket du joueur '" + player.username + "'. Déjà fermée ?");
+			}
 		}
 
 	}

@@ -32,7 +32,7 @@ public class Message {
 	public static final String USER = "USER";
 	public static final String NWOK = "NWOK";
 	public static final String FULL = "FULL";
-	public static final String RUOK = "RUOK";
+	public static final String KICK = "KICK";
 	public static final String RQDT = "RQDT";
 	public static final String PLNO = "PLNO";
 	public static final String PLOK = "PLOK";
@@ -119,7 +119,7 @@ public class Message {
 		StringBuilder sb = new StringBuilder(type);
 		if (args != null) {
 			for (String s : args) {
-				sb.append(' ').append(s);
+				sb.append(' ').append(s.replace(" ", SPACE_REPLACEMENT));
 			}
 		}
 		if (content != null) {
@@ -225,8 +225,8 @@ public class Message {
 			return 2;
 		case FULL:
 			return 0;
-		case RUOK:
-			return 1;
+		case KICK:
+			return 0;
 		case RQDT:
 			return 0;
 		case PLNO:

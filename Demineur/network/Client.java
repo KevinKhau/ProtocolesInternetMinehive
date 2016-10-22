@@ -30,6 +30,7 @@ public class Client {
 				MyBufferedReader in = new MyBufferedReader(new InputStreamReader(socket.getInputStream()))) {
 			this.out = out;
 			this.in = in;
+			System.out.println("Client lancé sur " + socket.getLocalSocketAddress());
 			connect();
 		} catch (UnknownHostException ex) {
 			System.err.println("Hôte inconnu : " + serverIP);
@@ -48,31 +49,39 @@ public class Client {
 	 */
 	public boolean connect() throws IOException {
 		List<Message> tests = new ArrayList<>();
-//		tests.add(new Message(Message.REGI, new String[]{"Adil"}, null)); //nbArgs
-//		tests.add(new Message(Message.REGI, new String[]{"Adil", "Challenger"}, null)); //mauvais mdp 
-//		tests.add(new Message(Message.REGI, new String[]{"Valloris", "Cylly"}, null)); //inGame
-//		tests.add(new Message(Message.REGI, new String[]{"BinômeDe", "Helmi"}, null)); //non existant OK
-//		tests.add(new Message(Message.REGI, new String[]{"Christophe", "Lam"}, null)); //déjà co : OK
+		tests.add(new Message(Message.LSUS, null, null)); //sans se connecter
+		tests.add(new Message(Message.REGI, new String[]{"Adil"}, null)); //nbArgs
+		tests.add(new Message(Message.REGI, new String[]{"Adil", "Challenger"}, null)); //mauvais mdp 
+		tests.add(new Message(Message.REGI, new String[]{"Valloris", "Cylly"}, null)); //inGame
+		tests.add(new Message(Message.REGI, new String[]{"BinômeDe", "Helmi"}, null)); //non existant OK
+		tests.add(new Message(Message.REGI, new String[]{"Christophe", "Lam"}, null)); //déjà co : OK
 		tests.add(new Message(Message.REGI, new String[]{"Adil", "Champion"}, "Je deviendrai challenger !")); // OK
-//		tests.add(new Message(Message.REGI, new String[]{"Adil", "Champion"}, null)); // Classique OK
+		tests.add(new Message(Message.REGI, new String[]{"Adil", "Champion"}, null)); // Classique OK
 		int index = 0;
 		Message msg;
 		do {
+			if (index == tests.size()) {
+				break;
+			}
 			out.send(tests.get(index));
 			index++;
 			msg = in.receive();
-			if (index == tests.size() - 1) {
-				break;
-			}
 			try {
 				Thread.sleep(3000);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
 		} while (!msg.getType().equals("IDOK"));
-		System.out.println("Connexion au serveur réussi. Je pars et ne préviens pas le serveur.");
-//		while(true);
-		return true;
+		System.out.println("Connexion au serveur réussie. Je pars et ne préviens pas le serveur.");
+		while(true) {
+			try {
+				Thread.sleep(5000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			System.out.println("client");
+		}
+//		return true;
 	}
 
 }
