@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.BindException;
+import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
@@ -88,7 +90,7 @@ public class Server {
 
 	public void launch() {
 		try (ServerSocket server = new ServerSocket(connectionPort)) {
-			System.out.println("Lancement serveur : IP=" + server.getInetAddress() + ", port=" + connectionPort + ".");
+			System.out.println("Lancement serveur : IP=" + InetAddress.getLocalHost() + ", port=" + connectionPort + ".");
 			while (true) {
 				new Thread(new Handler(server.accept())).start();;
 			}

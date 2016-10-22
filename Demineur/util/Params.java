@@ -9,7 +9,7 @@ public class Params {
 	public static boolean cleanReception = true;
 
 	/** Afficher les messages bruts avant expédition */
-	public static boolean rawExpedition = false;
+	public static boolean rawExpedition = true;
 	/** Afficher les messages codés pour expédition */
 	public static boolean codedExpedition = true;
 	

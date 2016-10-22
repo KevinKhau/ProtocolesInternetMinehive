@@ -30,7 +30,7 @@ public class Client {
 		tests.add(new Message(Message.REGI, new String[]{"Adil", "Challenger"}, null)); //mauvais mdp 
 		tests.add(new Message(Message.REGI, new String[]{"Valloris", "Cylly"}, null)); //inGame
 		tests.add(new Message(Message.REGI, new String[]{"BinômeDe", "Helmi"}, null)); //non existant OK
-		tests.add(new Message(Message.REGI, new String[]{"Christophe", "Lam"}, null)); //déjà co : OK
+		tests.add(new Message(Message.REGI, new String[]{"Christophe", "Lam"}, null)); //classique OK
 		tests.add(new Message(Message.REGI, new String[]{"Adil", "Champion"}, "Je deviendrai challenger !")); // OK
 		tests.add(new Message(Message.REGI, new String[]{"Adil", "Champion"}, null)); // Classique OK
 		for (Message msg : tests) {
