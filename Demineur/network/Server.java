@@ -1,6 +1,7 @@
 package network;
 
 import static util.Message.validArguments;
+import static util.PlayersManager.getPlayersFromXML;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -16,6 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import data.Player;
 import util.Message;
 import util.MyBufferedReader;
 import util.MyPrintWriter;
@@ -27,7 +29,7 @@ public class Server {
 
 	final int connectionPort = 5555;
 
-	Map<String, Player> users = new HashMap<>();
+	Map<String, Player> users = getPlayersFromXML();
 
 	public static final int MAX_ONLINE = 110;
 	Map<Player, Handler> available = new HashMap<>();
@@ -48,23 +50,9 @@ public class Server {
 
 	/** Série d'initialisations destinées à tester le programme */
 	private void testArea() {
-		Player adil = new Player("Adil", "Champion", 10);
-		Player aylin = new Player("Aylin", "Kocoglu", 90);
-		Player christophe = new Player("Christophe", "Lam", 20);
-		Player alhassane = new Player("AlHassane", "Megningta", 80);
-		Player valloris = new Player("Valloris", "Cylly", 30);
-		Player somaya = new Player("Somaya", "Benkhemis", 70);
-
-		addUser(adil);
-		addUser(aylin);
-		addUser(christophe);
-		addUser(alhassane);
-		addUser(valloris);
-		addUser(somaya);
-
 		HostData empty = new HostData("Partie_1", "ChocoboLand", 7777);
-		addInGame(valloris, empty);
-		addInGame(somaya, empty);
+		addInGame(users.get("Valloris"), empty);
+		addInGame(users.get("Somaya"), empty);
 	}
 
 	public void addUser(Player player) {

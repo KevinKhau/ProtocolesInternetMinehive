@@ -1,4 +1,4 @@
-package network;
+package data;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
@@ -12,18 +12,23 @@ public class Player {
 	public static final int INITIAL_POINTS = 0;
 	
 	@XmlAttribute (name = "username", required = true)
-	String username;
+	public String username;
 	
 	@XmlAttribute (name = "password", required = true)
-	String password;
+	public String password;
 	
 	@XmlElement (name = "points")
-	int points;
+	public int points;
 	
 	// Necessary for JAXB
 	public Player() {
 		super();
 		this.points = INITIAL_POINTS;
+	}
+
+	@Override
+	public String toString() {
+		return "Player [username=" + username + ", password=" + password + ", points=" + points + "]";
 	}
 
 	public Player(String username, String password, int points) {
