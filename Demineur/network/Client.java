@@ -13,6 +13,8 @@ import util.Message;
 import util.MyBufferedReader;
 import util.MyPrintWriter;
 
+// THINK Doit attendre passivement (wait()) tant qu'il n'est pas requis (bouton interface graphique, user input déclenchant notify()).
+// THINK Doit pouvoir être alerté d'un KICK du serveur. Thread à part rien que pour l'écoute ?
 public class Client {
 	String serverIP = "localhost";
 	final int serverPort = 5555;
@@ -46,7 +48,7 @@ public class Client {
 	}
 
 	public Client(Message send) {
-		this.message = send; //TODO remove l'attribut message, ici seulement pour tests
+		this.message = send; // TEST remove l'attribut message, ici seulement pour tests
 		try (Socket socket = new Socket(serverIP, serverPort);
 				MyPrintWriter out = new MyPrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
 				MyBufferedReader in = new MyBufferedReader(new InputStreamReader(socket.getInputStream()))) {

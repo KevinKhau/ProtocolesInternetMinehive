@@ -2,6 +2,7 @@ package network;
 
 import static util.Message.validArguments;
 import static util.PlayersManager.getPlayersFromXML;
+import static util.PlayersManager.writePlayer;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -53,10 +54,6 @@ public class Server {
 		HostData empty = new HostData("Partie_1", "ChocoboLand", 7777);
 		addInGame(users.get("Valloris"), empty);
 		addInGame(users.get("Somaya"), empty);
-	}
-
-	public void addUser(Player player) {
-		users.put(player.username, player);
 	}
 
 	public boolean addAvailable(Player player, Handler handler) {
@@ -194,6 +191,7 @@ public class Server {
 			/* Première fois */
 			if (p == null) {
 				p = new Player(username, password, Player.INITIAL_POINTS);
+				writePlayer(p);
 				out.send(Message.IDOK, null, "Bienvenue " + username + " !");
 				return p;
 			}

@@ -19,12 +19,12 @@ public class MyBufferedReader extends BufferedReader {
 	}
 
 	public Message receive() throws IOException {
+		String raw = super.readLine();
+
 		String before = "< Réception : ";
 		if (Params.rawReception || Params.cleanReception) {
 			System.out.print(before);
 		}
-		
-		String raw = super.readLine();
 		
 		if (Params.rawReception) {
 			System.out.println("'" + raw + "' (brut).");
