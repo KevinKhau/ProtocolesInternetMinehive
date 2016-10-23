@@ -39,7 +39,7 @@ public class Server {
 
 	public static final int ACTIVE_DELAY = 30000;
 	public static final int CONNECTED_DELAY = 3000;
-	
+
 	public static void main(String[] args) {
 		Server server = new Server();
 		server.launch();
@@ -74,9 +74,11 @@ public class Server {
 
 	public void launch() {
 		try (ServerSocket server = new ServerSocket(connectionPort)) {
-			System.out.println("Lancement serveur : IP=" + InetAddress.getLocalHost() + ", port=" + connectionPort + ".");
+			System.out
+					.println("Lancement serveur : IP=" + InetAddress.getLocalHost() + ", port=" + connectionPort + ".");
 			while (true) {
-				new Thread(new Handler(server.accept())).start();;
+				new Thread(new Handler(server.accept())).start();
+				;
 			}
 		} catch (BindException e) {
 			System.err.println("Socket serveur déjà en cours d'utilisation.");
@@ -92,8 +94,7 @@ public class Server {
 	public boolean isFull() {
 		return available.size() + inGame.size() >= MAX_ONLINE;
 	}
-	
-	
+
 	/**
 	 * Gère un seul client
 	 *
@@ -101,10 +102,10 @@ public class Server {
 	class Handler implements Runnable {
 
 		Socket socket;
-		
+
 		MyPrintWriter out;
 		MyBufferedReader in;
-		
+
 		Player player;
 
 		public Handler(Socket socket) {
@@ -115,20 +116,17 @@ public class Server {
 				this.out = new MyPrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
 				this.in = new MyBufferedReader(new InputStreamReader(socket.getInputStream()));
 			} catch (IOException e) {
-				System.err.println("Pas de réponse de la socket client : " + socket.getRemoteSocketAddress() +  ".");
+				System.err.println("Pas de réponse de la socket client : " + socket.getRemoteSocketAddress() + ".");
 				e.printStackTrace();
 			}
 		}
 
 		@Override
 		public void run() {
-			Message msg = null;
 			try {
-				do {
-					msg = in.receive();
-					player = login(msg);
-				} while (player == null);
-				System.out.println("Utilisateur '" + player.username + "' connecté depuis " + socket.getRemoteSocketAddress());
+				player = identification();
+				System.out.println(
+						"Utilisateur '" + player.username + "' connecté depuis " + socket.getRemoteSocketAddress());
 				addAvailable(player, this);
 				while (socket.isBound() && socket.isConnected() && !socket.isClosed()) {
 					Thread.sleep(20000);
@@ -146,44 +144,45 @@ public class Server {
 				if (player != null) {
 					name = "Utilisateur '" + player.username + "' ; ";
 				}
-				System.err.println(name + "Connexion perdue avec le client : " + socket.getRemoteSocketAddress() +  ".");
+				System.err.println(name + "Connexion perdue avec le client : " + socket.getRemoteSocketAddress() + ".");
 			} catch (IOException e) {
-				System.err.println("Pas de réponse de la socket client : " + socket.getRemoteSocketAddress() +  ".");
+				System.err.println("Pas de réponse de la socket client : " + socket.getRemoteSocketAddress() + ".");
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
-			
+
 		}
 
 		/**
-		 * Pour REGI : connecte un joueur déjà existant, ou l'enregistre. Gère
-		 * l'envoi du IDOK ou IDNO.
+		 * Pour REGI : identifie un joueur déjà existant, l'enregistre, ou invte
+		 * à réessayer jusqu'à validation. Gère les réponses
+		 * {@link Message#IDOK}, {@link Message#IDNO}, {@link Message#IDIG}.
 		 * 
-		 * @param Message
-		 *            Reçu du client, de type REGI avec username et password du client
-		 * @return Un joueur identifié ou créé avec succès, ou null sinon.
+		 * @return Un joueur identifié ou créé avec succès, ou tentatives récursives sinon.
+		 * @throws IOException
 		 */
-		public Player login(Message message) {
+		public Player identification() throws IOException {
+			Message message = in.receive();
 			/* Serveur saturé */
 			if (isFull()) {
 				out.send(Message.IDNO, null, "Le serveur est plein. Réessayez ultérieurement.");
-				return null;
+				return identification();
 			}
-			
+
 			/* Anomalies */
 			if (message == null) {
 				System.err.println("Le client ne semble pas répondre");
-				return null;
+				return identification();
 			}
 			if (!message.getType().equals(Message.REGI)) {
 				out.send(Message.IDNO, null, "Vous devez d'abord vous connecter : REGI Username Password");
-				return null;
+				return identification();
 			}
 
 			/* Arguments et identification */
 			if (!validArguments(message)) {
 				out.send(Message.IDNO, null, "Identifiant et/ou Mot de passe manquant");
-				return null;
+				return identification();
 			}
 			String username = message.getArg(0);
 			String password = message.getArg(1);
@@ -191,6 +190,7 @@ public class Server {
 			/* Première fois */
 			if (p == null) {
 				p = new Player(username, password, Player.INITIAL_POINTS);
+				users.put(p.username, p);
 				writePlayer(p);
 				out.send(Message.IDOK, null, "Bienvenue " + username + " !");
 				return p;
@@ -198,7 +198,7 @@ public class Server {
 			/* Mauvais mot de passe */
 			if (!p.password.equals(password)) {
 				out.send(Message.IDNO, null, "Mauvais mot de passe");
-				return null;
+				return identification();
 			}
 
 			/* Déjà connecté */
@@ -213,20 +213,22 @@ public class Server {
 			if (hd != null) {
 				out.send(Message.IDIG, new String[] { hd.IP, String.valueOf(hd.port) },
 						"Finissez votre partie en cours !");
-				return null;
+				return identification();
 			}
 
 			/* Connexion classique */
 			out.send(Message.IDOK, null, "Bonjour " + username + " !");
 			return p;
 		}
-		
+
 		/**
-		 * Le serveur interrompt la connexion avec ce client. Player ne doit pas être null, et donc la connexion doit déjà avoir été établie.
+		 * Le serveur interrompt la connexion avec ce client. Player ne doit pas
+		 * être null, et donc la connexion doit déjà avoir été établie.
 		 */
 		public void kick() {
 			out.send(Message.KICK);
-			System.out.println("Fermeture de la socket de '" + player.username + "', " + socket.getRemoteSocketAddress());
+			System.out
+					.println("Fermeture de la socket de '" + player.username + "', " + socket.getRemoteSocketAddress());
 			try {
 				socket.close();
 			} catch (IOException e) {
