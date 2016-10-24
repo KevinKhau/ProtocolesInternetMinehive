@@ -38,7 +38,7 @@ public class ClientTCP extends Thread {
 		} catch (SocketException ex) {
 			System.err.println("Connexion non établie ou interrompue avec : " + addressName);
 		} catch (IOException e) {
-			System.err.println("Echec de traitement d'un paquet.");
+			System.err.println("Communication impossible avec le serveur.");
 			e.printStackTrace();
 		}
 	}

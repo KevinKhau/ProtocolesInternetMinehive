@@ -20,15 +20,16 @@ public class ServeurTCP {
 	public final static int activeDelay = 500;
 
 	/**
-	 * Envoie des messages à un client spécifique
+	 * Envoie des messages à un client spécifique. N'est pas en écoute
+	 * bloquante, donc utilise un basique RUOK/IMOK pour vérifier la connexion.
 	 */
 	class Messagerie implements Closeable {
 		Socket socket;
 		PrintWriter out;
 		BufferedReader in;
-		
+
 		int clientID;
-		
+
 		public Messagerie(Socket socket, PrintWriter pw, BufferedReader br) {
 			this.socket = socket;
 			this.out = pw;
@@ -54,7 +55,7 @@ public class ServeurTCP {
 					while (true) {
 						out.println(RUOK);
 						try {
-							String rep = in.readLine(); 
+							String rep = in.readLine();
 							if (rep == null || !rep.equals(ClientTCP.IMOK)) {
 								close();
 								break;
@@ -82,10 +83,10 @@ public class ServeurTCP {
 		@Override
 		public void close() {
 			try {
-				System.err.println("Le client " + Messagerie.this.clientID
-						+ " ne répond pas. Fermeture de la connexion.");
-				socket.close();
+				System.err.println(
+						"Le client " + Messagerie.this.clientID + " ne répond pas. Fermeture de la connexion.");
 				out.close();
+				socket.close();
 				in.close();
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -112,7 +113,8 @@ public class ServeurTCP {
 					synchronized (this) {
 						messageries.removeIf(m -> inactive(m)); // Java 8 <3
 						if (messageries.isEmpty()) {
-							wait(); // pour ne pas faire tourner inutilement le while(true)
+							wait(); // pour ne pas faire tourner inutilement le
+									// while(true)
 						}
 						messageries.forEach(m -> {
 							new Thread() {
@@ -178,7 +180,7 @@ public class ServeurTCP {
 			e.printStackTrace();
 			System.err.println("Valeur de port invalide, doit être entre 0 et 65535.");
 		} catch (IOException e) {
-			System.err.println("Problème de traitement de la socket : port " + connectionPort + ".");
+			System.err.println("Communication impossible avec un client.");
 			e.printStackTrace();
 		}
 	}

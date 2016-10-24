@@ -1,5 +1,9 @@
 package util;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
 import game.Board;
 
 /**
@@ -32,6 +36,7 @@ public class Message {
 	public static final String USER = "USER";
 	public static final String NWOK = "NWOK";
 	public static final String FULL = "FULL";
+	public static final String NWNO = "NWNO";
 	public static final String KICK = "KICK";
 	public static final String RQDT = "RQDT";
 	public static final String PLNO = "PLNO";
@@ -57,14 +62,73 @@ public class Message {
 	public static final String ENDS = "ENDS";
 	public static final String IDKH = "IDKH";
 
+	/** Associe à chaque type de message le nombre de paramètres attendus */
+	public static final Map<String, Integer> TYPES;
+	static {
+		Map<String, Integer> map = new HashMap<>();
+		/* Client */
+		map.put(REGI, 2);
+		map.put(LSMA, 0);
+		map.put(LSAV, 0);
+		map.put(LSUS, 0);
+		map.put(NWMA, null);
+		map.put(LEAV, 0);
+		map.put(IMOK, 0);
+		map.put(JOIN, 2);
+		map.put(CLIC, 2);
+		map.put(IDKC, 0);
+
+		/* Server */
+		map.put(IDOK, 0);
+		map.put(IDNO, 0);
+		map.put(IDIG, 2);
+		map.put(LMNB, 1);
+		map.put(MATC, null);
+		map.put(LANB, 1);
+		map.put(AVAI, 2);
+		map.put(LUNB, 1);
+		map.put(USER, 2);
+		map.put(NWOK, 2);
+		map.put(FULL, 0);
+		map.put(NWNO, 0);
+		map.put(KICK, 0);
+		map.put(RQDT, 0);
+		map.put(PLNO, 1);
+		map.put(PLOK, 2);
+		map.put(IDKS, 0);
+
+		/* Host */
+		map.put(JNNO, 0);
+		map.put(JNOK, 1);
+		map.put(BDIT, 1 + Board.WIDTH);
+		map.put(IGNB, 1);
+		map.put(IGPL, 5);
+		map.put(CONN, 5);
+		map.put(DECO, 1);
+		map.put(LATE, 0);
+		map.put(OORG, 2);
+		map.put(SQRD, 5);
+		map.put(ENDC, 1);
+		map.put(SCPC, 5);
+		map.put(SDDT, null);
+		map.put(PLIN, 3);
+		map.put(SCPS, 2);
+		map.put(ENDS, 1);
+		map.put(IDKH, 0);
+
+		TYPES = Collections.unmodifiableMap(map);
+	}
+
 	public static final String POSTFIX = "";
 	public static final String SEPARATOR = "#";
 
 	private String type;
 	private String[] args;
-	/** Contenu souvent optionnel après les paramètres obligatoires du message.
+	/**
+	 * Contenu souvent optionnel après les paramètres obligatoires du message.
 	 * Propre dans l'objet, mais avec des dièses (#) au lieu d'espaces ( ) lors
-	 * de l'envoi */
+	 * de l'envoi
+	 */
 	private String content;
 
 	public Message(String type, String[] args, String content) {
@@ -105,9 +169,10 @@ public class Message {
 	public static String encode(Message message) {
 		StringBuilder sb = new StringBuilder(message.type);
 		if (message.args != null) {
-			int expected = getExpectedArgsLength(message.type);
-			if (expected != -1 && expected != message.args.length) {
-				System.err.println("~Encodage, '" + message.toString() + ": Mauvais nombre d'arguments, " + expected + " attendus");
+			Integer expected = getExpectedArgsLength(message.type);
+			if (expected != null && expected != message.args.length) {
+				System.err.println("~Encodage, '" + message.toString() + ": Mauvais nombre d'arguments, " + expected
+						+ " attendus");
 			}
 			for (String s : message.args) {
 				sb.append(SEPARATOR).append(s);
@@ -118,7 +183,7 @@ public class Message {
 		}
 		return sb.toString();
 	}
-	
+
 	public static String encode(String type) {
 		return encode(type, null, null);
 	}
@@ -131,36 +196,50 @@ public class Message {
 		return encode(new Message(type, args, content));
 	}
 
+	/**
+	 * Retranscrit un String en un message. Si le nombre de paramètres pour un
+	 * type de message est inconnu (-1), alors tout ce qui suit le type est
+	 * considéré comme argument.
+	 * 
+	 * @param receive
+	 * @return
+	 */
 	public static Message decode(String receive) {
 		String[] slices = receive.split(SEPARATOR);
 		String type = slices[0];
-		int nbArgs = getExpectedArgsLength(type);
-		if (nbArgs == -1) {
-			return new Message(type, null, null);
+		if (!TYPES.containsKey(type)) {
+			System.err.println("Type de message '" + type + "' non reconnu.");
 		}
-		String[] args = new String[nbArgs];
+		Integer expected = getExpectedArgsLength(type);
+		if (expected == null) {
+			expected = slices.length - 1;
+		}
+		String[] args = new String[expected];
 		String content = null;
 		try {
-			for (int i = 0; i < nbArgs; i++) {
+			for (int i = 0; i < expected; i++) {
 				args[i] = slices[i + 1];
 			}
 		} catch (ArrayIndexOutOfBoundsException e) {
-			System.err.println("~Décodage, '" + receive + "' : Mauvais nombre d'arguments, " + nbArgs + " attendus.");
+			System.err.println("~Décodage, '" + receive + "' : Mauvais nombre d'arguments, " + expected + " attendus.");
 		}
-		if (slices.length > nbArgs + 1) {
-			content = slices[nbArgs + 1];
+		if (slices.length > expected + 1) {
+			content = slices[expected + 1];
 		}
 		return new Message(type, args, content);
 	}
 
 	/**
-	 * Vérifie qu'il y a le bon nombre d'arguments dans un message
+	 * Vérifie qu'il y a le bon nombre d'arguments dans un message donné.
 	 * 
 	 * @param message
 	 * @return true si nombre d'arguments trouvés correspond au type du message
 	 */
 	public static boolean validArguments(Message message) {
-		int expected = getExpectedArgsLength(message.type);
+		Integer expected = getExpectedArgsLength(message.type);
+		if (expected == null && message.getArgs() == null) {
+			return true;
+		}
 		if (expected != message.getArgs().length) {
 			return false;
 		}
@@ -170,7 +249,6 @@ public class Message {
 			}
 		}
 		return true;
-
 	}
 
 	/**
@@ -178,98 +256,11 @@ public class Message {
 	 * 
 	 * @param type
 	 *            Type du message, en 4 caractères
-	 * @return Nombre d'arguments, ou -1 s'il n'est pas déterminable
+	 * @return Nombre d'arguments, ou null si non pas déterminable ou mauvais
+	 *         type
 	 */
-	public static int getExpectedArgsLength(String type) {
-		switch (type) {
-		/* Server */
-		case REGI:
-			return 2;
-		case LSMA:
-			return 0;
-		case LSAV:
-			return 0;
-		case LSUS:
-			return 0;
-		case NWMA:
-			return 10;
-		case LEAV:
-			return 0;
-		case IMOK:
-			return 0;
-		case JOIN:
-			return 2;
-		case CLIC:
-			return 2;
-
-		/* Client */
-		case IDOK:
-			return 0;
-		case IDNO:
-			return 0;
-		case IDIG:
-			return 2;
-		case LMNB:
-			return 1;
-		case MATC:
-			return -1;
-		case LANB:
-			return 1;
-		case AVAI:
-			return 2;
-		case LUNB:
-			return 1;
-		case USER:
-			return 2;
-		case NWOK:
-			return 2;
-		case FULL:
-			return 0;
-		case KICK:
-			return 0;
-		case RQDT:
-			return 0;
-		case PLNO:
-			return 2;
-		case PLOK:
-			return 2;
-
-		/* Host */
-		case JNNO:
-			return 0;
-		case JNOK:
-			return 1;
-		case BDIT:
-			return 1 + Board.WIDTH;
-		case IGNB:
-			return 1;
-		case IGPL:
-			return 5;
-		case CONN:
-			return 5;
-		case DECO:
-			return 1;
-		case LATE:
-			return 0;
-		case OORG:
-			return 2;
-		case SQRD:
-			return 5;
-		case ENDC:
-			return 1;
-		case SCPC:
-			return 5;
-		case SDDT:
-			return -1;
-		case PLIN:
-			return 3;
-		case SCPS:
-			return 2;
-		case ENDS:
-			return 1;
-		default:
-			return -1;
-		}
+	public static Integer getExpectedArgsLength(String type) {
+		return TYPES.get(type);
 	}
 
 	/** Obtenir le message proprement lors de la réception utilisateur */
@@ -285,6 +276,42 @@ public class Message {
 			sb.append(' ').append(content);
 		}
 		return sb.toString();
+	}
+
+	/**
+	 * Contrôle le contenu d'un string pour en faire un message. Beaucoup plus
+	 * strict que {@link Message#decode(String)}.
+	 * 
+	 * @param string
+	 * @return Message valide respectant le format du protocole
+	 */
+	public static Message validMessage(String string) throws IllegalArgumentException {
+		if (string.contains("\n") || string.contains("\r")) {
+			throw new IllegalArgumentException("Sauts de ligne interdits");
+		}
+		String[] slices = string.split(SEPARATOR);
+		String type = slices[0];
+		if (!TYPES.containsKey(type)) {
+			throw new IllegalArgumentException(
+					"Type de message '" + type + "' non reconnu. Indication : '" + SEPARATOR + "' séparateur.");
+		}
+		Integer expected = getExpectedArgsLength(type);
+		if (expected != null && expected > slices.length - 1) {
+			throw new IllegalArgumentException(
+					"Nombre de paramètres pour '" + type + "' incorrect. " + expected + " attendus.");
+		}
+		if (expected == null) {
+			expected = slices.length - 1;
+		}
+		String[] args = new String[expected];
+		String content = null;
+		for (int i = 0; i < expected; i++) {
+			args[i] = slices[i + 1];
+		}
+		if (slices.length > expected + 1) {
+			content = slices[expected + 1];
+		}
+		return new Message(type, args, content);
 	}
 
 }

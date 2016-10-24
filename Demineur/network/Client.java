@@ -6,49 +6,32 @@ import java.io.OutputStreamWriter;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Scanner;
 
 import util.Message;
 import util.MyBufferedReader;
 import util.MyPrintWriter;
 
-// THINK Doit attendre passivement (wait()) tant qu'il n'est pas requis (bouton interface graphique, user input déclenchant notify()).
 // THINK Doit pouvoir être alerté d'un KICK du serveur. Thread à part rien que pour l'écoute ?
 public class Client {
-	String serverIP = "localhost";
+	final String serverIP = "localhost";
 	final int serverPort = 5555;
-	Socket socket;
 
+	Socket socket;
 	MyPrintWriter out;
 	MyBufferedReader in;
 
-	Message message;
+	boolean running = true;
+
+	Listener listener;
+	Scanner reader = new Scanner(System.in);
 
 	public static void main(String[] args) throws IOException {
-		List<Message> tests = new ArrayList<>();
-		tests.add(new Message(Message.LSUS, null, null)); //sans se connecter
-		tests.add(new Message(Message.REGI, new String[]{"Adil"}, null)); //nbArgs
-		tests.add(new Message(Message.REGI, new String[]{"Adil", "Challenger"}, null)); //mauvais mdp 
-		tests.add(new Message(Message.REGI, new String[]{"Valloris", "Cylly"}, null)); //inGame
-		tests.add(new Message(Message.REGI, new String[]{"BinômeDe", "Helmi"}, null)); //non existant OK
-		tests.add(new Message(Message.REGI, new String[]{"Christophe", "Lam"}, null)); //classique OK
-		tests.add(new Message(Message.REGI, new String[]{"Adil", "Champion"}, "Je deviendrai challenger !")); // OK
-		tests.add(new Message(Message.REGI, new String[]{"Adil", "Champion"}, null)); // Classique OK
-		for (Message msg : tests) {
-			new Thread() {
-				public void run() {new Client(msg);};
-			}.start();
-			try {
-				Thread.sleep(5000);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}
+		new Client();
 	}
 
-	public Client(Message send) {
-		this.message = send; // TEST remove l'attribut message, ici seulement pour tests
+	public Client() {
 		try (Socket socket = new Socket(serverIP, serverPort);
 				MyPrintWriter out = new MyPrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
 				MyBufferedReader in = new MyBufferedReader(new InputStreamReader(socket.getInputStream()))) {
@@ -56,34 +39,52 @@ public class Client {
 			this.out = out;
 			this.in = in;
 			System.out.println("Client lancé sur " + socket.getLocalSocketAddress());
+			listener = new Listener(in);
+			listener.start();
 
-			launch();
-			
+			while (!login());
+			while (running) {
+				communicate();
+			}
+		} catch (NoSuchElementException e) {
+			e.printStackTrace();
 		} catch (UnknownHostException ex) {
 			System.err.println("Hôte inconnu : " + serverIP);
 		} catch (SocketException ex) {
 			System.err.println("Connexion non établie ou interrompue avec : " + serverIP);
 		} catch (IOException e) {
-			System.err.println("Echec de traitement d'un DatagramPacket.");
+			System.err.println("Communication impossible avec le serveur.");
 			e.printStackTrace();
 		}
 	}
 
-	public void launch() {
+	/**
+	 * Attend une action de la part de l'utilisateur avant d'envoyer un message
+	 * au serveur
+	 * 
+	 * @return Message interprété par l'action utilisateur
+	 */
+	public Message input() {
+		return keyboardInput(); // FUTURE Changer en onClic() après
+								// implémentation interface graphique
+	}
+
+	/**
+	 * Attend une entrée clavier de la part de l'utilisateur
+	 * 
+	 * @return Message valide
+	 */
+	private Message keyboardInput() {
+		System.out.println("Envoyez un message au serveur. Format : TYPE[#ARG]...[#Contenu] : ");
+		Message m;
 		try {
-			login(message);
-			while (true) {
-				try {
-					Thread.sleep(10000);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-				System.out.println("Client actif : " + socket.getLocalSocketAddress());
-			}
-		} catch (IOException e1) {
-			System.err.println("Communication impossible avec le serveur");
+			m = Message.validMessage(reader.nextLine());
+		} catch (IllegalArgumentException e) {
+			System.err.println(e.getMessage());
+			return keyboardInput();
 		}
-	};
+		return m;
+	}
 
 	/**
 	 * Tente de s'identifier auprès du serveur
@@ -91,26 +92,75 @@ public class Client {
 	 * @return false tant que le serveur n'a pas envoyé IDOK
 	 * @throws IOException
 	 */
-	public boolean login(Message send) throws IOException {
+	private boolean login() throws IOException {
+		System.out.println("Tentative de connexion au serveur.");
+		Message send = input();
 		if (!send.getType().equals(Message.REGI)) {
-			System.err.println("Tentative de connexion avec un message autre que " + Message.REGI + ".");
+			System.err.println("Type de message de connexion invalide. Attendu : " + Message.REGI + ".");
+			return login();
 		}
-		Message rcv;
 		out.send(send);
-		rcv = in.receive();
+		try {
+			listener.wait();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		Message rcv = in.receive();
+		System.out.println("Plus : " + rcv);
+		listener.notify();
 		switch (rcv.getType()) {
 		case Message.IDOK:
 			System.out.println("Connexion au serveur réussie.");
 			return true;
 		case Message.IDNO:
-			System.out.println("Connexion échouée : " + rcv.getContent());
+			System.out.println("Connexion échouée : " + rcv.getContent() + ".");
 			return false;
 		case Message.IDIG:
 			System.out.println(rcv);
 			return false;
 		default:
-			System.err.println("Réponse anormale du serveur.");
+			System.err.println("Réponse inattendue du serveur : " + rcv + ".");
 			return false;
+		}
+	}
+
+	public void communicate() throws IOException {
+		Message m = input();
+		out.send(m);
+		if (m.getType().equals(Message.LEAV)) {
+			System.out.println("Fin de la communication avec le serveur.");
+			running = false;
+			return;
+		}
+		in.receive();
+	}
+
+	/**
+	 * Écoute en performance le serveur en cas de message spécifique, ou pour
+	 * repérer sa déconnexion, mais doit être mis en pause lorsque l'utilisateur
+	 * agit.
+	 */
+	private class Listener extends Thread {
+		MyBufferedReader in;
+
+		private Listener(MyBufferedReader br) {
+			this.in = br;
+		}
+
+		@Override
+		public synchronized void run() {
+			try {
+				String rcv;
+				do {
+					rcv = in.readLine();
+				} while (!rcv.split(Message.SEPARATOR)[0].equals(Message.KICK));
+				System.out.println("< Reçu : " + rcv);
+				System.out.println("Éjecté du serveur. Fermeture de la connexion.");
+				in.close();
+				socket.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 

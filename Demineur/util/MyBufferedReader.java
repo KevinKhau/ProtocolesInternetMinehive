@@ -31,8 +31,7 @@ public class MyBufferedReader extends BufferedReader {
 		}
 		
 		if (raw == null) {
-			System.err.println("Message vide reçu. Interruption.");
-			throw new SocketException();
+			throw new IllegalArgumentException("Message vide reçu.");
 		}
 		Message msg = decode(raw);
 		

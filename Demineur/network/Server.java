@@ -4,6 +4,7 @@ import static util.Message.validArguments;
 import static util.PlayersManager.getPlayersFromXML;
 import static util.PlayersManager.writePlayer;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
@@ -14,10 +15,11 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
+import data.HostData;
 import data.Player;
 import util.Message;
 import util.MyBufferedReader;
@@ -28,37 +30,46 @@ import util.MyPrintWriter;
  */
 public class Server {
 
-	final int connectionPort = 5555;
+	InetAddress serverIP;
+	final int serverPort = 5555;
 
 	Map<String, Player> users = getPlayersFromXML();
 
+	public static final String ALL = "ALL";
 	public static final int MAX_ONLINE = 110;
-	Map<Player, Handler> available = new HashMap<>();
-	Map<Player, HostData> inGame = new HashMap<>();
+	Map<Player, ClientHandler> available = new ConcurrentHashMap<>();
+	Map<Player, HostData> inGame = new ConcurrentHashMap<>();
 	List<HostData> hostsData = new ArrayList<>();
 
 	public static final int ACTIVE_DELAY = 30000;
 	public static final int CONNECTED_DELAY = 3000;
 
 	public static void main(String[] args) {
-		Server server = new Server();
-		server.launch();
+		new Server();
 	}
 
 	public Server() {
-		testArea();
+		try (ServerSocket server = new ServerSocket(serverPort)) {
+			serverIP = InetAddress.getLocalHost();
+			System.out.println("Lancement serveur : IP=" + serverIP + ", port=" + serverPort + ".");
+			while (true) {
+				new Thread(new ClientHandler(server.accept())).start();
+			}
+		} catch (BindException e) {
+			System.err.println("Socket serveur déjà en cours d'utilisation.");
+		} catch (IllegalArgumentException e) {
+			System.err.println("Valeur de port invalide, doit être entre 0 et 65535.");
+			e.printStackTrace();
+		} catch (IOException e) {
+			System.err.println("Problème de traitement de la socket : port " + serverPort + ".");
+			System.err.println("Port occupé ?");
+			e.printStackTrace();
+		}
 	}
 
-	/** Série d'initialisations destinées à tester le programme */
-	private void testArea() {
-		HostData empty = new HostData("Partie_1", "ChocoboLand", 7777);
-		addInGame(users.get("Valloris"), empty);
-		addInGame(users.get("Somaya"), empty);
-	}
-
-	public boolean addAvailable(Player player, Handler handler) {
+	public boolean addAvailable(Player player, ClientHandler handler) {
 		if (!isFull()) {
-			Handler h = available.get(player);
+			ClientHandler h = available.get(player);
 			if (h != null) {
 				h.kick();
 			}
@@ -72,25 +83,6 @@ public class Server {
 		inGame.put(player, hostData);
 	}
 
-	public void launch() {
-		try (ServerSocket server = new ServerSocket(connectionPort)) {
-			System.out
-					.println("Lancement serveur : IP=" + InetAddress.getLocalHost() + ", port=" + connectionPort + ".");
-			while (true) {
-				new Thread(new Handler(server.accept())).start();
-				;
-			}
-		} catch (BindException e) {
-			System.err.println("Socket serveur déjà en cours d'utilisation.");
-		} catch (IllegalArgumentException e) {
-			System.err.println("Valeur de port invalide, doit être entre 0 et 65535.");
-			e.printStackTrace();
-		} catch (IOException e) {
-			System.err.println("Problème de traitement de la socket : port " + connectionPort + ".");
-			e.printStackTrace();
-		}
-	}
-
 	public boolean isFull() {
 		return available.size() + inGame.size() >= MAX_ONLINE;
 	}
@@ -99,16 +91,17 @@ public class Server {
 	 * Gère un seul client
 	 *
 	 */
-	class Handler implements Runnable {
+	class ClientHandler implements Runnable, Closeable {
 
 		Socket socket;
-
 		MyPrintWriter out;
 		MyBufferedReader in;
 
+		boolean running = true;
+
 		Player player;
 
-		public Handler(Socket socket) {
+		public ClientHandler(Socket socket) {
 			super();
 			System.out.println("Nouvelle connexion : " + socket.getRemoteSocketAddress());
 			try {
@@ -125,44 +118,60 @@ public class Server {
 		public void run() {
 			try {
 				player = identification();
+				addAvailable(player, this);
 				System.out.println(
 						"Utilisateur '" + player.username + "' connecté depuis " + socket.getRemoteSocketAddress());
-				addAvailable(player, this);
-				while (socket.isBound() && socket.isConnected() && !socket.isClosed()) {
-					Thread.sleep(20000);
-					System.out.println(socket.getRemoteSocketAddress() + ", le serveur reste à l'écoute");
+				kick();
+				while (running) {
+					handle();
 				}
-				System.out.println(socket.getRemoteSocketAddress() + " : Handler end");
+			} catch (InterruptedException e) {
+				System.err.println("Interruption de Thread.");
 			} catch (SocketTimeoutException e) {
 				System.err.println("Le client n'a pas répondu à temps.");
 			} catch (BindException e) {
 				System.err.println("Socket serveur déjà en cours d'utilisation.");
 			} catch (IllegalArgumentException e) {
-				System.err.println("Valeur de port invalide, doit être entre 0 et 65535.");
+				System.err.println(e.getMessage());
+				System.out.println("Interruption de la communication avec le client");
+				close();
 			} catch (SocketException e) {
+				if (e.getMessage() == null) {
+					e.printStackTrace();
+				}
 				String name = "";
 				if (player != null) {
-					name = "Utilisateur '" + player.username + "' ; ";
+					name = "Utilisateur '" + player.username + "'";
 				}
-				System.err.println(name + "Connexion perdue avec le client : " + socket.getRemoteSocketAddress() + ".");
+				if (e.getMessage().equals("Socket closed")) {
+					System.out.println("Fin de la communication : " + name + socket.getRemoteSocketAddress() + ".");
+				} else {
+					System.err.println(e.getMessage() + ", client : " + name + socket.getRemoteSocketAddress() + ".");
+				}
 			} catch (IOException e) {
-				System.err.println("Pas de réponse de la socket client : " + socket.getRemoteSocketAddress() + ".");
-			} catch (InterruptedException e) {
+				System.err
+						.println("Communication impossible avec le client : " + socket.getRemoteSocketAddress() + ".");
 				e.printStackTrace();
 			}
-
 		}
 
 		/**
-		 * Pour REGI : identifie un joueur déjà existant, l'enregistre, ou invte
-		 * à réessayer jusqu'à validation. Gère les réponses
-		 * {@link Message#IDOK}, {@link Message#IDNO}, {@link Message#IDIG}.
+		 * À REGI : identifie un joueur déjà existant, l'enregistre, ou invite à
+		 * réessayer jusqu'à validation. Gère les réponses {@link Message#IDOK},
+		 * {@link Message#IDNO}, {@link Message#IDIG}.
 		 * 
-		 * @return Un joueur identifié ou créé avec succès, ou tentatives récursives sinon.
+		 * @return Un joueur identifié ou créé avec succès, ou tentatives
+		 *         récursives sinon.
 		 * @throws IOException
+		 * @throws InterruptedException
 		 */
-		public Player identification() throws IOException {
+		public Player identification() throws IOException, InterruptedException {
+			if (!running) {
+				throw new InterruptedException();
+			}
+
 			Message message = in.receive();
+
 			/* Serveur saturé */
 			if (isFull()) {
 				out.send(Message.IDNO, null, "Le serveur est plein. Réessayez ultérieurement.");
@@ -170,16 +179,12 @@ public class Server {
 			}
 
 			/* Anomalies */
-			if (message == null) {
-				System.err.println("Le client ne semble pas répondre");
-				return identification();
-			}
 			if (!message.getType().equals(Message.REGI)) {
 				out.send(Message.IDNO, null, "Vous devez d'abord vous connecter : REGI Username Password");
 				return identification();
 			}
 
-			/* Arguments et identification */
+			/* Mauvais nombre d'arguments */
 			if (!validArguments(message)) {
 				out.send(Message.IDNO, null, "Identifiant et/ou Mot de passe manquant");
 				return identification();
@@ -187,6 +192,7 @@ public class Server {
 			String username = message.getArg(0);
 			String password = message.getArg(1);
 			Player p = users.get(username);
+
 			/* Première fois */
 			if (p == null) {
 				p = new Player(username, password, Player.INITIAL_POINTS);
@@ -195,6 +201,7 @@ public class Server {
 				out.send(Message.IDOK, null, "Bienvenue " + username + " !");
 				return p;
 			}
+
 			/* Mauvais mot de passe */
 			if (!p.password.equals(password)) {
 				out.send(Message.IDNO, null, "Mauvais mot de passe");
@@ -203,7 +210,7 @@ public class Server {
 
 			/* Déjà connecté */
 			if (available.containsKey(p)) {
-				System.out.println("reconnexion");
+				System.out.println("Connection override de " + p.username);
 				out.send(Message.IDOK, null, "Bon retour " + username + " !");
 				return p;
 			}
@@ -211,7 +218,7 @@ public class Server {
 			/* Déjà en partie */
 			HostData hd = inGame.get(p);
 			if (hd != null) {
-				out.send(Message.IDIG, new String[] { hd.IP, String.valueOf(hd.port) },
+				out.send(Message.IDIG, new String[] { hd.getIP().toString(), String.valueOf(hd.getPort()) },
 						"Finissez votre partie en cours !");
 				return identification();
 			}
@@ -222,17 +229,105 @@ public class Server {
 		}
 
 		/**
+		 * Gère toutes les requêtes possibles du client après son identification
+		 * 
+		 * @throws InterruptedException
+		 * @throws IOException
+		 */
+		private void handle() throws InterruptedException, IOException { // TODO Finish messages
+			if (!running) {
+				throw new InterruptedException();
+			}
+			Message msg = in.receive();
+			switch (msg.getType()) {
+			case Message.LSMA:
+				out.send(Message.IDKS);
+				break;
+			case Message.LSAV:
+				out.send(Message.IDKS);
+				break;
+			case Message.LSUS:
+				out.send(Message.IDKS);
+				break;
+			case Message.NWMA:
+				createMatch(msg);
+				break;
+			case Message.LEAV:
+				System.out.println(
+						"Déconnexion de l'utilisateur " + player.username + ", " + socket.getRemoteSocketAddress());
+				close();
+				break;
+			default:
+				out.send(Message.IDKS, null, "Commande inconnue ou pas encore implémentée");
+				break;
+			}
+		}
+
+		private void createMatch(Message msg) {
+			if (hostsData.size() >= 10) {
+				out.send(Message.FULL, null, "Trop de parties en cours. Réessayez ultérieurement.");
+				return;
+			}
+			HostData hd = null;
+			try {
+				hd = new HostData();
+			} catch (IOException e) {
+				out.send(Message.NWNO, null, e.getMessage());
+			}
+			// Runtime -> java [Host path] serverIP serverPort hd.getName()
+			// hd.getIP() hd.getPort() // TODO
+			String[] sendArgs = new String[] { hd.getIP().toString(), String.valueOf(hd.getPort()) };
+			out.send(Message.NWOK, sendArgs, "Votre partie a été créée. Allez-y !");
+
+			/* Aucun invité */
+			if (msg.getArgs() == null) {
+				return;
+			}
+
+			/* ALL : inviter tous les joueurs disponibles */
+			String arg1 = msg.getArg(0);
+			if (arg1 != null && arg1.equals(ALL)) {
+				for (ClientHandler h : available.values()) {
+					h.out.send(Message.NWOK, sendArgs, player.username + " vous défie !");
+				}
+			}
+
+			/* Liste spécifique de joueurs invités */
+			for (String playerName : msg.getArgs()) {
+				Player p = users.get(playerName);
+				ClientHandler h = available.get(p);
+				if (h != null) {
+					h.out.send(Message.NWOK, sendArgs, player.username + " vous défie !");
+				}
+			}
+		}
+
+		/**
 		 * Le serveur interrompt la connexion avec ce client. Player ne doit pas
 		 * être null, et donc la connexion doit déjà avoir été établie.
 		 */
 		public void kick() {
 			out.send(Message.KICK);
-			System.out
-					.println("Fermeture de la socket de '" + player.username + "', " + socket.getRemoteSocketAddress());
+			close();
+		}
+
+		/**
+		 * Autorise la Thread à s'arrêter, enlève le Player correspondant de
+		 * Thread s'il existe ferme la socket et les streams associés
+		 */
+		@Override
+		public void close() {
+			running = false;
+			if (player != null) {
+				available.remove(player);
+			}
 			try {
+				out.close();
+				// in.close() bloquant, donc socket fermée pour
+				// SocketException()
 				socket.close();
 			} catch (IOException e) {
-				System.err.println("Impossible de fermer la socket du joueur '" + player.username + "'. Déjà fermée ?");
+				e.printStackTrace();
 			}
 		}
 
