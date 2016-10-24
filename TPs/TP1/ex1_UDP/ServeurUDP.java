@@ -26,6 +26,7 @@ public class ServeurUDP {
 				int UserPort = receivePacket.getPort();
 				String sentence = new String(receivePacket.getData());
 				System.out.println(UserAddress + ", " + UserPort + " : " + sentence);
+				System.out.println("Envoie d'un message au client.");
 				sendData = "MessageAuClient".getBytes();
 				DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, UserAddress, UserPort);
 				serverSocket.send(sendPacket);

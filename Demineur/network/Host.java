@@ -6,7 +6,7 @@ import java.net.ServerSocket;
 import java.net.UnknownHostException;
 
 /**
- * Hôte lancé par le serveur //TODO Programmer lancement par serveur au lieu de manuel une fois dév achevée
+ * Hôte lancé par le serveur //FUTURE Programmer lancement par serveur au lieu de manuel une fois dév achevée
  */
 public class Host {
 	
@@ -69,7 +69,7 @@ public class Host {
 		
 		try {
 			ServerSocket ss = new ServerSocket(port);
-			// TODO établir connexion
+			// FUTURE établir connexion
 		} catch (IOException e) {
 			deny("Paramètre n°5 invalide, port occupé");
 		}

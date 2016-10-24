@@ -121,7 +121,6 @@ public class Server {
 				addAvailable(player, this);
 				System.out.println(
 						"Utilisateur '" + player.username + "' connecté depuis " + socket.getRemoteSocketAddress());
-				kick();
 				while (running) {
 					handle();
 				}
@@ -275,9 +274,9 @@ public class Server {
 				out.send(Message.NWNO, null, e.getMessage());
 			}
 			// Runtime -> java [Host path] serverIP serverPort hd.getName()
-			// hd.getIP() hd.getPort() // TODO
+			// hd.getIP() hd.getPort() // FUTURE Lancer programme externe
 			String[] sendArgs = new String[] { hd.getIP().toString(), String.valueOf(hd.getPort()) };
-			out.send(Message.NWOK, sendArgs, "Votre partie a été créée. Allez-y !");
+			out.send(Message.NWOK, sendArgs, "Votre partie a été créée. Mais n'y allez pas encore (jeu à implémenter) !"); // FUTURE corriger après dev future
 
 			/* Aucun invité */
 			if (msg.getArgs() == null) {

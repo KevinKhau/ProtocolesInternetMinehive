@@ -24,7 +24,6 @@ public class Client {
 
 	boolean running = true;
 
-	Listener listener;
 	Scanner reader = new Scanner(System.in);
 
 	public static void main(String[] args) throws IOException {
@@ -38,9 +37,7 @@ public class Client {
 			this.socket = socket;
 			this.out = out;
 			this.in = in;
-			System.out.println("Client lancé sur " + socket.getLocalSocketAddress());
-			listener = new Listener(in);
-			listener.start();
+			System.out.println("Client lancé sur " + socket.getLocalSocketAddress() + ".");
 
 			while (!login());
 			while (running) {
@@ -100,14 +97,7 @@ public class Client {
 			return login();
 		}
 		out.send(send);
-		try {
-			listener.wait();
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
 		Message rcv = in.receive();
-		System.out.println("Plus : " + rcv);
-		listener.notify();
 		switch (rcv.getType()) {
 		case Message.IDOK:
 			System.out.println("Connexion au serveur réussie.");
@@ -133,35 +123,6 @@ public class Client {
 			return;
 		}
 		in.receive();
-	}
-
-	/**
-	 * Écoute en performance le serveur en cas de message spécifique, ou pour
-	 * repérer sa déconnexion, mais doit être mis en pause lorsque l'utilisateur
-	 * agit.
-	 */
-	private class Listener extends Thread {
-		MyBufferedReader in;
-
-		private Listener(MyBufferedReader br) {
-			this.in = br;
-		}
-
-		@Override
-		public synchronized void run() {
-			try {
-				String rcv;
-				do {
-					rcv = in.readLine();
-				} while (!rcv.split(Message.SEPARATOR)[0].equals(Message.KICK));
-				System.out.println("< Reçu : " + rcv);
-				System.out.println("Éjecté du serveur. Fermeture de la connexion.");
-				in.close();
-				socket.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
 	}
 
 }
