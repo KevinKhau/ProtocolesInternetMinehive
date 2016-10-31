@@ -28,7 +28,7 @@ public class HostData {
 		this.name = "Partie_" + String.valueOf(count);
 		count++;
 		try (ServerSocket ss = new ServerSocket(0)) {
-			IP = ss.getInetAddress();
+			IP = InetAddress.getLocalHost();
 			port = ss.getLocalPort();
 		} catch (IOException e) {
 			throw new IOException("Aucun port libre trouvé.");

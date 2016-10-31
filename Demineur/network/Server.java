@@ -118,9 +118,11 @@ public class Server {
 		public void run() {
 			try {
 				player = identification();
-				addAvailable(player, this);
-				System.out.println(
-						"Utilisateur '" + player.username + "' connecté depuis " + socket.getRemoteSocketAddress());
+				if (player != null) {
+					addAvailable(player, this);
+					System.out.println("Utilisateur '" + player.username + "' connecté depuis "
+							+ socket.getRemoteSocketAddress());
+				}
 				while (running) {
 					handle();
 				}
@@ -171,6 +173,12 @@ public class Server {
 
 			Message message = in.receive();
 
+			if (message.getType().equals(Message.LEAV)) {
+				System.out.println("Fin de la connexion avec " + socket.getRemoteSocketAddress());
+				close();
+				return null;
+			}
+			
 			/* Serveur saturé */
 			if (isFull()) {
 				out.send(Message.IDNO, null, "Le serveur est plein. Réessayez ultérieurement.");
@@ -228,7 +236,7 @@ public class Server {
 		}
 
 		/**
-		 * Gère toutes les requêtes possibles du client après son identification
+		 * Gère toutes les requêtes possibles du client après son identification.
 		 * 
 		 * @throws InterruptedException
 		 * @throws IOException
@@ -243,10 +251,10 @@ public class Server {
 				out.send(Message.IDKS);
 				break;
 			case Message.LSAV:
-				out.send(Message.IDKS);
+				sendAvailable(msg);
 				break;
 			case Message.LSUS:
-				out.send(Message.IDKS);
+				sendUsers(msg);
 				break;
 			case Message.NWMA:
 				createMatch(msg);
@@ -259,6 +267,20 @@ public class Server {
 			default:
 				out.send(Message.IDKS, null, "Commande inconnue ou pas encore implémentée");
 				break;
+			}
+		}
+
+		private void sendAvailable(Message msg) {
+			out.send(Message.LANB, new String[]{String.valueOf(available.size())});
+			for (Player p: available.keySet()) {
+				out.send(Message.AVAI, new String[]{p.username, String.valueOf(p.points)});
+			}
+		}
+		
+		private void sendUsers(Message msg) {
+			out.send(Message.LUNB, new String[]{String.valueOf(users.size())});
+			for (Player p: users.values()) {
+				out.send(Message.USER, new String[]{p.username, String.valueOf(p.points)});
 			}
 		}
 

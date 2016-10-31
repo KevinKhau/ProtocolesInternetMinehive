@@ -6,6 +6,8 @@ import java.io.OutputStreamWriter;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
 
@@ -30,7 +32,7 @@ public class Client {
 		new Client();
 	}
 
-	public Client() {
+	public Client() throws UnknownHostException {
 		try (Socket socket = new Socket(serverIP, serverPort);
 				MyPrintWriter out = new MyPrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
 				MyBufferedReader in = new MyBufferedReader(new InputStreamReader(socket.getInputStream()))) {
@@ -39,7 +41,7 @@ public class Client {
 			this.in = in;
 			System.out.println("Client lancé sur " + socket.getLocalSocketAddress() + ".");
 
-			while (!login());
+			while (!login() && running);
 			while (running) {
 				communicate();
 			}
@@ -92,11 +94,20 @@ public class Client {
 	private boolean login() throws IOException {
 		System.out.println("Tentative de connexion au serveur.");
 		Message send = input();
-		if (!send.getType().equals(Message.REGI)) {
-			System.err.println("Type de message de connexion invalide. Attendu : " + Message.REGI + ".");
+		List<String> allowed = new LinkedList<>();
+		allowed.add(Message.REGI);
+		allowed.add(Message.LEAV);
+		if (!allowed.contains(send.getType())) {
+			System.err.println("Type de message de connexion invalide. Attendu : " + allowed.toString());
 			return login();
 		}
 		out.send(send);
+		if (send.getType().equals(Message.LEAV)) {
+			System.out.println("Fin de la connexion avec le serveur " + socket.getRemoteSocketAddress());
+			running = false;
+			return false;
+		}
+		
 		Message rcv = in.receive();
 		switch (rcv.getType()) {
 		case Message.IDOK:

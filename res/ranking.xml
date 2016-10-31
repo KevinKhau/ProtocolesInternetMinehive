@@ -12,6 +12,9 @@
     <player username="Christophe" password="Lam">
         <points>20</points>
     </player>
+    <player username="lass" password="ll">
+        <points>0</points>
+    </player>
     <player username="Adil" password="Champion">
         <points>10</points>
     </player>
