@@ -19,7 +19,7 @@ public class Message {
 	public static final String LSUS = "LSUS";
 	public static final String NWMA = "NWMA";
 	public static final String LEAV = "LEAV";
-	public static final String IMOK = "IMOK";
+	public static final String IMOK = "IMOK"; // + from Host
 	public static final String JOIN = "JOIN";
 	public static final String CLIC = "CLIC";
 	public static final String IDKC = "IDKC";
@@ -42,6 +42,7 @@ public class Message {
 	public static final String PLNO = "PLNO";
 	public static final String PLOK = "PLOK";
 	public static final String IDKS = "IDKS";
+	public static final String RUOK = "RUOK"; // + to Host
 
 	/* Host */
 	public static final String JNNO = "JNNO";
@@ -77,6 +78,7 @@ public class Message {
 		map.put(JOIN, 2);
 		map.put(CLIC, 2);
 		map.put(IDKC, 0);
+		map.put(IMOK, 0);
 
 		/* Server */
 		map.put(IDOK, 0);
@@ -96,6 +98,7 @@ public class Message {
 		map.put(PLNO, 1);
 		map.put(PLOK, 2);
 		map.put(IDKS, 0);
+		map.put(RUOK, 0);
 
 		/* Host */
 		map.put(JNNO, 0);

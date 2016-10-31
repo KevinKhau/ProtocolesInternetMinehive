@@ -88,7 +88,7 @@ public class Server {
 	}
 
 	/**
-	 * Gère un seul client
+	 * Gère un seul client.
 	 *
 	 */
 	class ClientHandler implements Runnable, Closeable {
@@ -96,8 +96,9 @@ public class Server {
 		Socket socket;
 		MyPrintWriter out;
 		MyBufferedReader in;
-
-		boolean running = true;
+		
+		ConnectionChecker cc;
+		volatile boolean running = true;
 
 		Player player;
 
@@ -108,6 +109,7 @@ public class Server {
 				this.socket = socket;
 				this.out = new MyPrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
 				this.in = new MyBufferedReader(new InputStreamReader(socket.getInputStream()));
+				new Thread(new ConnectionChecker(socket)).start();
 			} catch (IOException e) {
 				System.err.println("Pas de réponse de la socket client : " + socket.getRemoteSocketAddress() + ".");
 				e.printStackTrace();
@@ -174,7 +176,7 @@ public class Server {
 			Message message = in.receive();
 
 			if (message.getType().equals(Message.LEAV)) {
-				System.out.println("Fin de la connexion avec " + socket.getRemoteSocketAddress());
+				System.out.println("Fin de la connexion avec " + socket.getRemoteSocketAddress() + ".");
 				close();
 				return null;
 			}
@@ -352,5 +354,37 @@ public class Server {
 			}
 		}
 
+		class ConnectionChecker implements Runnable {
+			
+			public static final int frequency = 5000;
+			
+			private Socket socket;
+			private MyPrintWriter out;
+			
+			public ConnectionChecker(Socket socketArg) {
+				this.socket = socketArg;
+				try {
+					this.out = new MyPrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
+				} catch (IOException e) {
+					System.err.println("Connexion interrompue. Envoi de RUOK impossible.");
+				}
+				System.out.println("established");
+			}
+
+			@Override
+			public void run() {
+				while (running) {
+					try {
+						Thread.sleep(frequency);
+					} catch (InterruptedException e) {
+						System.err.println("Interruption du Thread pendant sleep()");
+					}
+					out.send(Message.RUOK);
+				}
+			}
+			
+		}
+		
 	}
+
 }
