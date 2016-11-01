@@ -10,6 +10,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
+import java.util.Stack;
 
 import util.Message;
 import util.MyBufferedReader;
@@ -24,7 +25,7 @@ public class Client {
 	MyPrintWriter out;
 	MyBufferedReader in;
 
-	boolean running = true;
+	volatile boolean running = true;
 
 	Scanner reader = new Scanner(System.in);
 
@@ -129,11 +130,39 @@ public class Client {
 		Message m = input();
 		out.send(m);
 		if (m.getType().equals(Message.LEAV)) {
-			System.out.println("Fin de la communication avec le serveur.");
+			System.out.println("Fin de la connexion avec le serveur " + socket.getRemoteSocketAddress());
 			running = false;
 			return;
 		}
 		in.receive();
 	}
-
+	
+	class Listener implements Runnable {
+		
+		private Stack<Message> messages;
+		
+		@Override
+		public void run() {
+			while (running) {
+				try {
+					Message m = in.receive();
+					if (m.getType().equals(Message.RUOK)) {
+						out.send(Message.IMOK);
+					} else {
+						messages.push(m);
+					}
+				} catch (SocketException ex) {
+					System.err.println("Connexion non établie ou interrompue avec : " + serverIP);
+				} catch (IOException e) {
+					System.err.println("Communication impossible avec le serveur.");
+					e.printStackTrace();
+				}
+			}
+		}
+		
+		private Message get() { // TODO rendre bloquant. Voir http://stackoverflow.com/questions/5999100/is-there-a-block-until-condition-becomes-true-function-in-java au réveil
+			return messages.pop();
+		}
+	}
+	
 }

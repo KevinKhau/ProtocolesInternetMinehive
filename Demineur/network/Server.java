@@ -97,6 +97,8 @@ public class Server {
 		MyPrintWriter out;
 		MyBufferedReader in;
 		
+		int count = 0;
+		
 		ConnectionChecker cc;
 		volatile boolean running = true;
 
@@ -105,11 +107,13 @@ public class Server {
 		public ClientHandler(Socket socket) {
 			super();
 			System.out.println("Nouvelle connexion : " + socket.getRemoteSocketAddress());
+			count++;
+			System.out.println(count);
 			try {
 				this.socket = socket;
 				this.out = new MyPrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
 				this.in = new MyBufferedReader(new InputStreamReader(socket.getInputStream()));
-				new Thread(new ConnectionChecker(socket)).start();
+				new Thread(new ConnectionChecker()).start();
 			} catch (IOException e) {
 				System.err.println("Pas de réponse de la socket client : " + socket.getRemoteSocketAddress() + ".");
 				e.printStackTrace();
@@ -129,7 +133,7 @@ public class Server {
 					handle();
 				}
 			} catch (InterruptedException e) {
-				System.err.println("Interruption de Thread.");
+				System.err.println(e.getMessage());
 			} catch (SocketTimeoutException e) {
 				System.err.println("Le client n'a pas répondu à temps.");
 			} catch (BindException e) {
@@ -336,7 +340,7 @@ public class Server {
 
 		/**
 		 * Autorise la Thread à s'arrêter, enlève le Player correspondant de
-		 * Thread s'il existe ferme la socket et les streams associés
+		 * Thread s'il existe. Ferme la socket et les streams associés.
 		 */
 		@Override
 		public void close() {
@@ -358,26 +362,13 @@ public class Server {
 			
 			public static final int frequency = 5000;
 			
-			private Socket socket;
-			private MyPrintWriter out;
-			
-			public ConnectionChecker(Socket socketArg) {
-				this.socket = socketArg;
-				try {
-					this.out = new MyPrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
-				} catch (IOException e) {
-					System.err.println("Connexion interrompue. Envoi de RUOK impossible.");
-				}
-				System.out.println("established");
-			}
-
 			@Override
 			public void run() {
 				while (running) {
 					try {
 						Thread.sleep(frequency);
 					} catch (InterruptedException e) {
-						System.err.println("Interruption du Thread pendant sleep()");
+						System.err.println("Interruption du Thread ConnectionChecker pendant sleep()");
 					}
 					out.send(Message.RUOK);
 				}
