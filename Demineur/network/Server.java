@@ -4,7 +4,6 @@ import static util.Message.validArguments;
 import static util.PlayersManager.getPlayersFromXML;
 import static util.PlayersManager.writePlayer;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
@@ -37,12 +36,12 @@ public class Server {
 
 	public static final String ALL = "ALL";
 	public static final int MAX_ONLINE = 110;
-	Map<Player, ClientHandler> available = new ConcurrentHashMap<>();
+	volatile static Map<Player, ClientHandler> available = new ConcurrentHashMap<>();
 	Map<Player, HostData> inGame = new ConcurrentHashMap<>();
 	List<HostData> hostsData = new ArrayList<>();
 
-	public static final int ACTIVE_DELAY = 30000;
-	public static final int CONNECTED_DELAY = 3000;
+	public static final int ACTIVE_DELAY = 300000;
+	public static final int CONNECTED_DELAY = 10000;
 
 	public static void main(String[] args) {
 		new Server();
@@ -67,7 +66,7 @@ public class Server {
 		}
 	}
 
-	public boolean addAvailable(Player player, ClientHandler handler) {
+	public synchronized boolean addAvailable(Player player, ClientHandler handler) {
 		if (!isFull()) {
 			ClientHandler h = available.get(player);
 			if (h != null) {
@@ -91,14 +90,12 @@ public class Server {
 	 * Gère un seul client.
 	 *
 	 */
-	class ClientHandler implements Runnable, Closeable {
-
+	class ClientHandler extends Thread implements AutoCloseable {
+		// TODO gérer inactivité client
 		Socket socket;
 		MyPrintWriter out;
 		MyBufferedReader in;
-		
-		int count = 0;
-		
+
 		ConnectionChecker cc;
 		volatile boolean running = true;
 
@@ -107,12 +104,11 @@ public class Server {
 		public ClientHandler(Socket socket) {
 			super();
 			System.out.println("Nouvelle connexion : " + socket.getRemoteSocketAddress());
-			count++;
-			System.out.println(count);
 			try {
 				this.socket = socket;
 				this.out = new MyPrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
 				this.in = new MyBufferedReader(new InputStreamReader(socket.getInputStream()));
+				this.socket.setSoTimeout(CONNECTED_DELAY);
 				new Thread(new ConnectionChecker()).start();
 			} catch (IOException e) {
 				System.err.println("Pas de réponse de la socket client : " + socket.getRemoteSocketAddress() + ".");
@@ -127,38 +123,45 @@ public class Server {
 				if (player != null) {
 					addAvailable(player, this);
 					System.out.println("Utilisateur '" + player.username + "' connecté depuis "
-							+ socket.getRemoteSocketAddress());
+							+ socket.getRemoteSocketAddress() + ".");
 				}
 				while (running) {
-					handle();
+					handleAvailable();
 				}
 			} catch (InterruptedException e) {
 				System.err.println(e.getMessage());
+				close();
 			} catch (SocketTimeoutException e) {
-				System.err.println("Le client n'a pas répondu à temps.");
-			} catch (BindException e) {
-				System.err.println("Socket serveur déjà en cours d'utilisation.");
+				System.err.println("Le client " + socket.getRemoteSocketAddress() + " n'a pas répondu à temps.");
+				close();
 			} catch (IllegalArgumentException e) {
 				System.err.println(e.getMessage());
-				System.out.println("Interruption de la communication avec le client");
+				System.out.println("Interruption de la communication avec le client.");
 				close();
-			} catch (SocketException e) {
-				if (e.getMessage() == null) {
-					e.printStackTrace();
-				}
-				String name = "";
-				if (player != null) {
-					name = "Utilisateur '" + player.username + "'";
-				}
-				if (e.getMessage().equals("Socket closed")) {
-					System.out.println("Fin de la communication : " + name + socket.getRemoteSocketAddress() + ".");
-				} else {
-					System.err.println(e.getMessage() + ", client : " + name + socket.getRemoteSocketAddress() + ".");
-				}
 			} catch (IOException e) {
-				System.err
-						.println("Communication impossible avec le client : " + socket.getRemoteSocketAddress() + ".");
-				e.printStackTrace();
+				if (e instanceof BindException) {
+					System.err.println("Socket serveur déjà en cours d'utilisation.");
+				} else if (e instanceof SocketException) {
+					if (e.getMessage() == null) {
+						e.printStackTrace();
+						close();
+					}
+					String name = "";
+					if (player != null) {
+						name = "Utilisateur '" + player.username + "'";
+					}
+					if (e.getMessage().toUpperCase().equals("SOCKET CLOSED")) {
+						System.out.println("Fin de la communication : " + name + socket.getRemoteSocketAddress() + ".");
+					} else {
+						System.err
+								.println(e.getMessage() + ", client : " + name + socket.getRemoteSocketAddress() + ".");
+					}
+				} else {
+					System.err.println(
+							"Communication impossible avec le client : " + socket.getRemoteSocketAddress() + ".");
+					e.printStackTrace();
+					close();
+				}
 			}
 		}
 
@@ -176,27 +179,25 @@ public class Server {
 			if (!running) {
 				throw new InterruptedException();
 			}
-
 			Message message = in.receive();
-
+			if (message.getType().equals(Message.IMOK)) {
+				return identification();
+			}
 			if (message.getType().equals(Message.LEAV)) {
 				System.out.println("Fin de la connexion avec " + socket.getRemoteSocketAddress() + ".");
 				close();
 				return null;
 			}
-			
 			/* Serveur saturé */
 			if (isFull()) {
 				out.send(Message.IDNO, null, "Le serveur est plein. Réessayez ultérieurement.");
 				return identification();
 			}
-
 			/* Anomalies */
 			if (!message.getType().equals(Message.REGI)) {
 				out.send(Message.IDNO, null, "Vous devez d'abord vous connecter : REGI Username Password");
 				return identification();
 			}
-
 			/* Mauvais nombre d'arguments */
 			if (!validArguments(message)) {
 				out.send(Message.IDNO, null, "Identifiant et/ou Mot de passe manquant");
@@ -205,7 +206,6 @@ public class Server {
 			String username = message.getArg(0);
 			String password = message.getArg(1);
 			Player p = users.get(username);
-
 			/* Première fois */
 			if (p == null) {
 				p = new Player(username, password, Player.INITIAL_POINTS);
@@ -214,20 +214,17 @@ public class Server {
 				out.send(Message.IDOK, null, "Bienvenue " + username + " !");
 				return p;
 			}
-
 			/* Mauvais mot de passe */
 			if (!p.password.equals(password)) {
 				out.send(Message.IDNO, null, "Mauvais mot de passe");
 				return identification();
 			}
-
 			/* Déjà connecté */
 			if (available.containsKey(p)) {
-				System.out.println("Connection override de " + p.username);
+				System.out.println("Connection override de " + p.username + ".");
 				out.send(Message.IDOK, null, "Bon retour " + username + " !");
 				return p;
 			}
-
 			/* Déjà en partie */
 			HostData hd = inGame.get(p);
 			if (hd != null) {
@@ -235,26 +232,33 @@ public class Server {
 						"Finissez votre partie en cours !");
 				return identification();
 			}
-
 			/* Connexion classique */
 			out.send(Message.IDOK, null, "Bonjour " + username + " !");
 			return p;
 		}
 
 		/**
-		 * Gère toutes les requêtes possibles du client après son identification.
+		 * Gère toutes les requêtes possibles du client après son
+		 * identification.
 		 * 
 		 * @throws InterruptedException
 		 * @throws IOException
 		 */
-		private void handle() throws InterruptedException, IOException { // TODO Finish messages
+		private void handleAvailable() throws InterruptedException, IOException {
 			if (!running) {
 				throw new InterruptedException();
 			}
 			Message msg = in.receive();
 			switch (msg.getType()) {
+			case Message.IMOK: // Permet de reset le SO_TIMEOUT de la socket
+				break;
+			case Message.REGI:
+				out.send(Message.IDKS, null, "Vous êtes déjà connecté !");
+				break;
 			case Message.LSMA:
-				out.send(Message.IDKS);
+				out.send(Message.IDKS, null, "LSMA en cours d'implémentation"); // TODO
+																				// Traitement
+																				// LSMA
 				break;
 			case Message.LSAV:
 				sendAvailable(msg);
@@ -276,17 +280,17 @@ public class Server {
 			}
 		}
 
-		private void sendAvailable(Message msg) {
-			out.send(Message.LANB, new String[]{String.valueOf(available.size())});
-			for (Player p: available.keySet()) {
-				out.send(Message.AVAI, new String[]{p.username, String.valueOf(p.points)});
+		private synchronized void sendAvailable(Message msg) {
+			out.send(Message.LANB, new String[] { String.valueOf(available.size()) });
+			for (Player p : available.keySet()) {
+				out.send(Message.AVAI, new String[] { p.username, String.valueOf(p.points) });
 			}
 		}
-		
-		private void sendUsers(Message msg) {
-			out.send(Message.LUNB, new String[]{String.valueOf(users.size())});
-			for (Player p: users.values()) {
-				out.send(Message.USER, new String[]{p.username, String.valueOf(p.points)});
+
+		private synchronized void sendUsers(Message msg) {
+			out.send(Message.LUNB, new String[] { String.valueOf(users.size()) });
+			for (Player p : users.values()) {
+				out.send(Message.USER, new String[] { p.username, String.valueOf(p.points) });
 			}
 		}
 
@@ -304,7 +308,12 @@ public class Server {
 			// Runtime -> java [Host path] serverIP serverPort hd.getName()
 			// hd.getIP() hd.getPort() // FUTURE Lancer programme externe
 			String[] sendArgs = new String[] { hd.getIP().toString(), String.valueOf(hd.getPort()) };
-			out.send(Message.NWOK, sendArgs, "Votre partie a été créée. Mais n'y allez pas encore (jeu à implémenter) !"); // FUTURE corriger après dev future
+			out.send(Message.NWOK, sendArgs,
+					"Votre partie a été créée. Mais n'y allez pas encore (jeu à implémenter) !"); // FUTURE
+																									// corriger
+																									// après
+																									// dev
+																									// future
 
 			/* Aucun invité */
 			if (msg.getArgs() == null) {
@@ -345,13 +354,12 @@ public class Server {
 		@Override
 		public void close() {
 			running = false;
-			if (player != null) {
-				available.remove(player);
-			}
 			try {
+				if (player != null) {
+					available.remove(player);
+				}
 				out.close();
-				// in.close() bloquant, donc socket fermée pour
-				// SocketException()
+				in.close();
 				socket.close();
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -359,23 +367,23 @@ public class Server {
 		}
 
 		class ConnectionChecker implements Runnable {
-			
+
 			public static final int frequency = 5000;
-			
+
 			@Override
 			public void run() {
 				while (running) {
+					out.send(Message.RUOK);
 					try {
 						Thread.sleep(frequency);
 					} catch (InterruptedException e) {
 						System.err.println("Interruption du Thread ConnectionChecker pendant sleep()");
 					}
-					out.send(Message.RUOK);
 				}
 			}
-			
+
 		}
-		
+
 	}
 
 }

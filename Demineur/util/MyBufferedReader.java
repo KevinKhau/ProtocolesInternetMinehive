@@ -6,7 +6,6 @@ import static util.StringUtil.getSpaces;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.Reader;
-import java.net.SocketException;
 
 /**
  * Abstraction supérieure de BufferedReader : Utiliser .receive() qui traite les

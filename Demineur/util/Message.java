@@ -164,6 +164,16 @@ public class Message {
 			return null;
 		}
 	}
+	
+	public int getArgAsInt(int index) {
+		int res;
+		try {
+			res = Integer.parseInt(getArg(index));
+		} catch (NumberFormatException | NullPointerException e) {
+			res = 0;
+		}
+		return res;
+	}
 
 	public String getContent() {
 		return content;

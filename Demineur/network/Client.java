@@ -10,14 +10,21 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
-import java.util.Stack;
 
 import util.Message;
 import util.MyBufferedReader;
 import util.MyPrintWriter;
 
 // THINK Doit pouvoir être alerté d'un KICK du serveur. Thread à part rien que pour l'écoute ?
-public class Client {
+public class Client implements AutoCloseable {
+
+	/* Temps maximal d'attente des réponses du serveur avant de redonner la main à l'utilisateur */
+	public static final long maxWaitTime = 10000;
+
+	private enum State {
+		OFFLINE, CONNECTED, PLAYING
+	};
+
 	final String serverIP = "localhost";
 	final int serverPort = 5555;
 
@@ -25,27 +32,35 @@ public class Client {
 	MyPrintWriter out;
 	MyBufferedReader in;
 
+	boolean waitingResponse = false;
 	volatile boolean running = true;
 
 	Scanner reader = new Scanner(System.in);
+	public State state = State.OFFLINE;
 
-	public static void main(String[] args) throws IOException {
-		new Client();
+	public static void main(String[] args) {
+		try (Client c = new Client()) {
+			System.out.println("end");
+		}
 	}
 
-	public Client() throws UnknownHostException {
-		try (Socket socket = new Socket(serverIP, serverPort);
-				MyPrintWriter out = new MyPrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
-				MyBufferedReader in = new MyBufferedReader(new InputStreamReader(socket.getInputStream()))) {
-			this.socket = socket;
-			this.out = out;
-			this.in = in;
-			System.out.println("Client lancé sur " + socket.getLocalSocketAddress() + ".");
-
-			while (!login() && running);
+	public Client() {
+		try {
+			this.socket = new Socket(serverIP, serverPort);
+			this.out = new MyPrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
+			this.in = new MyBufferedReader(new InputStreamReader(socket.getInputStream()));
+			System.out.println("Client connecté à " + socket.getLocalSocketAddress() + ".");
+			new Thread(new ServerListener()).start();
 			while (running) {
-				communicate();
+				while (state == State.OFFLINE && running) {
+					login();
+				}
+				while (state == State.CONNECTED && running) {
+					communicate();
+				}
 			}
+		} catch (IllegalMonitorStateException e) {
+			System.err.println(e.getMessage() + ": Arrêt du client pendant qu'il était en attente.");
 		} catch (NoSuchElementException e) {
 			e.printStackTrace();
 		} catch (UnknownHostException ex) {
@@ -66,7 +81,7 @@ public class Client {
 	 */
 	public Message input() {
 		return keyboardInput(); // FUTURE Changer en onClic() après
-								// implémentation interface graphique
+		// implémentation interface graphique
 	}
 
 	/**
@@ -92,7 +107,7 @@ public class Client {
 	 * @return false tant que le serveur n'a pas envoyé IDOK
 	 * @throws IOException
 	 */
-	private boolean login() throws IOException {
+	private void login() {
 		System.out.println("Tentative de connexion au serveur.");
 		Message send = input();
 		List<String> allowed = new LinkedList<>();
@@ -100,69 +115,172 @@ public class Client {
 		allowed.add(Message.LEAV);
 		if (!allowed.contains(send.getType())) {
 			System.err.println("Type de message de connexion invalide. Attendu : " + allowed.toString());
-			return login();
+			login();
 		}
 		out.send(send);
 		if (send.getType().equals(Message.LEAV)) {
 			System.out.println("Fin de la connexion avec le serveur " + socket.getRemoteSocketAddress());
-			running = false;
-			return false;
-		}
-		
-		Message rcv = in.receive();
-		switch (rcv.getType()) {
-		case Message.IDOK:
-			System.out.println("Connexion au serveur réussie.");
-			return true;
-		case Message.IDNO:
-			System.out.println("Connexion échouée : " + rcv.getContent() + ".");
-			return false;
-		case Message.IDIG:
-			System.out.println(rcv);
-			return false;
-		default:
-			System.err.println("Réponse inattendue du serveur : " + rcv + ".");
-			return false;
+			close();
+			return;
+		} else {
+			waitResponse();
 		}
 	}
 
-	public void communicate() throws IOException {
+	public void communicate() {
 		Message m = input();
 		out.send(m);
 		if (m.getType().equals(Message.LEAV)) {
 			System.out.println("Fin de la connexion avec le serveur " + socket.getRemoteSocketAddress());
-			running = false;
+			close();
 			return;
+		} else {
+			waitResponse();
 		}
-		in.receive();
 	}
-	
-	class Listener implements Runnable {
-		
-		private Stack<Message> messages;
-		
+
+	@Override
+	public void close() {
+		running = false;
+		try {
+			out.close();
+			socket.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void waitResponse() {
+		synchronized (this) {
+			waitingResponse = true;
+			try {
+				wait(maxWaitTime);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	class ServerListener implements Runnable {
+
+		int count = 0;
+
 		@Override
 		public void run() {
 			while (running) {
 				try {
-					Message m = in.receive();
-					if (m.getType().equals(Message.RUOK)) {
+					Message rcv = in.receive();
+					switch (rcv.getType()) {
+					case Message.RUOK:
 						out.send(Message.IMOK);
-					} else {
-						messages.push(m);
+						break;
+					
+					/* REGI */
+					case Message.IDOK:
+						System.out.println("Connexion au serveur établie. " + rcv.getContent());
+						state = State.CONNECTED;
+						wakeClient();
+						break;
+					case Message.IDNO:
+						System.out.println("Connexion échouée : " + rcv.getContent() + ".");
+						wakeClient();
+						break;
+					case Message.IDIG:
+						System.out.println(rcv);
+						wakeClient();
+						break;
+						
+					/* LS */
+					case Message.LMNB:
+						count = rcv.getArgAsInt(0);
+						System.out.println(rcv);
+						if (count == 0) {
+							wakeClient();
+						}
+						break;
+					case Message.MATC:
+						System.out.println(rcv);
+						wakeClient();
+						break;
+					case Message.LANB:
+						count = rcv.getArgAsInt(0);
+						System.out.println(rcv);
+						if (count == 0) {
+							wakeClient();
+						}
+						break;
+					case Message.AVAI:
+						System.out.println(rcv);
+						wakeClient();
+						break;
+					case Message.LUNB:
+						count = rcv.getArgAsInt(0);
+						System.out.println(rcv);
+						if (count == 0) {
+							wakeClient();
+						}
+						break;
+					case Message.USER:
+						System.out.println(rcv);
+						wakeClient();
+						break;
+						
+					/* NWMA */
+					case Message.NWOK:
+						System.out.println(rcv);
+						wakeClient();
+						break;
+					case Message.FULL:
+						System.out.println(rcv);
+						wakeClient();
+						break;
+					case Message.NWNO:
+						System.out.println(rcv);
+						wakeClient();
+						break;
+
+					case Message.KICK:
+						System.out.println("Éjecté par le serveur : " + rcv + ".");
+						close();
+						break;
+
+					case Message.IDKS:
+						System.out.println("Le serveur reste béant : '" + rcv + "'.");
+						wakeClient();
+						break;
+					default:
+						System.err.println("Réponse inconnue du serveur : '" + rcv + "'.");
 					}
 				} catch (SocketException ex) {
-					System.err.println("Connexion non établie ou interrompue avec : " + serverIP);
+					System.err.println("Connexion non établie ou interrompue avec : " + socket.getRemoteSocketAddress());
+					close();
 				} catch (IOException e) {
-					System.err.println("Communication impossible avec le serveur.");
+					System.err.println("Communication impossible avec le serveur " + socket.getRemoteSocketAddress());
 					e.printStackTrace();
+					close();
 				}
 			}
 		}
-		
-		private Message get() { // TODO rendre bloquant. Voir http://stackoverflow.com/questions/5999100/is-there-a-block-until-condition-becomes-true-function-in-java au réveil
-			return messages.pop();
+
+		/**
+		 * Après avoir envoyé un {@linkplain Message} au {@linkplain Server}, le {@linkplain Client} est
+		 * en attente d'une réponse. Pendant ce temps, il attend donc jusqu'à
+		 * que le {@linkplain ServerListener} aie fini de traiter les messages
+		 * reçus du {@linkplain Server}.
+		 */
+		private synchronized void wakeClient() {
+			if (waitingResponse) {
+				count--;
+				if (count > 0) {
+					return;
+				}
+				synchronized (Client.this) {
+					waitingResponse = false;
+					Client.this.notify();
+				}
+			}
 		}
+
 	}
-	
+
 }
