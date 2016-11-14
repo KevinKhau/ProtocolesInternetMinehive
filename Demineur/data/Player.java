@@ -38,11 +38,9 @@ public class Player {
 		this.points = points;
 	}
 	
-	
 	public void setPoints(int points) {
 		this.points = points;
 	}
-	
 	
 	public void setUsername(String username) {
 		this.username = username;
