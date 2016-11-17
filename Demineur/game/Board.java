@@ -4,6 +4,13 @@ import java.util.Arrays;
 import java.util.Random;
 import java.util.Scanner;
 
+import javafx.geometry.Pos;
+import javafx.geometry.VPos;
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import javafx.scene.text.TextAlignment;
+
 
 public class Board {
 	public static final int WIDTH = 30;
@@ -24,18 +31,6 @@ public class Board {
 	public Board() {
 		board = new byte[WIDTH * HEIGHT];
 		reset();
-	}
-	
-	// Pas vraiment besoin en principe, mais pour te faire plaisir
-	public Square squareAt(int x, int y) {
-		Square sq = new Square();
-		sq.hidden = isHiddenAt(x, y);
-		if (isBombAt(x, y))
-			sq.value = -1;
-		else
-			sq.value = valueAt(x, y);
-		
-		return sq;
 	}
 	
 	public boolean isHiddenAt(int x, int y) {
@@ -286,9 +281,61 @@ public class Board {
 		return points;
 	}
 	
-	void revealAll() {
+	public void revealAll() {
 		for (int i = 0; i < board.length; i++) {
 			board[i] &= REVEAL_MASK;
+		}
+	}
+	
+	public void draw(GraphicsContext gc, Color[] array, int tile, int gap) {
+		gc.setTextAlign(TextAlignment.CENTER);
+		gc.setTextBaseline(VPos.CENTER);
+		gc.setFont(new Font(tile));
+		
+		for (int i = 0; i < HEIGHT; i++) {
+			for (int j = 0; j < WIDTH; j++) {
+				gc.setFill(array[j + i * WIDTH]);
+				gc.fillRect(j * (tile + gap), i * (tile + gap), tile, tile);
+				
+				if ((board[j + i * WIDTH] & HIDDEN_BIT) == 0) {
+					if ((board[j + i * WIDTH] & BOMB_BIT) != 0) {
+						gc.setFill(Color.BLACK);
+						gc.fillText("¤", j * (tile + gap) + (tile + gap) / 2, i * (tile + gap) + (tile + gap) / 2, tile);
+					} else {
+						if ((board[j + i * WIDTH] & VALUE_MASK) != 0) {
+							int val = board[j + i * WIDTH] & VALUE_MASK;
+							switch (val) {
+							case 1:
+								gc.setFill(Color.BLUE);
+								break;
+							case 2:
+								gc.setFill(Color.GREEN);
+								break;
+							case 3:
+								gc.setFill(Color.RED);
+								break;
+							case 4:
+								gc.setFill(Color.DARKBLUE);
+								break;
+							case 5:
+								gc.setFill(Color.DARKRED);
+								break;
+							case 6:
+								gc.setFill(Color.DARKCYAN);
+								break;
+							case 7:
+								gc.setFill(Color.BLACK);
+								break;
+							case 8:
+								gc.setFill(Color.CHOCOLATE);
+								break;
+							}
+							gc.fillText(Integer.toString(val), j * (tile + gap) + (tile + gap) / 2, i * (tile + gap) + (tile + gap) / 2, tile);
+						}
+					}
+				}
+				
+			}
 		}
 	}
 
@@ -342,6 +389,7 @@ public class Board {
 		}
 	}
 	
+	/*
 	public static void main(String[] args) {
 		boolean quit = false;
 		Board b = new Board();
@@ -369,5 +417,5 @@ public class Board {
 		}
 		
 		scanner.close();
-	}
+	}*/
 }
