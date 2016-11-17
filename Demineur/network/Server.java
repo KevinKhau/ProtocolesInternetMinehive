@@ -72,6 +72,11 @@ public class Server {
 			if (h != null) {
 				h.kick();
 			}
+			try {
+				Thread.sleep(10000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 			available.put(player, handler);
 			return true;
 		}
@@ -90,13 +95,12 @@ public class Server {
 	 * Gère un seul client.
 	 *
 	 */
-	class ClientHandler extends Thread implements AutoCloseable {
+	private class ClientHandler extends Thread implements AutoCloseable {
 		// TODO gérer inactivité client
 		Socket socket;
 		MyPrintWriter out;
 		MyBufferedReader in;
 
-		ConnectionChecker cc;
 		volatile boolean running = true;
 
 		Player player;
@@ -109,7 +113,7 @@ public class Server {
 				this.out = new MyPrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
 				this.in = new MyBufferedReader(new InputStreamReader(socket.getInputStream()));
 				this.socket.setSoTimeout(CONNECTED_DELAY);
-				new Thread(new ConnectionChecker()).start();
+				new Thread(new Ping()).start();
 			} catch (IOException e) {
 				System.err.println("Pas de réponse de la socket client : " + socket.getRemoteSocketAddress() + ".");
 				e.printStackTrace();
@@ -256,9 +260,8 @@ public class Server {
 				out.send(Message.IDKS, null, "Vous êtes déjà connecté !");
 				break;
 			case Message.LSMA:
-				out.send(Message.IDKS, null, "LSMA en cours d'implémentation"); // TODO
-																				// Traitement
-																				// LSMA
+				// TODO Traitement LSMA
+				out.send(Message.IDKS, null, "LSMA en cours d'implémentation"); 
 				break;
 			case Message.LSAV:
 				sendAvailable(msg);
@@ -308,12 +311,9 @@ public class Server {
 			// Runtime -> java [Host path] serverIP serverPort hd.getName()
 			// hd.getIP() hd.getPort() // FUTURE Lancer programme externe
 			String[] sendArgs = new String[] { hd.getIP().toString(), String.valueOf(hd.getPort()) };
+			// FUTURE corriger après dev future
 			out.send(Message.NWOK, sendArgs,
-					"Votre partie a été créée. Mais n'y allez pas encore (jeu à implémenter) !"); // FUTURE
-																									// corriger
-																									// après
-																									// dev
-																									// future
+					"Votre partie a été créée. Mais n'y allez pas encore (jeu à implémenter) !");
 
 			/* Aucun invité */
 			if (msg.getArgs() == null) {
@@ -366,7 +366,7 @@ public class Server {
 			}
 		}
 
-		class ConnectionChecker implements Runnable {
+		private class Ping implements Runnable {
 
 			public static final int frequency = 5000;
 

@@ -15,7 +15,6 @@ import util.Message;
 import util.MyBufferedReader;
 import util.MyPrintWriter;
 
-// THINK Doit pouvoir être alerté d'un KICK du serveur. Thread à part rien que pour l'écoute ?
 public class Client implements AutoCloseable {
 
 	/* Temps maximal d'attente des réponses du serveur avant de redonner la main à l'utilisateur */

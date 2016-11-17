@@ -4,6 +4,11 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.UnknownHostException;
+import java.util.HashSet;
+import java.util.Set;
+
+import data.Player;
+import util.Message;
 
 /**
  * Hôte lancé par le serveur //FUTURE Programmer lancement par serveur au lieu de manuel une fois dév achevée
@@ -16,6 +21,8 @@ public class Host {
 	String name;
 	InetAddress IP;
 	int port;
+	
+	Set<Player> inGamePlayers = new HashSet<>();
 	
 	private static void deny(String message) {
 		System.err.println(message);
@@ -73,6 +80,42 @@ public class Host {
 		} catch (IOException e) {
 			deny("Paramètre n°5 invalide, port occupé");
 		}
+	}
+	
+//	TODO Hôte-Client
+	private class PlayerHandler extends Thread implements AutoCloseable {
+		
+		@Override
+		public void run() {
+			
+		}
+		
+		public Player identification() throws IOException, InterruptedException {
+			
+		}
+		
+		private void handleInGame() throws InterruptedException, IOException {
+			
+		}
+		
+		private class Ping implements Runnable {
+
+			public static final int frequency = 5000;
+
+			@Override
+			public void run() {
+				while (running) {
+					out.send(Message.RUOK);
+					try {
+						Thread.sleep(frequency);
+					} catch (InterruptedException e) {
+						System.err.println("Interruption du Thread ConnectionChecker pendant sleep()");
+					}
+				}
+			}
+
+		}
+		
 	}
 	
 }
