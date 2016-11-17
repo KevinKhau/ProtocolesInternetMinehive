@@ -1,21 +1,24 @@
 package game;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
-import java.util.Scanner;
 
-import javafx.geometry.Pos;
 import javafx.geometry.VPos;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.TextAlignment;
+import util.Message;
+import util.Points;
 
 
 public class Board {
 	public static final int WIDTH = 30;
 	public static final int HEIGHT = 16;
 	public static final int NB_BOMBS = 99;
+	
+	public static final int BOMB_VAL = -1;
 
 	private static final byte VALUE_MASK = 	(byte) 0b00001111;
 	
@@ -39,6 +42,14 @@ public class Board {
 	
 	public boolean isBombAt(int x, int y) {
 		return ((board[x + y * WIDTH] & BOMB_BIT) != 0);
+	}
+	
+	public void updateValueAt(int x, int y, int content) {
+		if (content == -1) {
+			board[x + y * WIDTH] = BOMB_BIT;
+		} else {
+			board[x + y * WIDTH] = (byte) content;
+		}
 	}
 	
 	public int valueAt(int x, int y) {
@@ -125,8 +136,9 @@ public class Board {
 	}
 
 	/* Retourne les points du joueur à ajouter ou retirer lors du clic */
-	public int clickAt(int x, int y) {
+	public ArrayList<String> clickAt(int x, int y, String user) {
 		int position = x + y * WIDTH;
+		MessageList list = new MessageList(user);
 
 		if ((board[position] & BOMB_BIT) != 0) { // It's a bomb !
 			// If it's the first click of the game, remove the bomb
@@ -200,85 +212,86 @@ public class Board {
 				}
 				
 				first = false;
-				return clickAt(x, y);
+				return clickAt(x, y, user);
 			}
-			
+			list.add(x, y, Points.BOMB, -1);
 			board[position] &= REVEAL_MASK; // Set visible
-			return -10;
+			return list.getList();
 			
 		} else { // it's not a bomb
 			first = false;
 			
 			// Do all the magic
-			return reveal(x, y);
+			reveal(x, y, list);
+			return list.getList();
 		}
 	}
 	
-	private int reveal(int x, int y) {
+	private void reveal(int x, int y, MessageList list) {
 		int position = x + y * WIDTH;
-		int points = 0; // TODO
 		
 		if ((board[position] & HIDDEN_BIT) == 0) { // Already visible
-			return 0;
+			return;
 		}
 		
 		board[position] &= REVEAL_MASK; // Set visible
 		
 		// Check for current square value
 		if ((board[position] & VALUE_MASK) > 0) {
-			return board[position] & VALUE_MASK;
+			list.add(x, y, board[position] & VALUE_MASK, board[position] & VALUE_MASK);
+			return;
 		}
+		
+		list.add(x, y, 1, board[position] & VALUE_MASK);
 		
 		// Is empty, need to search adjacent squares
 		// Left
 		if (x > 0) {
 			if ((board[position - 1] & HIDDEN_BIT) != 0)
-				points += reveal(x - 1, y);
+				reveal(x - 1, y, list);
 		}
 		
 		// Top Left
 		if (x > 0 && y > 0) {
 			if ((board[position - 1 - WIDTH] & HIDDEN_BIT) != 0)
-				points += reveal(x - 1, y - 1);
+				reveal(x - 1, y - 1, list);
 		}
 		
 		// Up
 		if (y > 0) {
 			if ((board[position - WIDTH] & HIDDEN_BIT) != 0)
-				points += reveal(x, y - 1);
+				reveal(x, y - 1, list);
 		}
 		
 		// Top Right
 		if (x < WIDTH - 1 && y > 0) {
 			if ((board[position + 1 - WIDTH] & HIDDEN_BIT) != 0)
-				points += reveal(x + 1, y - 1);
+				reveal(x + 1, y - 1, list);
 		}
 		
 		// Right
 		if (x < WIDTH - 1) {
 			if ((board[position + 1] & HIDDEN_BIT) != 0)
-				points += reveal(x + 1, y);
+				reveal(x + 1, y, list);
 		}
 		
 		// Right Bottom
 		if (x < WIDTH - 1 && y < HEIGHT - 1) {
 			if ((board[position + 1 + WIDTH] & HIDDEN_BIT) != 0)
-				points += reveal(x + 1, y + 1);
+				reveal(x + 1, y + 1, list);
 		}
 		
 		// Down
 		if (y < HEIGHT - 1) {
 			if ((board[position + WIDTH] & HIDDEN_BIT) != 0)
-				points += reveal(x, y + 1);
+				reveal(x, y + 1, list);
 		}
 		
 		// Left Bottom
 		if (x > 0 && y < HEIGHT - 1) {
 			if ((board[position - 1 + WIDTH] & HIDDEN_BIT) != 0)
-				points += reveal(x - 1, y + 1);
+				reveal(x - 1, y + 1, list);
 		}
-		
-		return points;
 	}
 	
 	public void revealAll() {
@@ -418,4 +431,22 @@ public class Board {
 		
 		scanner.close();
 	}*/
+	
+	private static class MessageList {
+		private String user;
+		private ArrayList<String> list;
+		
+		public MessageList(String username) {
+			list = new ArrayList<String>();
+			user = username;
+		}
+		
+		public void add(int x, int y, int points, int content) {
+			list.add(Message.SQRD + ' ' + x + ' ' + y + ' ' + content + ' ' + points + ' ' + user);
+		}
+		
+		public ArrayList<String> getList() {
+			return list;
+		}
+	}
 }
