@@ -21,12 +21,6 @@ public class ClientApp extends Application {
 		primaryStage.setWidth(800);
 		primaryStage.setHeight(600);
 		
-		//TODO Valeurs par défaut (même mot de passe !)
-		
-		//rootLayout = new BorderPane();
-		//rootLayout.setBackground(new Background(new BackgroundFill(Color.BLUE, CornerRadii.EMPTY, Insets.EMPTY)));
-		//rootLayout.setCenter(new Button("Blabla"));
-		
 		Login login = new Login(client);
 		Scene scene = new Scene(login.getUI());
 		primaryStage.setScene(scene);		
