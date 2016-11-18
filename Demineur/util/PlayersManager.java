@@ -26,8 +26,8 @@ public final class PlayersManager {
 	public static void main(String[] args) {
 		 Player test = getPlayer("Tomek");
 		 System.out.println(test.username + " " + test.password + " " +
-		 test.points);
-		 test.points = 80;
+		 test.totalPoints);
+		 test.totalPoints = 80;
 		 writePlayer(test);
 		 System.out.println("Success");
 	}

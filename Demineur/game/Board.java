@@ -1,7 +1,12 @@
 package game;
 
+import static game.Square.MAX_VALUE;
+import static game.Square.MIN_VALUE;
+
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Random;
 
 import javafx.geometry.VPos;
@@ -11,7 +16,6 @@ import javafx.scene.text.Font;
 import javafx.scene.text.TextAlignment;
 import util.Message;
 import util.Points;
-
 
 public class Board {
 	public static final int WIDTH = 30;
@@ -29,6 +33,8 @@ public class Board {
 	private static final byte DEFUSE_BOMB = (byte) 0b10111111;
 	
 	private boolean first;
+	
+	/** FUTURE Rendre volatile chaque élément de board */
 	private byte board[];
 	
 	public Board() {
@@ -37,23 +43,91 @@ public class Board {
 	}
 	
 	public boolean isHiddenAt(int x, int y) {
-		return ((board[x + y * WIDTH] & HIDDEN_BIT) != 0);
+		return isHiddenFrom(board[x + y * WIDTH]);
+	}
+	public boolean isHiddenFrom(byte square) {
+		return (square & HIDDEN_BIT) != 0;
 	}
 	
 	public boolean isBombAt(int x, int y) {
-		return ((board[x + y * WIDTH] & BOMB_BIT) != 0);
+		return isBombFrom(board[x + y * WIDTH]);
+	}
+	public boolean isBombFrom(byte square) {
+		return (square & BOMB_BIT) != 0;
 	}
 	
-	public void updateValueAt(int x, int y, int content) {
+	/**
+	 * Renvoie la valeur de la case, indépendamment des autres bits (mine, caché, etc.)
+	 * @param x
+	 * @param y
+	 * @return
+	 */
+	public int numberAt(int x, int y) {
+		return numberFrom(board[x + y * WIDTH]);
+	}
+	public int numberFrom(byte square) {
+		int res = square & VALUE_MASK;
+		if (res > MAX_VALUE) {
+			throw new ArrayIndexOutOfBoundsException("Valeur de case invalide. Maximum : " + Square.MAX_VALUE + ".");
+		}
+		return res;
+	}
+	
+	/**
+	 * Obtenir la valeur d'une case case, qu'elle soit cachée ou non.
+	 * S'il y a une mine, renvoie -1.
+	 */
+	public int valueAt(int x, int y) {
+		if (isBombAt(x, y)) {
+			return -1;
+		}
+		return numberAt(x, y);
+	}
+
+	/**
+	 * Mettre à jour une case du tableau. Attention à bien affecter une case du tableau, et non une copie.
+	 * @param x
+	 * @param y
+	 * @param content
+	 */
+	public synchronized void updateValueAt(int x, int y, int content) {
+		if (content < MIN_VALUE || content > MAX_VALUE) {
+			System.err.println("Mise à jour de case (" + x + ", " + y + ") impossible.");
+			throw new ArrayIndexOutOfBoundsException("Valeur de case invalide. Minimum : " + MIN_VALUE + ", Maximum : " + MAX_VALUE + ".");
+		}
 		if (content == -1) {
 			board[x + y * WIDTH] = BOMB_BIT;
 		} else {
+			/* Update number */
 			board[x + y * WIDTH] = (byte) content;
 		}
 	}
 	
-	public int valueAt(int x, int y) {
-		return board[x + y * WIDTH] & VALUE_MASK;
+	public String contentAt(int x, int y) {
+		return contentFrom(board[x + y * WIDTH]);
+	}
+	/**
+	 * Obtenir le contenu d'une case. 
+	 * @param square
+	 * @return Si cachée : X. Si mine : -1. Sinon, valeur.
+	 */
+	public synchronized String contentFrom(byte square) {
+		if (isHiddenFrom(square)) {
+			return "X";
+		} else if (isBombFrom(square)) {
+			return "-1";
+		} else {
+			return String.valueOf(numberFrom(square));
+		}
+	}
+	
+	public synchronized LinkedList<String> lineContentAt(int ordinate) {
+		byte[] line = line(ordinate);
+		LinkedList<String> res = new LinkedList<>();
+		for (byte e : line) {
+			res.add(contentFrom(e));
+		}
+		return res;
 	}
 	
 	public void reset() {
@@ -135,7 +209,7 @@ public class Board {
 		}
 	}
 
-	/* Retourne les points du joueur à ajouter ou retirer lors du clic */
+	/** Retourne les points du joueur à ajouter ou retirer lors du clic */
 	public ArrayList<String> clickAt(int x, int y, String user) {
 		int position = x + y * WIDTH;
 		MessageList list = new MessageList(user);
@@ -352,6 +426,9 @@ public class Board {
 		}
 	}
 
+	/**
+	 * Affiche le plateau sans dévoiler les cases, tel qu'un utilisateur devrait le voir.
+	 */
 	public void display() {
 		for (int i = 0; i < HEIGHT; i++) {
 			for (int j = 0; j < WIDTH; j++) {
@@ -400,6 +477,24 @@ public class Board {
 			}
 			System.out.println();
 		}
+	}
+	
+	/**
+	 * Affiche chaque byte du plateau.
+	 */
+	@Override
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < HEIGHT; i++) {
+			sb.append(Arrays.toString(line(i)));
+			sb.append("\n");
+		}
+		return sb.toString();
+	}
+	
+	private byte[] line(int ordinate) {
+		int start = ordinate * WIDTH;
+		return Arrays.copyOfRange(board, start, start + WIDTH);
 	}
 	
 	/*

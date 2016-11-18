@@ -101,7 +101,7 @@ public class Server {
 		MyPrintWriter out;
 		MyBufferedReader in;
 
-		volatile boolean running = true;
+		private volatile boolean running = true;
 
 		Player player;
 
@@ -199,7 +199,7 @@ public class Server {
 			}
 			/* Anomalies */
 			if (!message.getType().equals(Message.REGI)) {
-				out.send(Message.IDNO, null, "Vous devez d'abord vous connecter : REGI Username Password");
+				out.send(Message.IDKS, null, "Vous devez d'abord vous connecter : REGI Username Password");
 				return identification();
 			}
 			/* Mauvais nombre d'arguments */
@@ -286,14 +286,14 @@ public class Server {
 		private synchronized void sendAvailable(Message msg) {
 			out.send(Message.LANB, new String[] { String.valueOf(available.size()) });
 			for (Player p : available.keySet()) {
-				out.send(Message.AVAI, new String[] { p.username, String.valueOf(p.points) });
+				out.send(Message.AVAI, new String[] { p.username, String.valueOf(p.totalPoints) });
 			}
 		}
 
 		private synchronized void sendUsers(Message msg) {
 			out.send(Message.LUNB, new String[] { String.valueOf(users.size()) });
 			for (Player p : users.values()) {
-				out.send(Message.USER, new String[] { p.username, String.valueOf(p.points) });
+				out.send(Message.USER, new String[] { p.username, String.valueOf(p.totalPoints) });
 			}
 		}
 

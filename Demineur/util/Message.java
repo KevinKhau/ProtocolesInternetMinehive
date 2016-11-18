@@ -19,7 +19,7 @@ public class Message {
 	public static final String LSUS = "LSUS";
 	public static final String NWMA = "NWMA";
 	public static final String LEAV = "LEAV";
-	public static final String IMOK = "IMOK"; // + from Host
+	public static final String IMOK = "IMOK"; // +fromHost, +toHost
 	public static final String JOIN = "JOIN";
 	public static final String CLIC = "CLIC";
 	public static final String IDKC = "IDKC";
@@ -42,7 +42,7 @@ public class Message {
 	public static final String PLNO = "PLNO";
 	public static final String PLOK = "PLOK";
 	public static final String IDKS = "IDKS";
-	public static final String RUOK = "RUOK"; // + to Host
+	public static final String RUOK = "RUOK"; // +toHost, +inHost
 
 	/* Host */
 	public static final String JNNO = "JNNO";

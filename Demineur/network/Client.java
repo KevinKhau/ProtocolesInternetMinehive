@@ -117,19 +117,17 @@ public class Client implements AutoCloseable {
 			login();
 		}
 		out.send(send);
-		if (send.getType().equals(Message.LEAV)) {
-			System.out.println("Fin de la connexion avec le serveur " + socket.getRemoteSocketAddress());
-			close();
-			return;
-		} else {
-			waitResponse();
-		}
+		leaveOrWait(send.getType());
 	}
 
 	public void communicate() {
 		Message m = input();
 		out.send(m);
-		if (m.getType().equals(Message.LEAV)) {
+		leaveOrWait(m.getType());
+	}
+	
+	private void leaveOrWait(String type) {
+		if (type.equals(Message.LEAV)) {
 			System.out.println("Fin de la connexion avec le serveur " + socket.getRemoteSocketAddress());
 			close();
 			return;
@@ -191,7 +189,7 @@ public class Client implements AutoCloseable {
 						
 					/* LS */
 					case Message.LMNB:
-						count = rcv.getArgAsInt(0);
+						count += rcv.getArgAsInt(0);
 						System.out.println(rcv);
 						if (count == 0) {
 							wakeClient();
@@ -202,7 +200,7 @@ public class Client implements AutoCloseable {
 						wakeClient();
 						break;
 					case Message.LANB:
-						count = rcv.getArgAsInt(0);
+						count += rcv.getArgAsInt(0);
 						System.out.println(rcv);
 						if (count == 0) {
 							wakeClient();
@@ -213,7 +211,7 @@ public class Client implements AutoCloseable {
 						wakeClient();
 						break;
 					case Message.LUNB:
-						count = rcv.getArgAsInt(0);
+						count += rcv.getArgAsInt(0);
 						System.out.println(rcv);
 						if (count == 0) {
 							wakeClient();
