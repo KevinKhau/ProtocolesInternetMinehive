@@ -1,6 +1,5 @@
 package gui;
 
-import java.awt.dnd.DragGestureRecognizer;
 import java.util.Arrays;
 
 import game.Board;
@@ -13,10 +12,10 @@ import javafx.scene.paint.Color;
 import network.Client;
 
 public class BoardUI extends Pane {
-	private static final Color hidden = Color.GRAY;
-	private static final Color pressed = Color.rgb(0, 0, 0, 0.4);
-	private static final Color selected = Color.rgb(255, 255, 255, 0.4);
-	private static final Color test = Color.WHITE;
+	private static final Color HIDDEN = Color.GRAY;
+	private static final Color PRESSED = Color.rgb(0, 0, 0, 0.4);
+	private static final Color SELECTED = Color.rgb(255, 255, 255, 0.4);
+	private static final Color TEST = Color.WHITE;
 
 	private final Canvas board;
 	private final Canvas ui;
@@ -46,8 +45,8 @@ public class BoardUI extends Pane {
 		tile_size = 0;
 		gap = 0;
 
-		array = new Color[Board.HEIGHT * Board.WIDTH];
-		Arrays.fill(array, hidden);
+		array = new Color[game.height * game.width];
+		Arrays.fill(array, HIDDEN);
 		
 		initEvents();
 	}
@@ -58,16 +57,16 @@ public class BoardUI extends Pane {
 
 	protected void pressAt(int x, int y) {
 		ui_gc.clearRect(0, 0, ui.getWidth(), ui.getHeight());
-		if (array[x + y * Board.WIDTH] == hidden) {
-			ui_gc.setFill(pressed);
+		if (array[x + y * game.width] == HIDDEN) {
+			ui_gc.setFill(PRESSED);
 			ui_gc.fillRect(x * (tile_size + gap), y * (tile_size + gap), tile_size, tile_size);
 		}
 	}
 
 	protected void selectAt(int x, int y) {
 		ui_gc.clearRect(0, 0, ui.getWidth(), ui.getHeight());
-		if (array[x + y * Board.WIDTH] == hidden) {
-			ui_gc.setFill(selected);
+		if (array[x + y * game.width] == HIDDEN) {
+			ui_gc.setFill(SELECTED);
 			ui_gc.fillRect(x * (tile_size + gap), y * (tile_size + gap), tile_size, tile_size);
 		}
 	}
@@ -130,7 +129,7 @@ public class BoardUI extends Pane {
 			gap = gap_vt;
 
 		int previous = 0;
-		for (int tile = 0; !((tile + gap) * Board.HEIGHT > h || (tile + gap) * Board.WIDTH > w); tile++) {
+		for (int tile = 0; !((tile + gap) * game.height > h || (tile + gap) * game.width > w); tile++) {
 			previous = tile;
 		}
 
@@ -149,7 +148,7 @@ public class BoardUI extends Pane {
 				int tx = (int) (t.getX() / (tile_size + gap));
 				int ty = (int) (t.getY() / (tile_size + gap));
 
-				if (tx >= 0 && tx < Board.WIDTH && ty >= 0 && ty < Board.HEIGHT) {
+				if (tx >= 0 && tx < game.width && ty >= 0 && ty < game.height) {
 					selectAt(tx, ty);
 				} else {
 					clearSelection();
@@ -165,7 +164,7 @@ public class BoardUI extends Pane {
 				int tx = (int) (t.getX() / (tile_size + gap));
 				int ty = (int) (t.getY() / (tile_size + gap));
 
-				if (tx >= 0 && tx < Board.WIDTH && ty >= 0 && ty < Board.HEIGHT) {
+				if (tx >= 0 && tx < game.width && ty >= 0 && ty < game.height) {
 					pressAt(tx, ty);
 				} else {
 					clearSelection();
@@ -181,7 +180,7 @@ public class BoardUI extends Pane {
 				int tx = (int) (t.getX() / (tile_size + gap));
 				int ty = (int) (t.getY() / (tile_size + gap));
 
-				if (tx >= 0 && tx < Board.WIDTH && ty >= 0 && ty < Board.HEIGHT) {
+				if (tx >= 0 && tx < game.width && ty >= 0 && ty < game.height) {
 					revealAt(tx, ty);
 				} else {
 					clearSelection();
@@ -197,7 +196,7 @@ public class BoardUI extends Pane {
 				int tx = (int) (t.getX() / (tile_size + gap));
 				int ty = (int) (t.getY() / (tile_size + gap));
 
-				if (tx >= 0 && tx < Board.WIDTH && ty >= 0 && ty < Board.HEIGHT) {
+				if (tx >= 0 && tx < game.width && ty >= 0 && ty < game.height) {
 					pressAt(tx, ty);
 				} else {
 					clearSelection();

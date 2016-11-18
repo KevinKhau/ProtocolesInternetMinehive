@@ -19,8 +19,13 @@ import util.Points;
 
 public class Board {
 	public static final int WIDTH = 30;
-	public static final int HEIGHT = 16;
-	public static final int NB_BOMBS = 99;
+	private static final int HEIGHT = 16;
+	private static final int NB_BOMBS = 99;
+	
+	/* En cas d'implémentation future où ces données peuvent varier */
+	public final int width = WIDTH;
+	public final int height = HEIGHT;
+	public final int nb_bombs = NB_BOMBS;
 	
 	public static final int BOMB_VAL = -1;
 
@@ -38,19 +43,19 @@ public class Board {
 	private byte board[];
 	
 	public Board() {
-		board = new byte[WIDTH * HEIGHT];
+		board = new byte[width * height];
 		reset();
 	}
 	
 	public boolean isHiddenAt(int x, int y) {
-		return isHiddenFrom(board[x + y * WIDTH]);
+		return isHiddenFrom(board[x + y * width]);
 	}
 	public boolean isHiddenFrom(byte square) {
 		return (square & HIDDEN_BIT) != 0;
 	}
 	
 	public boolean isBombAt(int x, int y) {
-		return isBombFrom(board[x + y * WIDTH]);
+		return isBombFrom(board[x + y * width]);
 	}
 	public boolean isBombFrom(byte square) {
 		return (square & BOMB_BIT) != 0;
@@ -63,7 +68,7 @@ public class Board {
 	 * @return
 	 */
 	public int numberAt(int x, int y) {
-		return numberFrom(board[x + y * WIDTH]);
+		return numberFrom(board[x + y * width]);
 	}
 	public int numberFrom(byte square) {
 		int res = square & VALUE_MASK;
@@ -96,15 +101,15 @@ public class Board {
 			throw new ArrayIndexOutOfBoundsException("Valeur de case invalide. Minimum : " + MIN_VALUE + ", Maximum : " + MAX_VALUE + ".");
 		}
 		if (content == -1) {
-			board[x + y * WIDTH] = BOMB_BIT;
+			board[x + y * width] = BOMB_BIT;
 		} else {
 			/* Update number */
-			board[x + y * WIDTH] = (byte) content;
+			board[x + y * width] = (byte) content;
 		}
 	}
 	
 	public String contentAt(int x, int y) {
-		return contentFrom(board[x + y * WIDTH]);
+		return contentFrom(board[x + y * width]);
 	}
 	/**
 	 * Obtenir le contenu d'une case. 
@@ -149,13 +154,13 @@ public class Board {
 		while (bombs <= 5) {
 			bombs = rand.nextInt(board.length / 5);
 		}*/
-		int bombs = NB_BOMBS;
+		int bombs = nb_bombs;
 		
 		// Get bomb positions
 		for (int i = 0; i < bombs; i++) {
-			int x = rand.nextInt(WIDTH);
-			int y = rand.nextInt(HEIGHT);
-			int position = x + y * WIDTH;
+			int x = rand.nextInt(width);
+			int y = rand.nextInt(height);
+			int position = x + y * width;
 			
 			// Add the bomb and increment the squares around
 			if((board[position] & BOMB_BIT) != 0) {
@@ -173,37 +178,37 @@ public class Board {
 				
 				// Top Left
 				if (x > 0 && y > 0) {
-					board[position - 1 - WIDTH]++;
+					board[position - 1 - width]++;
 				}
 				
 				// Up
 				if (y > 0) {
-					board[position - WIDTH]++;
+					board[position - width]++;
 				}
 				
 				// Top Right
-				if (x < WIDTH - 1 && y > 0) {
-					board[position + 1 - WIDTH]++;
+				if (x < width - 1 && y > 0) {
+					board[position + 1 - width]++;
 				}
 				
 				// Right
-				if (x < WIDTH - 1) {
+				if (x < width - 1) {
 					board[position + 1]++;
 				}
 				
 				// Right Bottom
-				if (x < WIDTH - 1 && y < HEIGHT - 1) {
-					board[position + 1 + WIDTH]++;
+				if (x < width - 1 && y < height - 1) {
+					board[position + 1 + width]++;
 				}
 				
 				// Down
-				if (y < HEIGHT - 1) {
-					board[position + WIDTH]++;
+				if (y < height - 1) {
+					board[position + width]++;
 				}
 				
 				// Left Bottom
-				if (x > 0 && y < HEIGHT - 1) {
-					board[position - 1 + WIDTH]++;
+				if (x > 0 && y < height - 1) {
+					board[position - 1 + width]++;
 				}
 			}
 		}
@@ -211,7 +216,7 @@ public class Board {
 
 	/** Retourne les points du joueur à ajouter ou retirer lors du clic */
 	public ArrayList<String> clickAt(int x, int y, String user) {
-		int position = x + y * WIDTH;
+		int position = x + y * width;
 		MessageList list = new MessageList(user);
 
 		if ((board[position] & BOMB_BIT) != 0) { // It's a bomb !
@@ -231,30 +236,30 @@ public class Board {
 				
 				// Top Left
 				if (x > 0 && y > 0) {
-					if ((board[position - 1 - WIDTH] & BOMB_BIT) == 0)
-						board[position - 1 - WIDTH]--;
+					if ((board[position - 1 - width] & BOMB_BIT) == 0)
+						board[position - 1 - width]--;
 					else 
 						board[position]++;
 				}
 				
 				// Up
 				if (y > 0) {
-					if ((board[position - WIDTH] & BOMB_BIT) == 0)
-						board[position - WIDTH]--;
+					if ((board[position - width] & BOMB_BIT) == 0)
+						board[position - width]--;
 					else 
 						board[position]++;
 				}
 				
 				// Top Right
-				if (x < WIDTH - 1 && y > 0) {
-					if ((board[position + 1 - WIDTH] & BOMB_BIT) == 0)
-						board[position + 1 - WIDTH]--;
+				if (x < width - 1 && y > 0) {
+					if ((board[position + 1 - width] & BOMB_BIT) == 0)
+						board[position + 1 - width]--;
 					else 
 						board[position]++;
 				}
 				
 				// Right
-				if (x < WIDTH - 1) {
+				if (x < width - 1) {
 					if ((board[position + 1] & BOMB_BIT) == 0)
 						board[position + 1]--;
 					else 
@@ -262,25 +267,25 @@ public class Board {
 				}
 				
 				// Right Bottom
-				if (x < WIDTH - 1 && y < HEIGHT - 1) {
-					if ((board[position + 1 + WIDTH] & BOMB_BIT) == 0)
-						board[position + 1 + WIDTH]--;
+				if (x < width - 1 && y < height - 1) {
+					if ((board[position + 1 + width] & BOMB_BIT) == 0)
+						board[position + 1 + width]--;
 					else 
 						board[position]++;
 				}
 				
 				// Down
-				if (y < HEIGHT - 1) {
-					if ((board[position + WIDTH] & BOMB_BIT) == 0)
-						board[position + WIDTH]--;
+				if (y < height - 1) {
+					if ((board[position + width] & BOMB_BIT) == 0)
+						board[position + width]--;
 					else 
 						board[position]++;
 				}
 				
 				// Left Bottom
-				if (x > 0 && y < HEIGHT - 1) {
-					if ((board[position - 1 + WIDTH] & BOMB_BIT) == 0)
-						board[position - 1 + WIDTH]--;
+				if (x > 0 && y < height - 1) {
+					if ((board[position - 1 + width] & BOMB_BIT) == 0)
+						board[position - 1 + width]--;
 					else 
 						board[position]++;
 				}
@@ -302,7 +307,7 @@ public class Board {
 	}
 	
 	private void reveal(int x, int y, MessageList list) {
-		int position = x + y * WIDTH;
+		int position = x + y * width;
 		
 		if ((board[position] & HIDDEN_BIT) == 0) { // Already visible
 			return;
@@ -327,43 +332,43 @@ public class Board {
 		
 		// Top Left
 		if (x > 0 && y > 0) {
-			if ((board[position - 1 - WIDTH] & HIDDEN_BIT) != 0)
+			if ((board[position - 1 - width] & HIDDEN_BIT) != 0)
 				reveal(x - 1, y - 1, list);
 		}
 		
 		// Up
 		if (y > 0) {
-			if ((board[position - WIDTH] & HIDDEN_BIT) != 0)
+			if ((board[position - width] & HIDDEN_BIT) != 0)
 				reveal(x, y - 1, list);
 		}
 		
 		// Top Right
-		if (x < WIDTH - 1 && y > 0) {
-			if ((board[position + 1 - WIDTH] & HIDDEN_BIT) != 0)
+		if (x < width - 1 && y > 0) {
+			if ((board[position + 1 - width] & HIDDEN_BIT) != 0)
 				reveal(x + 1, y - 1, list);
 		}
 		
 		// Right
-		if (x < WIDTH - 1) {
+		if (x < width - 1) {
 			if ((board[position + 1] & HIDDEN_BIT) != 0)
 				reveal(x + 1, y, list);
 		}
 		
 		// Right Bottom
-		if (x < WIDTH - 1 && y < HEIGHT - 1) {
-			if ((board[position + 1 + WIDTH] & HIDDEN_BIT) != 0)
+		if (x < width - 1 && y < height - 1) {
+			if ((board[position + 1 + width] & HIDDEN_BIT) != 0)
 				reveal(x + 1, y + 1, list);
 		}
 		
 		// Down
-		if (y < HEIGHT - 1) {
-			if ((board[position + WIDTH] & HIDDEN_BIT) != 0)
+		if (y < height - 1) {
+			if ((board[position + width] & HIDDEN_BIT) != 0)
 				reveal(x, y + 1, list);
 		}
 		
 		// Left Bottom
-		if (x > 0 && y < HEIGHT - 1) {
-			if ((board[position - 1 + WIDTH] & HIDDEN_BIT) != 0)
+		if (x > 0 && y < height - 1) {
+			if ((board[position - 1 + width] & HIDDEN_BIT) != 0)
 				reveal(x - 1, y + 1, list);
 		}
 	}
@@ -379,18 +384,18 @@ public class Board {
 		gc.setTextBaseline(VPos.CENTER);
 		gc.setFont(new Font(tile));
 		
-		for (int i = 0; i < HEIGHT; i++) {
-			for (int j = 0; j < WIDTH; j++) {
-				gc.setFill(array[j + i * WIDTH]);
+		for (int i = 0; i < height; i++) {
+			for (int j = 0; j < width; j++) {
+				gc.setFill(array[j + i * width]);
 				gc.fillRect(j * (tile + gap), i * (tile + gap), tile, tile);
 				
-				if ((board[j + i * WIDTH] & HIDDEN_BIT) == 0) {
-					if ((board[j + i * WIDTH] & BOMB_BIT) != 0) {
+				if ((board[j + i * width] & HIDDEN_BIT) == 0) {
+					if ((board[j + i * width] & BOMB_BIT) != 0) {
 						gc.setFill(Color.BLACK);
 						gc.fillText("¤", j * (tile + gap) + (tile + gap) / 2, i * (tile + gap) + (tile + gap) / 2, tile);
 					} else {
-						if ((board[j + i * WIDTH] & VALUE_MASK) != 0) {
-							int val = board[j + i * WIDTH] & VALUE_MASK;
+						if ((board[j + i * width] & VALUE_MASK) != 0) {
+							int val = board[j + i * width] & VALUE_MASK;
 							switch (val) {
 							case 1:
 								gc.setFill(Color.BLUE);
@@ -430,19 +435,19 @@ public class Board {
 	 * Affiche le plateau sans dévoiler les cases, tel qu'un utilisateur devrait le voir.
 	 */
 	public void display() {
-		for (int i = 0; i < HEIGHT; i++) {
-			for (int j = 0; j < WIDTH; j++) {
-				if ((board[j + i * WIDTH] & HIDDEN_BIT) != 0) {
+		for (int i = 0; i < height; i++) {
+			for (int j = 0; j < width; j++) {
+				if ((board[j + i * width] & HIDDEN_BIT) != 0) {
 					System.out.print('#'); // Hidden
 				} else {
-					if ((board[j + i * WIDTH] & BOMB_BIT) != 0) {
+					if ((board[j + i * width] & BOMB_BIT) != 0) {
 						System.out.print('X'); // Bomb
 					} else {
-						if ((board[j + i * WIDTH] & VALUE_MASK) == 0) {
+						if ((board[j + i * width] & VALUE_MASK) == 0) {
 							System.out.print(' '); // Empty
 						} else {
 							/* UNIX only
-							int val = board[j + i * WIDTH] & VALUE_MASK;
+							int val = board[j + i * width] & VALUE_MASK;
 							switch (val) {
 							case 1:
 								System.out.print("\u001B[34m"); // Blue
@@ -469,8 +474,8 @@ public class Board {
 								System.out.print(""); // Grey
 								break;
 							}
-							System.out.print((board[j + i * WIDTH] & VALUE_MASK) + "\u001B[0m");*/
-							System.out.print((board[j + i * WIDTH] & VALUE_MASK)); // Number
+							System.out.print((board[j + i * width] & VALUE_MASK) + "\u001B[0m");*/
+							System.out.print((board[j + i * width] & VALUE_MASK)); // Number
 						}
 					}
 				}
@@ -485,7 +490,7 @@ public class Board {
 	@Override
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
-		for (int i = 0; i < HEIGHT; i++) {
+		for (int i = 0; i < height; i++) {
 			sb.append(Arrays.toString(line(i)));
 			sb.append("\n");
 		}
@@ -493,8 +498,15 @@ public class Board {
 	}
 	
 	private byte[] line(int ordinate) {
-		int start = ordinate * WIDTH;
-		return Arrays.copyOfRange(board, start, start + WIDTH);
+		int start = ordinate * width;
+		return Arrays.copyOfRange(board, start, start + width);
+	}
+	
+	public boolean validAbscissa(int abscissa) {
+		return abscissa >= 0 && abscissa < width;
+	}
+	public boolean validOrdinate(int ordinate) {
+		return ordinate >= 0 && ordinate < height;
 	}
 	
 	/*

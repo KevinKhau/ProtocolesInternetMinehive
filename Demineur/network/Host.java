@@ -158,8 +158,8 @@ public class Host {
 				this.socket = socket;
 				this.out = new MyPrintWriter(new OutputStreamWriter(socket.getOutputStream()));
 				this.in = new MyBufferedReader(new InputStreamReader(socket.getInputStream()));
-//				this.socket.setSoTimeout(CONNECTED_DELAY); // TEST Neutraliser RUOK
-//				new Thread(new Ping()).start();
+				this.socket.setSoTimeout(CONNECTED_DELAY); // TEST Neutraliser RUOK
+				new Thread(new Ping()).start();
 			} catch (IOException e) {
 				System.err.println("Pas de réponse de la socket client : " + socket.getRemoteSocketAddress() + ".");
 				e.printStackTrace();
@@ -215,11 +215,18 @@ public class Host {
 			}
 		}
 
+		/*
+		 *  FUTURE Nombre de récursions limitée à au moins 1024, définissable avec -xss.
+		 *  Solution 1 : Limiter le nombre de tentatives de connexion.
+		 */
 		public InGamePlayer identification() throws IOException, InterruptedException {
 			if (!running) {
 				throw new InterruptedException();
 			}
 			Message message = in.receive();
+			if (message.getType().equals(Message.IMOK)) {
+				return identification();
+			}
 			/* Anomalies */
 			if (!message.getType().equals(Message.JOIN)) {
 				out.send(Message.IDKH, null, "Vous devez d'abord vous identifier : JOIN Username Password");
@@ -292,7 +299,23 @@ public class Host {
 		}
 
 		private void handleInGame() throws InterruptedException, IOException {
-//			throw new UnsupportedOperationException("Pas encore implémenté");
+			if (!running) {
+				throw new InterruptedException();
+			}
+			Message msg = in.receive();
+			switch (msg.getType()) {
+			case Message.IMOK: // Permet de reset le SO_TIMEOUT de la socket
+				break;
+			case Message.CLIC: // TODO
+				int abscissa = msg.getArgAsInt(0);
+				int ordinate = msg.getArgAsInt(1);
+				if (!board.validAbscissa(abscissa) || !board.validOrdinate(ordinate)) {
+					out.send(Message.OORG, new String[]{valueOf(abscissa), valueOf(ordinate)}, "Coordonnées invalides ! ");
+				}
+				break;
+			default:
+				out.send(Message.IDKS, null, "Commande inconnue ou pas encore implémentée");
+				break;	
 		}
 
 		private class Ping implements Runnable {

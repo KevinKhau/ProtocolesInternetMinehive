@@ -1,7 +1,5 @@
 package unitTests;
 
-import static game.Board.HEIGHT;
-import static game.Board.WIDTH;
 
 import java.util.Arrays;
 import java.util.List;
@@ -19,8 +17,8 @@ public class BoardTest {
 		Board b = new Board();
 		System.out.println(b);
 		b.display();
-		for (int y = 0; y < HEIGHT; y++) {
-			for (int x = 0; x < WIDTH; x++) {
+		for (int y = 0; y < b.height; y++) {
+			for (int x = 0; x < b.width; x++) {
 				System.out.print(b.valueAt(x, y) + " ");
 			}
 			System.out.println();
@@ -28,7 +26,7 @@ public class BoardTest {
 		
 //		b.revealAll();
 		
-		for (int i = 0; i < HEIGHT; i++) {
+		for (int i = 0; i < b.height; i++) {
 			List<String> line = b.lineContentAt(i);
 			line.add(0, String.valueOf(i));
 			System.out.println(line);
