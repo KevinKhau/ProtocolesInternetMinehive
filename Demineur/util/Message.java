@@ -57,6 +57,8 @@ public class Message {
 	public static final String SQRD = "SQRD";
 	public static final String ENDC = "ENDC";
 	public static final String SCPC = "SCPC";
+	public static final String AFKP = "AFKP";
+	public static final String BACK = "BACK";
 	public static final String SDDT = "SDDT";
 	public static final String PLIN = "PLIN";
 	public static final String SCPS = "SCPS";
@@ -113,6 +115,8 @@ public class Message {
 		map.put(SQRD, 5);
 		map.put(ENDC, 1);
 		map.put(SCPC, 5);
+		map.put(AFKP, 1);
+		map.put(BACK, 1);
 		map.put(SDDT, null);
 		map.put(PLIN, 3);
 		map.put(SCPS, 2);

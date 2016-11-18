@@ -110,9 +110,9 @@ public class Server {
 			System.out.println("Nouvelle connexion : " + socket.getRemoteSocketAddress());
 			try {
 				this.socket = socket;
-				this.out = new MyPrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
+				this.out = new MyPrintWriter(new OutputStreamWriter(socket.getOutputStream()));
 				this.in = new MyBufferedReader(new InputStreamReader(socket.getInputStream()));
-				this.socket.setSoTimeout(CONNECTED_DELAY);
+				this.socket.setSoTimeout(CONNECTED_DELAY); // TEST Neutraliser RUOK
 				new Thread(new Ping()).start();
 			} catch (IOException e) {
 				System.err.println("Pas de réponse de la socket client : " + socket.getRemoteSocketAddress() + ".");

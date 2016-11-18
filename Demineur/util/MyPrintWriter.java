@@ -12,8 +12,8 @@ import static util.StringUtil.getSpaces;
  */
 public class MyPrintWriter extends PrintWriter {
 
-	public MyPrintWriter(OutputStreamWriter osw, boolean autoFlush) {
-		super(osw, autoFlush);
+	public MyPrintWriter(OutputStreamWriter osw) {
+		super(osw, true);
 	}
 
 	/**

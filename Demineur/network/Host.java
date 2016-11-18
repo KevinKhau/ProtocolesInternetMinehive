@@ -1,12 +1,17 @@
 package network;
 
-import static util.Message.validArguments;
 import static java.lang.String.valueOf;
+import static util.Message.validArguments;
 
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.net.BindException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.List;
 import java.util.Map;
@@ -25,7 +30,10 @@ import util.MyPrintWriter;
 public class Host {
 
 	public static final int MAX_PLAYERS = 10;
-
+	
+	public static final int ACTIVE_DELAY = 30000;
+	public static final int CONNECTED_DELAY = 10000;
+	
 	InetAddress serverIP;
 	int serverPort;
 
@@ -44,39 +52,44 @@ public class Host {
 	}
 
 	public static void main(String[] args) {
-		if (args.length < 5) {
-			deny("Mauvais nombre d'arguments.");
+		try { // TEST
+			new Host(null, 5555, "HostTest", InetAddress.getLocalHost(), 3333);
+		} catch (UnknownHostException e1) {
+			e1.printStackTrace();
 		}
-
-		InetAddress serverIP = null;
-		try {
-			serverIP = InetAddress.getByName(args[0]);
-		} catch (UnknownHostException e) {
-			deny("Paramètre n°1 invalide, adresse IP du serveur non reconnue.");
-		}
-
-		int serverPort = 0;
-		try {
-			serverPort = Integer.parseInt(args[1]);
-		} catch (NumberFormatException e) {
-			deny("Paramètre n°2 invalide, numéro de port du serveur attendu.");
-			return;
-		}
-
-		InetAddress hostIP = null;
-		try {
-			hostIP = InetAddress.getByName(args[0]);
-		} catch (UnknownHostException e) {
-			deny("Paramètre n°4 invalide, adresse IP d'hôte non reconnue.");
-		}
-
-		int hostPort = 0;
-		try {
-			hostPort = Integer.parseInt(args[4]);
-		} catch (NumberFormatException e) {
-			deny("Paramètre n°5 invalide, numéro de port libre d'hôte attendu");
-		}
-		new Host(serverIP, serverPort, args[2], hostIP, hostPort);
+//		if (args.length < 5) {
+//			deny("Mauvais nombre d'arguments.");
+//		}
+//
+//		InetAddress serverIP = null;
+//		try {
+//			serverIP = InetAddress.getByName(args[0]);
+//		} catch (UnknownHostException e) {
+//			deny("Paramètre n°1 invalide, adresse IP du serveur non reconnue.");
+//		}
+//
+//		int serverPort = 0;
+//		try {
+//			serverPort = Integer.parseInt(args[1]);
+//		} catch (NumberFormatException e) {
+//			deny("Paramètre n°2 invalide, numéro de port du serveur attendu.");
+//			return;
+//		}
+//
+//		InetAddress hostIP = null;
+//		try {
+//			hostIP = InetAddress.getByName(args[0]);
+//		} catch (UnknownHostException e) {
+//			deny("Paramètre n°4 invalide, adresse IP d'hôte non reconnue.");
+//		}
+//
+//		int hostPort = 0;
+//		try {
+//			hostPort = Integer.parseInt(args[4]);
+//		} catch (NumberFormatException e) {
+//			deny("Paramètre n°5 invalide, numéro de port libre d'hôte attendu");
+//		}
+//		new Host(serverIP, serverPort, args[2], hostIP, hostPort);
 	}
 
 	public Host(InetAddress serverIP, int serverPort, String name, InetAddress IP, int port) {
@@ -87,15 +100,26 @@ public class Host {
 		this.IP = IP;
 		this.port = port;
 
-		try {
-			ServerSocket ss = new ServerSocket(port);
-			// FUTURE établir connexion
+		// TODO établir connexion au serveur
+		
+		try (ServerSocket ss = new ServerSocket(port)) {
+			System.out.println("Lancement hôte : IP=" + IP + ", port=" + port + ".");
+			while (true) {
+				new Thread(new PlayerHandler(ss.accept())).start();
+			}
+		} catch (BindException e) {
+			System.err.println("Socket serveur déjà en cours d'utilisation.");
+		} catch (IllegalArgumentException e) {
+			System.err.println("Valeur de port invalide, doit être entre 0 et 65535.");
+			e.printStackTrace();
 		} catch (IOException e) {
-			deny("Paramètre n°5 invalide, port occupé");
+			System.err.println("Problème de traitement de la socket : port " + serverPort + ".");
+			System.err.println("Port occupé ?");
+			e.printStackTrace();
 		}
 	}
 
-	private class InGamePlayer extends Player {
+	private class InGamePlayer extends Player { // THINK Classe externe ?
 
 		PlayerHandler handler;
 		volatile boolean active = false;
@@ -127,12 +151,71 @@ public class Host {
 
 		InGamePlayer player;
 
+		public PlayerHandler(Socket socket) {
+			super();
+			System.out.println("Nouvelle connexion : " + socket.getRemoteSocketAddress());
+			try {
+				this.socket = socket;
+				this.out = new MyPrintWriter(new OutputStreamWriter(socket.getOutputStream()));
+				this.in = new MyBufferedReader(new InputStreamReader(socket.getInputStream()));
+//				this.socket.setSoTimeout(CONNECTED_DELAY); // TEST Neutraliser RUOK
+//				new Thread(new Ping()).start();
+			} catch (IOException e) {
+				System.err.println("Pas de réponse de la socket client : " + socket.getRemoteSocketAddress() + ".");
+				e.printStackTrace();
+			}
+		}
+		
 		@Override
 		public void run() {
-
+			try {
+				player = identification();
+//				if (player != null) {
+//					addAvailable(player, this);
+//					System.out.println("Utilisateur '" + player.username + "' connecté depuis "
+//							+ socket.getRemoteSocketAddress() + ".");
+//				}
+				while (running) {
+					handleInGame();
+				}
+			} catch (InterruptedException e) {
+				System.err.println(e.getMessage());
+				close();
+			} catch (SocketTimeoutException e) {
+				System.err.println("Le client " + socket.getRemoteSocketAddress() + " n'a pas répondu à temps.");
+				close();
+			} catch (IllegalArgumentException e) {
+				System.err.println(e.getMessage());
+				System.out.println("Interruption de la communication avec le client.");
+				close();
+			} catch (IOException e) {
+				if (e instanceof BindException) {
+					System.err.println("Socket serveur déjà en cours d'utilisation.");
+				} else if (e instanceof SocketException) {
+					if (e.getMessage() == null) {
+						e.printStackTrace();
+						close();
+					}
+					String name = "";
+					if (player != null) {
+						name = "Utilisateur '" + player.username + "'";
+					}
+					if (e.getMessage().toUpperCase().equals("SOCKET CLOSED")) {
+						System.out.println("Fin de la communication : " + name + socket.getRemoteSocketAddress() + ".");
+					} else {
+						System.err
+								.println(e.getMessage() + ", client : " + name + socket.getRemoteSocketAddress() + ".");
+					}
+				} else {
+					System.err.println(
+							"Communication impossible avec le client : " + socket.getRemoteSocketAddress() + ".");
+					e.printStackTrace();
+					close();
+				}
+			}
 		}
 
-		public Player identification() throws IOException, InterruptedException {
+		public InGamePlayer identification() throws IOException, InterruptedException {
 			if (!running) {
 				throw new InterruptedException();
 			}
@@ -174,18 +257,20 @@ public class Host {
 				return identification();
 			}
 
-			/* TODO Server-Host Nouvelle connexion */
+			/* Nouvelle connexion */
+			// TODO échange de données Server-Host
 			InGamePlayer p2 = new InGamePlayer(username, password, this);
 			inGamePlayers.put(username, p2);
 			this.player = p2;
-			out.send(Message.JNOK, null, "Bienvenue " + username + " !");
+			System.out.println("nouveau"); // TEST
+			sendGameState(p2);
 			return p2;
 		}
 
 		private void sendGameState(InGamePlayer player) {
-			/* Send board ; active=true */
+			/* Send board */
 			out.send(Message.JNOK, new String[] { String.valueOf(Board.HEIGHT) },
-					"Bon retour " + player.username + " !");
+					"Bienvenue sur " + Host.this.name + ", " + player.username + " !");
 			for (int y = 0; y < Board.HEIGHT; y++) {
 				List<String> lineContent = board.lineContentAt(y);
 				lineContent.add(0, String.valueOf(y));
@@ -207,7 +292,7 @@ public class Host {
 		}
 
 		private void handleInGame() throws InterruptedException, IOException {
-
+//			throw new UnsupportedOperationException("Pas encore implémenté");
 		}
 
 		private class Ping implements Runnable {
@@ -228,9 +313,22 @@ public class Host {
 
 		}
 
+		/**
+		 * Autorise la Thread à s'arrêter, met le joueur inactif. Ferme la socket et les streams associés.
+		 */
 		@Override
-		public void close() throws Exception {
-			player.active = false;
+		public void close() {
+			running = false;
+			try {
+//				if (player != null) { //TODO
+//					available.remove(player);
+//				}
+				out.close();
+				in.close();
+				socket.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 
 	}
