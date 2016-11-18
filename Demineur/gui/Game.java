@@ -19,10 +19,12 @@ import network.Client;
 import util.ColorUtils;
 
 public class Game {
-	private BorderPane layout;
+	@SuppressWarnings("unused")
 	private Client client;
+	private BorderPane layout;
 	private ObservableList<Player> gameMembers;
 
+	@SuppressWarnings("unchecked")
 	public Game(Client client) {
 		this.client = client;
 		layout = new BorderPane();
@@ -51,7 +53,8 @@ public class Game {
 				if (!(item == null || empty)) {
 					if (item.getColor() != null) {
 						setStyle("-fx-background-color: " + ColorUtils.colorToCSS(item.getColor()));
-						setTextFill(Color.RED);        
+					} else {
+						setStyle("-fx-background-color: inherit");
 					}
 				}
 			}
@@ -61,9 +64,9 @@ public class Game {
 		table.setItems(gameMembers);
 
 		TableColumn<Player, String> nameCol = new TableColumn<Player, String>("Player");
-		nameCol.setCellValueFactory(new PropertyValueFactory("name"));
+		nameCol.setCellValueFactory(new PropertyValueFactory<Player, String>("name"));
 		TableColumn<Player, String> pointsCol = new TableColumn<Player, String>("Points");
-		pointsCol.setCellValueFactory(new PropertyValueFactory("points"));
+		pointsCol.setCellValueFactory(new PropertyValueFactory<Player, String>("points"));
 
 		table.getColumns().setAll(nameCol, pointsCol);
 		table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
@@ -71,7 +74,7 @@ public class Game {
 		layout.setRight(table);
 	}
 
-	private ObservableList<Player> getGameMembers() {
+	private ObservableList<Player> getGameMembers() { // TODO
 		ArrayList<Player> l = new ArrayList<Player>();
 		l.add(new Player("Tomek", Color.CHARTREUSE));
 		l.add(new Player("Kevin", Color.VIOLET));
