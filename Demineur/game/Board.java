@@ -2,6 +2,7 @@ package game;
 
 import static game.Square.MAX_VALUE;
 import static game.Square.MIN_VALUE;
+import static java.lang.String.valueOf;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -15,7 +16,6 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.TextAlignment;
 import util.Message;
-import util.Points;
 
 public class Board {
 	public static final int WIDTH = 30;
@@ -215,81 +215,19 @@ public class Board {
 	}
 
 	/** Retourne les points du joueur à ajouter ou retirer lors du clic */
-	public ArrayList<String> clickAt(int x, int y, String user) {
+	public List<String[]> clickAt(int x, int y, String user) {
 		int position = x + y * width;
 		MessageList list = new MessageList(user);
 
+		/* Si case déjà découverte, renvoie un message vide */
+		if (!isHiddenAt(x, y)) {
+			return null;
+		}
+		
 		if ((board[position] & BOMB_BIT) != 0) { // It's a bomb !
 			// If it's the first click of the game, remove the bomb
 			if (first) {
-				// Remove the bomb
-				board[position] = HIDDEN_BIT; 
-				
-				// Change the values corresponding
-				// Left
-				if (x > 0) {
-					if ((board[position - 1] & BOMB_BIT) == 0)
-						board[position - 1]--;
-					else 
-						board[position]++;
-				}
-				
-				// Top Left
-				if (x > 0 && y > 0) {
-					if ((board[position - 1 - width] & BOMB_BIT) == 0)
-						board[position - 1 - width]--;
-					else 
-						board[position]++;
-				}
-				
-				// Up
-				if (y > 0) {
-					if ((board[position - width] & BOMB_BIT) == 0)
-						board[position - width]--;
-					else 
-						board[position]++;
-				}
-				
-				// Top Right
-				if (x < width - 1 && y > 0) {
-					if ((board[position + 1 - width] & BOMB_BIT) == 0)
-						board[position + 1 - width]--;
-					else 
-						board[position]++;
-				}
-				
-				// Right
-				if (x < width - 1) {
-					if ((board[position + 1] & BOMB_BIT) == 0)
-						board[position + 1]--;
-					else 
-						board[position]++;
-				}
-				
-				// Right Bottom
-				if (x < width - 1 && y < height - 1) {
-					if ((board[position + 1 + width] & BOMB_BIT) == 0)
-						board[position + 1 + width]--;
-					else 
-						board[position]++;
-				}
-				
-				// Down
-				if (y < height - 1) {
-					if ((board[position + width] & BOMB_BIT) == 0)
-						board[position + width]--;
-					else 
-						board[position]++;
-				}
-				
-				// Left Bottom
-				if (x > 0 && y < height - 1) {
-					if ((board[position - 1 + width] & BOMB_BIT) == 0)
-						board[position - 1 + width]--;
-					else 
-						board[position]++;
-				}
-				
+				removeMine(x, y);
 				first = false;
 				return clickAt(x, y, user);
 			}
@@ -299,10 +237,78 @@ public class Board {
 			
 		} else { // it's not a bomb
 			first = false;
-			
-			// Do all the magic
 			reveal(x, y, list);
 			return list.getList();
+		}
+	}
+	
+	private void removeMine(int x, int y) {
+		int position = x + y * width;
+		board[position] = HIDDEN_BIT; 
+		
+		// Change the values corresponding
+		// Left
+		if (x > 0) {
+			if ((board[position - 1] & BOMB_BIT) == 0)
+				board[position - 1]--;
+			else 
+				board[position]++;
+		}
+		
+		// Top Left
+		if (x > 0 && y > 0) {
+			if ((board[position - 1 - width] & BOMB_BIT) == 0)
+				board[position - 1 - width]--;
+			else 
+				board[position]++;
+		}
+		
+		// Up
+		if (y > 0) {
+			if ((board[position - width] & BOMB_BIT) == 0)
+				board[position - width]--;
+			else 
+				board[position]++;
+		}
+		
+		// Top Right
+		if (x < width - 1 && y > 0) {
+			if ((board[position + 1 - width] & BOMB_BIT) == 0)
+				board[position + 1 - width]--;
+			else 
+				board[position]++;
+		}
+		
+		// Right
+		if (x < width - 1) {
+			if ((board[position + 1] & BOMB_BIT) == 0)
+				board[position + 1]--;
+			else 
+				board[position]++;
+		}
+		
+		// Right Bottom
+		if (x < width - 1 && y < height - 1) {
+			if ((board[position + 1 + width] & BOMB_BIT) == 0)
+				board[position + 1 + width]--;
+			else 
+				board[position]++;
+		}
+		
+		// Down
+		if (y < height - 1) {
+			if ((board[position + width] & BOMB_BIT) == 0)
+				board[position + width]--;
+			else 
+				board[position]++;
+		}
+		
+		// Left Bottom
+		if (x > 0 && y < height - 1) {
+			if ((board[position - 1 + width] & BOMB_BIT) == 0)
+				board[position - 1 + width]--;
+			else 
+				board[position]++;
 		}
 	}
 	
@@ -541,18 +547,17 @@ public class Board {
 	
 	private static class MessageList {
 		private String user;
-		private ArrayList<String> list;
+		private List<String[]> list = new ArrayList<>();
 		
 		public MessageList(String username) {
-			list = new ArrayList<String>();
 			user = username;
 		}
 		
 		public void add(int x, int y, int points, int content) {
-			list.add(Message.SQRD + ' ' + x + ' ' + y + ' ' + content + ' ' + points + ' ' + user);
+			list.add(new String[]{valueOf(x), valueOf(y), valueOf(content), valueOf(points), user});
 		}
 		
-		public ArrayList<String> getList() {
+		public List<String[]> getList() {
 			return list;
 		}
 	}

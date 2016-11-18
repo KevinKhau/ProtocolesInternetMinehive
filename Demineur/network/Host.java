@@ -30,10 +30,10 @@ import util.MyPrintWriter;
 public class Host {
 
 	public static final int MAX_PLAYERS = 10;
-	
+
 	public static final int ACTIVE_DELAY = 30000;
 	public static final int CONNECTED_DELAY = 10000;
-	
+
 	InetAddress serverIP;
 	int serverPort;
 
@@ -57,39 +57,39 @@ public class Host {
 		} catch (UnknownHostException e1) {
 			e1.printStackTrace();
 		}
-//		if (args.length < 5) {
-//			deny("Mauvais nombre d'arguments.");
-//		}
-//
-//		InetAddress serverIP = null;
-//		try {
-//			serverIP = InetAddress.getByName(args[0]);
-//		} catch (UnknownHostException e) {
-//			deny("Paramètre n°1 invalide, adresse IP du serveur non reconnue.");
-//		}
-//
-//		int serverPort = 0;
-//		try {
-//			serverPort = Integer.parseInt(args[1]);
-//		} catch (NumberFormatException e) {
-//			deny("Paramètre n°2 invalide, numéro de port du serveur attendu.");
-//			return;
-//		}
-//
-//		InetAddress hostIP = null;
-//		try {
-//			hostIP = InetAddress.getByName(args[0]);
-//		} catch (UnknownHostException e) {
-//			deny("Paramètre n°4 invalide, adresse IP d'hôte non reconnue.");
-//		}
-//
-//		int hostPort = 0;
-//		try {
-//			hostPort = Integer.parseInt(args[4]);
-//		} catch (NumberFormatException e) {
-//			deny("Paramètre n°5 invalide, numéro de port libre d'hôte attendu");
-//		}
-//		new Host(serverIP, serverPort, args[2], hostIP, hostPort);
+		//		if (args.length < 5) {
+		//			deny("Mauvais nombre d'arguments.");
+		//		}
+		//
+		//		InetAddress serverIP = null;
+		//		try {
+		//			serverIP = InetAddress.getByName(args[0]);
+		//		} catch (UnknownHostException e) {
+		//			deny("Paramètre n°1 invalide, adresse IP du serveur non reconnue.");
+		//		}
+		//
+		//		int serverPort = 0;
+		//		try {
+		//			serverPort = Integer.parseInt(args[1]);
+		//		} catch (NumberFormatException e) {
+		//			deny("Paramètre n°2 invalide, numéro de port du serveur attendu.");
+		//			return;
+		//		}
+		//
+		//		InetAddress hostIP = null;
+		//		try {
+		//			hostIP = InetAddress.getByName(args[0]);
+		//		} catch (UnknownHostException e) {
+		//			deny("Paramètre n°4 invalide, adresse IP d'hôte non reconnue.");
+		//		}
+		//
+		//		int hostPort = 0;
+		//		try {
+		//			hostPort = Integer.parseInt(args[4]);
+		//		} catch (NumberFormatException e) {
+		//			deny("Paramètre n°5 invalide, numéro de port libre d'hôte attendu");
+		//		}
+		//		new Host(serverIP, serverPort, args[2], hostIP, hostPort);
 	}
 
 	public Host(InetAddress serverIP, int serverPort, String name, InetAddress IP, int port) {
@@ -101,7 +101,7 @@ public class Host {
 		this.port = port;
 
 		// TODO établir connexion au serveur
-		
+
 		try (ServerSocket ss = new ServerSocket(port)) {
 			System.out.println("Lancement hôte : IP=" + IP + ", port=" + port + ".");
 			while (true) {
@@ -165,16 +165,16 @@ public class Host {
 				e.printStackTrace();
 			}
 		}
-		
+
 		@Override
 		public void run() {
 			try {
 				player = identification();
-//				if (player != null) {
-//					addAvailable(player, this);
-//					System.out.println("Utilisateur '" + player.username + "' connecté depuis "
-//							+ socket.getRemoteSocketAddress() + ".");
-//				}
+				//				if (player != null) {
+				//					addAvailable(player, this);
+				//					System.out.println("Utilisateur '" + player.username + "' connecté depuis "
+				//							+ socket.getRemoteSocketAddress() + ".");
+				//				}
 				while (running) {
 					handleInGame();
 				}
@@ -204,7 +204,7 @@ public class Host {
 						System.out.println("Fin de la communication : " + name + socket.getRemoteSocketAddress() + ".");
 					} else {
 						System.err
-								.println(e.getMessage() + ", client : " + name + socket.getRemoteSocketAddress() + ".");
+						.println(e.getMessage() + ", client : " + name + socket.getRemoteSocketAddress() + ".");
 					}
 				} else {
 					System.err.println(
@@ -276,9 +276,9 @@ public class Host {
 
 		private void sendGameState(InGamePlayer player) {
 			/* Send board */
-			out.send(Message.JNOK, new String[] { String.valueOf(Board.HEIGHT) },
+			out.send(Message.JNOK, new String[] { String.valueOf(board.height) },
 					"Bienvenue sur " + Host.this.name + ", " + player.username + " !");
-			for (int y = 0; y < Board.HEIGHT; y++) {
+			for (int y = 0; y < board.height; y++) {
 				List<String> lineContent = board.lineContentAt(y);
 				lineContent.add(0, String.valueOf(y));
 				out.send(Message.BDIT, lineContent.stream().toArray(String[]::new));
@@ -306,16 +306,30 @@ public class Host {
 			switch (msg.getType()) {
 			case Message.IMOK: // Permet de reset le SO_TIMEOUT de la socket
 				break;
-			case Message.CLIC: // TODO
+			case Message.CLIC:
 				int abscissa = msg.getArgAsInt(0);
 				int ordinate = msg.getArgAsInt(1);
+				
 				if (!board.validAbscissa(abscissa) || !board.validOrdinate(ordinate)) {
 					out.send(Message.OORG, new String[]{valueOf(abscissa), valueOf(ordinate)}, "Coordonnées invalides ! ");
 				}
+				
+				List<String[]> allArgs = board.clickAt(abscissa, ordinate, player.username);
+				if (allArgs == null) {
+					out.send(Message.LATE, null, "Case déjà déminée.");
+					break;
+				}
+				
+				for (String[] line : allArgs) {
+					for (InGamePlayer igp : inGamePlayers.values()) {
+						igp.handler.out.send(Message.SQRD, line);
+					}
+				}
 				break;
 			default:
-				out.send(Message.IDKS, null, "Commande inconnue ou pas encore implémentée");
-				break;	
+				out.send(Message.IDKH, null, "Commande inconnue ou pas encore implémentée");
+				break;
+			}
 		}
 
 		private class Ping implements Runnable {
@@ -343,9 +357,9 @@ public class Host {
 		public void close() {
 			running = false;
 			try {
-//				if (player != null) { //TODO
-//					available.remove(player);
-//				}
+				//				if (player != null) { //TODO
+				//					available.remove(player);
+				//				}
 				out.close();
 				in.close();
 				socket.close();

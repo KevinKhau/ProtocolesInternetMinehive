@@ -36,7 +36,7 @@ public class Server {
 
 	public static final String ALL = "ALL";
 	public static final int MAX_ONLINE = 110;
-	volatile static Map<Player, ClientHandler> available = new ConcurrentHashMap<>();
+	Map<Player, ClientHandler> available = new ConcurrentHashMap<>();
 	Map<Player, HostData> inGame = new ConcurrentHashMap<>();
 	List<HostData> hostsData = new ArrayList<>();
 

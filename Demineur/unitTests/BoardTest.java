@@ -1,6 +1,7 @@
 package unitTests;
 
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
@@ -11,6 +12,7 @@ import game.Board;
 
 public class BoardTest {
 
+	Scanner reader = new Scanner(System.in);
 
 	@Test
 	public void board() {
@@ -33,25 +35,29 @@ public class BoardTest {
 //			System.out.println(Arrays.toString(line.stream().toArray(String[]::new)));
 		}
 		
+		int x = intKeyboardInput("x");
+		int y = intKeyboardInput("y");
+		List<String[]> msgs = b.clickAt(x, y, "Maxwell");
+		msgs.forEach(l -> System.out.println(Arrays.toString(l)));
+		
 	}
 	
-	@Test
-	public void scannerInt() {
-		System.out.print("input");
-        Scanner sc = new Scanner(System.in);
-        while (true) {
-            System.out.println("Enter a whole number.");
-            String input = sc.next();
-            int intInputValue = 0;
-            try {
-                intInputValue = Integer.parseInt(input);
-                System.out.println("Correct input, exit");
-                break;
-            } catch (NumberFormatException ne) {
-                System.out.println("Input is not a number, continue");
-            }
-        }
-        sc.close();
+	private int intKeyboardInput(String indication) {
+		if (indication != null) {
+			System.out.println(indication);
+		}
+		while (!reader.hasNextInt()) {
+			System.out.print("Tapez un entier : ");
+			reader.next();
+		}
+		return reader.nextInt();
 	}
-
+	
+//	@Test
+	public void listOfArrays(){
+		List<String[]> list = new ArrayList<>();
+		list.add(new String[]{"Hey", "Wendy"});
+		list.add(new String[]{"Bye", "Abigail"});
+		list.forEach(l -> System.out.println(Arrays.toString(l)));
+	}
 }

@@ -412,6 +412,7 @@ public class Client implements AutoCloseable {
 						if (count == 0) {
 							wakeClient();
 						};
+						break;
 					case Message.IGPL:
 						System.out.println(rcv);
 						wakeClient();

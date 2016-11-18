@@ -1,4 +1,4 @@
-package util;
+package game;
 
 public class Points {
 	public final static int BOMB = -10;
