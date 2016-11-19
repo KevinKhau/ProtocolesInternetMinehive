@@ -331,6 +331,9 @@ public class Server {
 			/* Liste spécifique de joueurs invités */
 			for (String playerName : msg.getArgs()) {
 				Player p = users.get(playerName);
+				if (p == null) {
+					continue;
+				}
 				ClientHandler h = available.get(p);
 				if (h != null) {
 					h.out.send(Message.NWOK, sendArgs, player.username + " vous défie !");

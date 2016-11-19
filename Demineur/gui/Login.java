@@ -24,6 +24,7 @@ public class Login {
 	private PasswordField password;
 	private TextField inetAddress;
 	
+	//TODO Valeurs par défaut (même mot de passe !)
 	public Login(Client client) {
 		this.client = client;
 		

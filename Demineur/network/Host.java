@@ -42,6 +42,7 @@ public class Host {
 	int port;
 
 	Board board = new Board();
+	int multiplicator = 0;
 
 	volatile static Map<String, InGamePlayer> inGamePlayers = new ConcurrentHashMap<>();
 
@@ -122,20 +123,31 @@ public class Host {
 	private class InGamePlayer extends Player { // THINK Classe externe ?
 
 		PlayerHandler handler;
-		volatile boolean active = false;
+		volatile boolean active;
 		volatile int inGamePoints = 0;
 
 		volatile int safeSquares = 0;
 		volatile int foundMines = 0;
 
-		public InGamePlayer(String username, String password, PlayerHandler handler) {
+		private InGamePlayer(String username, String password, PlayerHandler handler) {
 			super(username, password);
 			this.handler = handler;
+			setActive();
 		}
 
-		public String[] publicData() {
+		private String[] publicData() {
 			return new String[] { this.username, valueOf(inGamePoints), valueOf(totalPoints), valueOf(safeSquares),
 					valueOf(foundMines) };
+		}
+		
+		private void setActive() {
+			active = true;
+			multiplicator++;
+		}
+		
+		private void setInactive() {
+			active = false;
+			multiplicator--;
 		}
 
 	}
@@ -253,7 +265,7 @@ public class Host {
 					return identification(); // éventuellement kick()
 				}
 
-				p.active = true;
+				p.setActive();
 				sendGameState(p);
 				return p;
 			}
@@ -269,7 +281,6 @@ public class Host {
 			InGamePlayer p2 = new InGamePlayer(username, password, this);
 			inGamePlayers.put(username, p2);
 			this.player = p2;
-			System.out.println("nouveau"); // TEST
 			sendGameState(p2);
 			return p2;
 		}
@@ -291,11 +302,7 @@ public class Host {
 			}
 
 			/* Inform other players */
-			for (InGamePlayer igp : inGamePlayers.values()) {
-				if (igp != player && igp.active) {
-					out.send(Message.CONN, player.publicData());
-				}
-			}
+			inGamePlayers.values().stream().filter(p -> (p != player && p.active)).forEach(p -> out.send(Message.CONN, player.publicData()));
 		}
 
 		private void handleInGame() throws InterruptedException, IOException {
@@ -322,6 +329,7 @@ public class Host {
 				
 				for (String[] line : allArgs) {
 					for (InGamePlayer igp : inGamePlayers.values()) {
+						line[3] = valueOf(Integer.parseInt(line[3]) * multiplicator);
 						igp.handler.out.send(Message.SQRD, line);
 					}
 				}
@@ -357,9 +365,7 @@ public class Host {
 		public void close() {
 			running = false;
 			try {
-				//				if (player != null) { //TODO
-				//					available.remove(player);
-				//				}
+				player.setInactive();
 				out.close();
 				in.close();
 				socket.close();

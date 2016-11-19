@@ -24,13 +24,11 @@ public class ClientApp extends Application {
 	}
 	
 	private void initApp() {		
-		primaryStage.setTitle("Login - Demineur");
+		primaryStage.setTitle("Login - Minehive");
 		primaryStage.setMinWidth(700);
 		primaryStage.setMinHeight(350);
 		primaryStage.setWidth(800);
 		primaryStage.setHeight(600);
-		
-		//TODO Valeurs par défaut (même mot de passe !)
 		
 		//rootLayout = new BorderPane();
 		//rootLayout.setBackground(new Background(new BackgroundFill(Color.BLUE, CornerRadii.EMPTY, Insets.EMPTY)));
