@@ -20,8 +20,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import data.Player;
 import game.Board;
 import util.Message;
-import util.MyBufferedReader;
-import util.MyPrintWriter;
+import util.TFBufferedReader;
+import util.TFPrintWriter;
+import util.TFServerSocket;
+import util.TFSocket;
 
 /**
  * Hôte lancé par le serveur //FUTURE Programmer lancement par serveur au lieu
@@ -103,13 +105,13 @@ public class Host {
 
 		// TODO établir connexion au serveur
 
-		try (ServerSocket ss = new ServerSocket(port)) {
+		try (TFServerSocket ss = new TFServerSocket(port)) {
 			System.out.println("Lancement hôte : IP=" + IP + ", port=" + port + ".");
 			while (true) {
 				new Thread(new PlayerHandler(ss.accept())).start();
 			}
 		} catch (BindException e) {
-			System.err.println("Socket serveur déjà en cours d'utilisation.");
+			System.err.println("Socket hôte déjà en cours d'utilisation.");
 		} catch (IllegalArgumentException e) {
 			System.err.println("Valeur de port invalide, doit être entre 0 et 65535.");
 			e.printStackTrace();
@@ -155,33 +157,25 @@ public class Host {
 	private class PlayerHandler extends Thread implements AutoCloseable {
 
 		// TODO gérer inactivité client
-		Socket socket;
-		MyPrintWriter out;
-		MyBufferedReader in;
+		TFSocket socket;
 
 		private volatile boolean running = true;
 
 		InGamePlayer player;
 
-		public PlayerHandler(Socket socket) {
+		public PlayerHandler(TFSocket socket) {
 			super();
 			System.out.println("Nouvelle connexion : " + socket.getRemoteSocketAddress());
-			try {
-				this.socket = socket;
-				this.out = new MyPrintWriter(new OutputStreamWriter(socket.getOutputStream()));
-				this.in = new MyBufferedReader(new InputStreamReader(socket.getInputStream()));
-				this.socket.setSoTimeout(CONNECTED_DELAY); // TEST Neutraliser RUOK
-				new Thread(new Ping()).start();
-			} catch (IOException e) {
-				System.err.println("Pas de réponse de la socket client : " + socket.getRemoteSocketAddress() + ".");
-				e.printStackTrace();
-			}
+			this.socket = socket;
+			new Thread(new Ping()).start();
 		}
 
 		@Override
 		public void run() {
 			try {
-				player = identification();
+				while (running) {
+					player = identification();
+				}
 				//				if (player != null) {
 				//					addAvailable(player, this);
 				//					System.out.println("Utilisateur '" + player.username + "' connecté depuis "
@@ -193,37 +187,12 @@ public class Host {
 			} catch (InterruptedException e) {
 				System.err.println(e.getMessage());
 				close();
-			} catch (SocketTimeoutException e) {
-				System.err.println("Le client " + socket.getRemoteSocketAddress() + " n'a pas répondu à temps.");
-				close();
 			} catch (IllegalArgumentException e) {
 				System.err.println(e.getMessage());
 				System.out.println("Interruption de la communication avec le client.");
 				close();
 			} catch (IOException e) {
-				if (e instanceof BindException) {
-					System.err.println("Socket serveur déjà en cours d'utilisation.");
-				} else if (e instanceof SocketException) {
-					if (e.getMessage() == null) {
-						e.printStackTrace();
-						close();
-					}
-					String name = "";
-					if (player != null) {
-						name = "Utilisateur '" + player.username + "'";
-					}
-					if (e.getMessage().toUpperCase().equals("SOCKET CLOSED")) {
-						System.out.println("Fin de la communication : " + name + socket.getRemoteSocketAddress() + ".");
-					} else {
-						System.err
-						.println(e.getMessage() + ", client : " + name + socket.getRemoteSocketAddress() + ".");
-					}
-				} else {
-					System.err.println(
-							"Communication impossible avec le client : " + socket.getRemoteSocketAddress() + ".");
-					e.printStackTrace();
-					close();
-				}
+				close();
 			}
 		}
 
@@ -231,22 +200,22 @@ public class Host {
 		 *  FUTURE Nombre de récursions limitée à au moins 1024, définissable avec -xss.
 		 *  Solution 1 : Limiter le nombre de tentatives de connexion.
 		 */
-		public InGamePlayer identification() throws IOException, InterruptedException {
+		public InGamePlayer identification() throws InterruptedException, IOException {
 			if (!running) {
 				throw new InterruptedException();
 			}
-			Message message = in.receive();
+			Message message = socket.receive();
 			if (message.getType().equals(Message.IMOK)) {
 				return identification();
 			}
 			/* Anomalies */
 			if (!message.getType().equals(Message.JOIN)) {
-				out.send(Message.IDKH, null, "Vous devez d'abord vous identifier : JOIN Username Password");
+				socket.send(Message.IDKH, null, "Vous devez d'abord vous identifier : JOIN Username Password");
 				return identification();
 			}
 			/* Mauvais nombre d'arguments */
 			if (!validArguments(message)) {
-				out.send(Message.IDNO, null, "Identifiant et/ou Mot de passe manquant");
+				socket.send(Message.IDNO, null, "Identifiant et/ou Mot de passe manquant");
 				return identification();
 			}
 			String username = message.getArg(0);
@@ -256,12 +225,12 @@ public class Host {
 			/* Reconnexion */
 			if (p != null) {
 				if (!p.checkPassword(password)) {
-					out.send(Message.JNNO, null, "Mot de passe incorrect.");
+					socket.send(Message.JNNO, null, "Mot de passe incorrect.");
 					return identification();
 				}
 
 				if (p.active) {
-					out.send(Message.JNNO, null, "Vous semblez déjà en train de jouer.");
+					socket.send(Message.JNNO, null, "Vous semblez déjà en train de jouer.");
 					return identification(); // éventuellement kick()
 				}
 
@@ -272,7 +241,7 @@ public class Host {
 
 			/* Hôte saturé */
 			if (inGamePlayers.size() >= MAX_PLAYERS) {
-				out.send(Message.JNNO, null, "Nombre maximum de joueurs atteint. Plus de place disponible !");
+				socket.send(Message.JNNO, null, "Nombre maximum de joueurs atteint. Plus de place disponible !");
 				return identification();
 			}
 
@@ -287,29 +256,29 @@ public class Host {
 
 		private void sendGameState(InGamePlayer player) {
 			/* Send board */
-			out.send(Message.JNOK, new String[] { String.valueOf(board.height) },
+			socket.send(Message.JNOK, new String[] { String.valueOf(board.height) },
 					"Bienvenue sur " + Host.this.name + ", " + player.username + " !");
 			for (int y = 0; y < board.height; y++) {
 				List<String> lineContent = board.lineContentAt(y);
 				lineContent.add(0, String.valueOf(y));
-				out.send(Message.BDIT, lineContent.stream().toArray(String[]::new));
+				socket.send(Message.BDIT, lineContent.stream().toArray(String[]::new));
 			}
 
 			/* Send in-game players data */
-			out.send(Message.IGNB, new String[] { String.valueOf(inGamePlayers.size()) });
+			socket.send(Message.IGNB, new String[] { String.valueOf(inGamePlayers.size()) });
 			for (InGamePlayer igp : inGamePlayers.values()) {
-				out.send(Message.IGPL, igp.publicData());
+				socket.send(Message.IGPL, igp.publicData());
 			}
 
 			/* Inform other players */
-			inGamePlayers.values().stream().filter(p -> (p != player && p.active)).forEach(p -> out.send(Message.CONN, player.publicData()));
+			inGamePlayers.values().stream().filter(p -> (p != player && p.active)).forEach(p -> socket.send(Message.CONN, player.publicData()));
 		}
 
 		private void handleInGame() throws InterruptedException, IOException {
 			if (!running) {
 				throw new InterruptedException();
 			}
-			Message msg = in.receive();
+			Message msg = socket.receive();
 			switch (msg.getType()) {
 			case Message.IMOK: // Permet de reset le SO_TIMEOUT de la socket
 				break;
@@ -318,24 +287,24 @@ public class Host {
 				int ordinate = msg.getArgAsInt(1);
 				
 				if (!board.validAbscissa(abscissa) || !board.validOrdinate(ordinate)) {
-					out.send(Message.OORG, new String[]{valueOf(abscissa), valueOf(ordinate)}, "Coordonnées invalides ! ");
+					socket.send(Message.OORG, new String[]{valueOf(abscissa), valueOf(ordinate)}, "Coordonnées invalides ! ");
 				}
 				
 				List<String[]> allArgs = board.clickAt(abscissa, ordinate, player.username);
 				if (allArgs == null) {
-					out.send(Message.LATE, null, "Case déjà déminée.");
+					socket.send(Message.LATE, null, "Case déjà déminée.");
 					break;
 				}
 				
 				for (String[] line : allArgs) {
 					for (InGamePlayer igp : inGamePlayers.values()) {
 						line[3] = valueOf(Integer.parseInt(line[3]) * multiplicator);
-						igp.handler.out.send(Message.SQRD, line);
+						igp.handler.socket.send(Message.SQRD, line);
 					}
 				}
 				break;
 			default:
-				out.send(Message.IDKH, null, "Commande inconnue ou pas encore implémentée");
+				socket.send(Message.IDKH, null, "Commande inconnue ou pas encore implémentée");
 				break;
 			}
 		}
@@ -347,7 +316,7 @@ public class Host {
 			@Override
 			public void run() {
 				while (running) {
-					out.send(Message.RUOK);
+					socket.send(Message.RUOK);
 					try {
 						Thread.sleep(frequency);
 					} catch (InterruptedException e) {
@@ -364,13 +333,8 @@ public class Host {
 		@Override
 		public void close() {
 			running = false;
-			try {
+			if (player != null) {
 				player.setInactive();
-				out.close();
-				in.close();
-				socket.close();
-			} catch (IOException e) {
-				e.printStackTrace();
 			}
 		}
 

@@ -21,8 +21,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import data.HostData;
 import data.Player;
 import util.Message;
-import util.MyBufferedReader;
-import util.MyPrintWriter;
+import util.TFBufferedReader;
+import util.TFPrintWriter;
 
 /**
  * Reste attentif à la connexion de nouveaux clients ou hôtes
@@ -98,8 +98,8 @@ public class Server {
 	private class ClientHandler extends Thread implements AutoCloseable {
 		// TODO gérer inactivité client
 		Socket socket;
-		MyPrintWriter out;
-		MyBufferedReader in;
+		TFPrintWriter out;
+		TFBufferedReader in;
 
 		private volatile boolean running = true;
 
@@ -110,8 +110,8 @@ public class Server {
 			System.out.println("Nouvelle connexion : " + socket.getRemoteSocketAddress());
 			try {
 				this.socket = socket;
-				this.out = new MyPrintWriter(new OutputStreamWriter(socket.getOutputStream()));
-				this.in = new MyBufferedReader(new InputStreamReader(socket.getInputStream()));
+				this.out = new TFPrintWriter(new OutputStreamWriter(socket.getOutputStream()));
+				this.in = new TFBufferedReader(new InputStreamReader(socket.getInputStream()));
 				this.socket.setSoTimeout(CONNECTED_DELAY); // TEST Neutraliser RUOK
 				new Thread(new Ping()).start();
 			} catch (IOException e) {
