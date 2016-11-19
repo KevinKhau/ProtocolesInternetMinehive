@@ -50,6 +50,7 @@ public class Client implements AutoCloseable {
 	public Client() {
 		try {
 			serverIP = InetAddress.getLocalHost();
+//			serverIP = InetAddress.getByName("192.168.137.67"); // TEST Pour tester avoir d'autres machines
 		} catch (UnknownHostException e) {
 			System.err.println("Serveur inconnu.");
 			System.exit(1);
@@ -64,7 +65,7 @@ public class Client implements AutoCloseable {
 
 	public void linkServer() {
 		try {
-			this.socket = new Socket(serverIP, serverPort);
+			this.socket = new Socket(serverIP, serverPort); // TEST
 			this.out = new MyPrintWriter(new OutputStreamWriter(socket.getOutputStream()));
 			this.in = new MyBufferedReader(new InputStreamReader(socket.getInputStream()));
 			System.out.println("Client connecté au serveur " + socket.getLocalSocketAddress() + ", port=" + serverPort);
@@ -158,7 +159,11 @@ public class Client implements AutoCloseable {
 		}
 		while (!reader.hasNextInt()) {
 			System.out.print("Tapez un entier : ");
-			reader.next();
+			try {
+				reader.next();
+			} catch (Exception e) {
+				System.err.println(e.getMessage());
+			}
 		}
 		return reader.nextInt();
 	}
@@ -257,7 +262,7 @@ public class Client implements AutoCloseable {
 
 						/* REGI */
 					case Message.IDOK:
-						System.out.println("Connexion au serveur établie. " + rcv.getContent());
+						System.out.println("Connexion au serveur établie : " + rcv.getContent());
 						state = State.CONNECTED;
 						wakeClient();
 						break;
@@ -331,6 +336,9 @@ public class Client implements AutoCloseable {
 					default:
 						System.err.println("Réponse inconnue du serveur : '" + rcv + "'.");
 					}
+				} catch (IllegalArgumentException ex) {
+					System.err.println(ex.getMessage());
+					close();
 				} catch (SocketException ex) {
 					System.err
 					.println("Connexion non établie ou interrompue avec : " + socket.getRemoteSocketAddress());
@@ -395,7 +403,7 @@ public class Client implements AutoCloseable {
 						wakeClient();
 						break;
 					case Message.JNOK:
-						System.out.println("Connexion à l'hôte établie. " + rcv.getContent() + ".");
+						System.out.println("Connexion à l'hôte établie : " + rcv.getContent() + ".");
 						state = State.CONNECTED;
 						count += rcv.getArgAsInt(0);
 						if (count == 0) {

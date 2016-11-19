@@ -83,7 +83,7 @@ public class BoardUI extends Pane {
 			ui_gc.clearRect(0, 0, ui.getWidth(), ui.getHeight());
 			//array[x + y * Board.WIDTH] = test;
 			//redrawAt(x, y, test);
-			//game.clickAt(x, y);
+			//game.clickAt(x, y); // TODO envoyer au client
 			drawBoard();
 		}
 	}
@@ -94,7 +94,7 @@ public class BoardUI extends Pane {
 		} else {
 			flags.add(x, y);
 		}
-
+		
 		drawBoard();
 	}
 

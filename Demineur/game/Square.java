@@ -20,4 +20,9 @@ public class Square {
 		value = 0;
 	}
 	
+	public class Points {
+		public final static int MINE = -10;
+		public final static int EMPTY = 1;
+	}
+	
 }

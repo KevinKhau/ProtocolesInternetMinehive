@@ -83,10 +83,13 @@ public class Board {
 	 * S'il y a une mine, renvoie -1.
 	 */
 	public int valueAt(int x, int y) {
-		if (isBombAt(x, y)) {
+		return valueFrom(board[x + y * width]);
+	}
+	public int valueFrom(byte square) {
+		if (isBombFrom(square)) {
 			return -1;
 		}
-		return numberAt(x, y);
+		return numberFrom(square);
 	}
 
 	/**
@@ -231,7 +234,7 @@ public class Board {
 				first = false;
 				return clickAt(x, y, user);
 			}
-			list.add(x, y, Points.BOMB, -1);
+			list.add(x, y, -1, Square.Points.MINE);
 			board[position] &= REVEAL_MASK; // Set visible
 			return list.getList();
 			
@@ -322,12 +325,16 @@ public class Board {
 		board[position] &= REVEAL_MASK; // Set visible
 		
 		// Check for current square value
-		if ((board[position] & VALUE_MASK) > 0) {
-			list.add(x, y, board[position] & VALUE_MASK, board[position] & VALUE_MASK);
+		int value = valueFrom(board[position]);
+		
+		if (value > 0) {
+			if (value == 0) {
+				list.add(x, y, value, Square.Points.EMPTY);
+			} else {
+				list.add(x, y, value, value);
+			}
 			return;
 		}
-		
-		list.add(x, y, 1, board[position] & VALUE_MASK);
 		
 		// Is empty, need to search adjacent squares
 		// Left
@@ -553,7 +560,7 @@ public class Board {
 			user = username;
 		}
 		
-		public void add(int x, int y, int points, int content) {
+		public void add(int x, int y, int content, int points) {
 			list.add(new String[]{valueOf(x), valueOf(y), valueOf(content), valueOf(points), user});
 		}
 		

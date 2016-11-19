@@ -136,7 +136,7 @@ public class Message {
 	 * Propre dans l'objet, mais avec des dièses (#) au lieu d'espaces ( ) lors
 	 * de l'envoi
 	 */
-	private String content;
+	public String content;
 
 	public Message(String type, String[] args, String content) {
 		super();
@@ -180,6 +180,9 @@ public class Message {
 	}
 
 	public String getContent() {
+		if (content == null) {
+			return "";
+		}
 		return content;
 	}
 

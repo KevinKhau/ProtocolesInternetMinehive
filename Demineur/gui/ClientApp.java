@@ -15,7 +15,7 @@ public class ClientApp extends Application {
 	}
 	
 	private void initApp() {		
-		primaryStage.setTitle("Login - Demineur");
+		primaryStage.setTitle("Login - Minehive");
 		primaryStage.setMinWidth(700);
 		primaryStage.setMinHeight(350);
 		primaryStage.setWidth(800);

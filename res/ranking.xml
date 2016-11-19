@@ -3,6 +3,9 @@
     <player username="Kevin" password="Khau">
         <points>40</points>
     </player>
+    <player username="A" password="A">
+        <points>0</points>
+    </player>
     <player username="AlHassane" password="Megninta">
         <points>80</points>
     </player>
@@ -11,6 +14,9 @@
     </player>
     <player username="Christophe" password="Lam">
         <points>20</points>
+    </player>
+    <player username="lass" password="ll">
+        <points>0</points>
     </player>
     <player username="Adil" password="Champion">
         <points>10</points>
