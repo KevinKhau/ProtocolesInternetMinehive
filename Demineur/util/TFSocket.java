@@ -122,6 +122,10 @@ public class TFSocket extends Socket {
 			System.out.println(prefix + "'" + msg + "' (clean).");
 		}
 		
+		if (msg.getType().equals(Message.IMOK)) {
+			return receive();
+		}
+		
 		if (msg.getType().equals(Message.RUOK)) {
 			send(Message.IMOK);
 			return receive();
@@ -131,7 +135,7 @@ public class TFSocket extends Socket {
 	}
 
 	public String remoteData() {
-		return "IP=" + getRemoteSocketAddress() + ", port=" + getPort();
+		return getRemoteSocketAddress().toString();
 	}
 	
 }

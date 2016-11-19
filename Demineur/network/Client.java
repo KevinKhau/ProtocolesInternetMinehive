@@ -44,18 +44,18 @@ public class Client implements AutoCloseable {
 	public Client() {
 		try {
 			destIP = InetAddress.getLocalHost();
-			// destIP = InetAddress.getByName("192.168.137.67"); // TEST Pour
-			// tester avoir d'autres machines
+			/* TEST pour tester avec d'autres machines */
+			// destIP = InetAddress.getByName("192.168.137.67");
 		} catch (UnknownHostException e) {
 			System.err.println("Serveur inconnu.");
 			System.exit(1);
 		}
 		while (true) {
 			// TODO proposer communication soit avec serveur, soit avec hôte
-//			System.out.println("Serveur");
-//			linkServer();
-			System.out.println("Hôte");
-			linkHost();
+			System.out.println("Serveur");
+			linkServer();
+//			System.out.println("Hôte");
+//			linkHost();
 		}
 	}
 
@@ -102,7 +102,7 @@ public class Client implements AutoCloseable {
 		public Sender() {
 			setAttributes();
 			try {
-				socket = new TFSocket(destIP, destPort); // TEST
+				socket = new TFSocket(destIP, destPort);
 				System.out.println("Client connecté à " + name + " : " + socket.remoteData() + ".");
 				state = State.CONNECTED;
 				new Thread(listener).start();
@@ -199,7 +199,6 @@ public class Client implements AutoCloseable {
 		public void waitResponse() {
 			synchronized (Client.this) {
 				waitingResponse = true;
-				System.out.println("Going to wait, count=" + listener.count + "."); // TEST
 				try {
 					Client.this.wait(MAX_WAIT_TIME);
 				} catch (InterruptedException e) {
@@ -242,8 +241,9 @@ public class Client implements AutoCloseable {
 			 */
 			protected synchronized final void wakeClient() {
 				if (waitingResponse) {
-					count--;
-					System.out.println(count); // TEST
+					if (count > 0) {
+						count--;
+					}
 					if (count > 0) {
 						return;
 					}
