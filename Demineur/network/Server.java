@@ -148,7 +148,6 @@ public class Server {
 				} else if (e instanceof SocketException) {
 					if (e.getMessage() == null) {
 						e.printStackTrace();
-						close();
 					}
 					String name = "";
 					if (player != null) {
@@ -164,8 +163,8 @@ public class Server {
 					System.err.println(
 							"Communication impossible avec le client : " + socket.getRemoteSocketAddress() + ".");
 					e.printStackTrace();
-					close();
 				}
+				close();
 			}
 		}
 

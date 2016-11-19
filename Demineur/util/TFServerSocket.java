@@ -12,7 +12,6 @@ public class TFServerSocket extends ServerSocket {
 
 	@Override
 	public TFSocket accept() throws IOException {
-		// TODO Auto-generated method stub
 		if (isClosed())
             throw new SocketException("Socket is closed");
         if (!isBound())

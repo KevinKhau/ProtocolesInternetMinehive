@@ -52,10 +52,10 @@ public class Client implements AutoCloseable {
 		}
 		while (true) {
 			// TODO proposer communication soit avec serveur, soit avec hôte
-			System.out.println("Serveur");
-			linkServer();
-//			System.out.println("Hôte");
-//			linkHost();
+//			System.out.println("Serveur");
+//			linkServer();
+			System.out.println("Hôte");
+			linkHost();
 		}
 	}
 
@@ -170,7 +170,7 @@ public class Client implements AutoCloseable {
 		 */
 		protected void login() {
 			System.out.println("Tentative de connexion à " + name + ".");
-			Message send = input("Envoyez un message à " + name + ". Format : TYPE[#ARG]...[#Contenu] : ");
+			Message send = input("Envoyez un message de connexion à " + name + ". Format : TYPE[#ARG]...[#Contenu] : ");
 			if (!identificationWords.contains(send.getType())) {
 				System.err
 						.println("Type de message de connexion invalide. Attendu : " + identificationWords.toString());
@@ -181,7 +181,6 @@ public class Client implements AutoCloseable {
 		}
 
 		protected void communicate() {
-			System.out.println("Client waiting for a response : " + waitingResponse);
 			Message m = input("Envoyez un message à " + name + ". Format : TYPE[#ARG]...[#Contenu] : ");
 			socket.send(m);
 			leaveOrWait(m.getType());
@@ -200,6 +199,7 @@ public class Client implements AutoCloseable {
 		public void waitResponse() {
 			synchronized (Client.this) {
 				waitingResponse = true;
+				System.out.println("Going to wait, count=" + listener.count + "."); // TEST
 				try {
 					Client.this.wait(MAX_WAIT_TIME);
 				} catch (InterruptedException e) {
@@ -282,7 +282,7 @@ public class Client implements AutoCloseable {
 				case Message.LMNB:
 				case Message.LANB:
 				case Message.LUNB:
-					count += reception.getArgAsInt(0);
+					count = reception.getArgAsInt(0);
 					if (count == 0) {
 						wakeClient();
 					}
