@@ -29,7 +29,7 @@ public class Client implements AutoCloseable {
 
 	TFSocket socket;
 
-	boolean waitingResponse = false;
+	volatile boolean waitingResponse = false;
 	volatile boolean running = true;
 
 	Scanner reader = new Scanner(System.in);
@@ -109,7 +109,6 @@ public class Client implements AutoCloseable {
 				while (running) {
 					while (state == State.CONNECTED && running) {
 						login();
-						System.out.println("Done waiting");
 					}
 					while (state == State.IN && running) {
 						communicate();
@@ -182,6 +181,7 @@ public class Client implements AutoCloseable {
 		}
 
 		protected void communicate() {
+			System.out.println("Client waiting for a response : " + waitingResponse);
 			Message m = input("Envoyez un message à " + name + ". Format : TYPE[#ARG]...[#Contenu] : ");
 			socket.send(m);
 			leaveOrWait(m.getType());
@@ -240,9 +240,10 @@ public class Client implements AutoCloseable {
 			 * jusqu'à que le {@linkplain ServerListener} aie fini de traiter les
 			 * messages reçus du {@linkplain Server}.
 			 */
-			protected final void wakeClient() {
+			protected synchronized final void wakeClient() {
 				if (waitingResponse) {
 					count--;
+					System.out.println(count); // TEST
 					if (count > 0) {
 						return;
 					}
@@ -335,7 +336,7 @@ public class Client implements AutoCloseable {
 					state = State.IN;
 				case Message.IGNB: // TODO vérifier qu'à cette étape le client est
 									// encore bloqué
-					count += reception.getArgAsInt(0);
+					count = reception.getArgAsInt(0);
 					if (count == 0) {
 						wakeClient();
 					}
