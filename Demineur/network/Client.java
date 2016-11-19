@@ -255,86 +255,57 @@ public class Client implements AutoCloseable {
 			while (running) {
 				try {
 					Message rcv = in.receive();
-					switch (rcv.getType()) {
-					case Message.RUOK:
+					if (rcv.getType().equals(Message.RUOK)) {
 						out.send(Message.IMOK);
-						break;
-
+						continue;
+					}
+					System.out.println(rcv);
+					switch (rcv.getType()) {
 						/* REGI */
 					case Message.IDOK:
-						System.out.println("Connexion au serveur établie : " + rcv.getContent());
+						System.out.println("Connexion au serveur établie !");
 						state = State.CONNECTED;
 						wakeClient();
 						break;
 					case Message.IDNO:
-						System.out.println("Connexion échouée : " + rcv.getContent() + ".");
-						wakeClient();
-						break;
+						System.out.println("Connexion échouée.");
 					case Message.IDIG:
-						System.out.println(rcv);
 						wakeClient();
 						break;
 
 						/* LS */
 					case Message.LMNB:
+					case Message.LANB:
+					case Message.LUNB:
 						count += rcv.getArgAsInt(0);
-						System.out.println(rcv);
 						if (count == 0) {
 							wakeClient();
 						}
 						break;
 					case Message.MATC:
-						System.out.println(rcv);
-						wakeClient();
-						break;
-					case Message.LANB:
-						count += rcv.getArgAsInt(0);
-						System.out.println(rcv);
-						if (count == 0) {
-							wakeClient();
-						}
-						break;
 					case Message.AVAI:
-						System.out.println(rcv);
-						wakeClient();
-						break;
-					case Message.LUNB:
-						count += rcv.getArgAsInt(0);
-						System.out.println(rcv);
-						if (count == 0) {
-							wakeClient();
-						}
-						break;
 					case Message.USER:
-						System.out.println(rcv);
 						wakeClient();
 						break;
 
 						/* NWMA */
 					case Message.NWOK:
-						System.out.println(rcv);
-						wakeClient();
-						break;
 					case Message.FULL:
-						System.out.println(rcv);
-						wakeClient();
-						break;
 					case Message.NWNO:
-						System.out.println(rcv);
 						wakeClient();
 						break;
 
 					case Message.KICK:
-						System.out.println("Éjecté par le serveur : " + rcv + ".");
+						System.out.println("Éjecté par le serveur.");
 						close();
 						break;
 
 					case Message.IDKS:
-						System.out.println("Le serveur reste béant : '" + rcv + "'.");
+						System.out.println("Le serveur reste béant !");
 						wakeClient();
 						break;
 					default:
-						System.err.println("Réponse inconnue du serveur : '" + rcv + "'.");
+						System.err.println("Réponse inconnue du serveur.");
 					}
 				} catch (IllegalArgumentException ex) {
 					System.err.println(ex.getMessage());
@@ -382,62 +353,42 @@ public class Client implements AutoCloseable {
 			while(running) {
 				try {
 					Message rcv = in.receive();
+					if (rcv.getType().equals(Message.RUOK)) {
+						out.send(Message.IMOK);
+						continue;
+					}
+					System.out.println(rcv);
 					switch (rcv.getType()) {
 					/* Connection and activity */
-					case Message.RUOK:
-						out.send(Message.IMOK);
-						break;
 					case Message.DECO:
-						System.out.println(rcv);
-						break;
 					case Message.AFKP:
-						System.out.println(rcv);
-						break;
 					case Message.BACK:
-						System.out.println(rcv);
 						break;
 
 						/* JOIN */
 					case Message.JNNO:
-						System.out.println("Connexion à l'hôte échouée : " + rcv.getContent() + ".");
+						System.out.println("Connexion à l'hôte échouée.");
 						wakeClient();
 						break;
 					case Message.JNOK:
-						System.out.println("Connexion à l'hôte établie : " + rcv.getContent() + ".");
+						System.out.println("Connexion à l'hôte établie !");
 						state = State.CONNECTED;
-						count += rcv.getArgAsInt(0);
-						if (count == 0) {
-							wakeClient();
-						}
-						break;
-					case Message.BDIT:
-						System.out.println(rcv);
-						wakeClient();
-						break;
 					case Message.IGNB: // TODO vérifier qu'à cette étape le client est encore bloqué
 						count += rcv.getArgAsInt(0);
-						System.out.println(rcv);
 						if (count == 0) {
 							wakeClient();
 						};
 						break;
+					case Message.BDIT:
 					case Message.IGPL:
-						System.out.println(rcv);
 						wakeClient();
 						break;
 					case Message.CONN:
-						System.out.println(rcv);
-						break;			
+						break;
 
 						/* CLIC */
 					case Message.LATE:
-						System.out.println(rcv);
-						wakeClient();
-						break;
 					case Message.OORG:
-						System.out.println(rcv);
-						wakeClient();
-						break;
 					case Message.SQRD:
 						System.out.println(rcv);
 						wakeClient();
@@ -445,11 +396,9 @@ public class Client implements AutoCloseable {
 
 						/* Fin de partie */
 					case Message.ENDC:
-						System.out.println(rcv);
-						break;
 					case Message.SCPC:
-						System.out.println(rcv);
 						break;
+
 					case Message.IDKH:
 						System.out.println("L'hôte reste béant : '" + rcv + "'.");
 						wakeClient();
