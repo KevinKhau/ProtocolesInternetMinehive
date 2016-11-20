@@ -17,9 +17,9 @@ public class HostData extends EntityData {
 	/** Dépendant du compteur global {@link HostData#count} */
 //	name;
 	/** Addresse IP locale, non modifiable */
-	private InetAddress IP;
+	public InetAddress IP;
 	/** Doit être un port libre */
-	private int port;
+	public int port;
 
 	/**
 	 * Crée un HostData et vérifie que le port est libre en ouvrant

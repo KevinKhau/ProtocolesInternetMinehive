@@ -57,12 +57,12 @@ public class Client extends Entity {
 
 	public void linkServer() {
 		destPort = 5555;
-		new ServerLinker();
+		new ServerCommunicator();
 	}
 
 	public void linkHost() {
 		destPort = intKeyboardInput("Entrez le numéro de port de l'hôte.");
-		new HostLinked();
+		new HostCommunicator();
 	}
 
 	private int intKeyboardInput(String indication) {
@@ -84,9 +84,9 @@ public class Client extends Entity {
 	/**
 	 * Effectue une suite d'instructions par rapport à un destinataire suite à des entrées utilisateur
 	 */
-	private abstract class Linker {
+	private abstract class Communicator {
 		String name;
-		SocketHandler listener;
+		SocketHandler handler;
 		List<String> identificationWords;
 
 		State state = State.OFFLINE;
@@ -96,13 +96,13 @@ public class Client extends Entity {
 		
 		TFSocket socket;
 		
-		public Linker() {
+		public Communicator() {
 			setAttributes();
 			try {
 				socket = new TFSocket(destIP, destPort);
 				System.out.println("Client connecté à " + name + " : " + socket.remoteData() + ".");
 				state = State.CONNECTED;
-				new Thread(listener).start();
+				new Thread(handler).start();
 				while (running) {
 					while (state == State.CONNECTED && running) {
 						login();
@@ -194,10 +194,10 @@ public class Client extends Entity {
 		}
 
 		public void waitResponse() {
-			synchronized (Linker.this) {
+			synchronized (Communicator.this) {
 				waitingResponse = true;
 				try {
-					Linker.this.wait(MAX_WAIT_TIME);
+					Communicator.this.wait(MAX_WAIT_TIME);
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
@@ -226,6 +226,7 @@ public class Client extends Entity {
 				while (running) {
 					try {
 						Message rcv = socket.receive();
+						System.out.println(rcv);
 						handleMessage(rcv);
 					} catch (IOException e) {
 						disconnect();
@@ -250,9 +251,9 @@ public class Client extends Entity {
 					if (count > 0) {
 						return;
 					}
-					synchronized (Linker.this) {
+					synchronized (Communicator.this) {
 						waitingResponse = false;
-						Linker.this.notify();
+						Communicator.this.notify();
 					}
 				}
 			}
@@ -267,7 +268,6 @@ public class Client extends Entity {
 		class ServerHandler extends SocketHandler {
 			@Override
 			protected void handleMessage(Message reception) {
-				System.out.println(reception);
 				switch (reception.getType()) {
 				/* REGI */
 				case Message.IDOK:
@@ -321,7 +321,6 @@ public class Client extends Entity {
 		class HostHandler extends SocketHandler {
 			@Override
 			protected void handleMessage(Message reception) {
-				System.out.println(reception);
 				switch (reception.getType()) {
 				/* Connection and activity */
 				case Message.DECO:
@@ -376,23 +375,23 @@ public class Client extends Entity {
 		}
 	}
 
-	private class ServerLinker extends Linker {
+	private class ServerCommunicator extends Communicator {
 		@Override
 		protected void setAttributes() {
 			name = "Server";
 			identificationWords = new LinkedList<>();
 			identificationWords.add(Message.REGI);
 			identificationWords.add(Message.LEAV);
-			listener = new ServerHandler();
+			handler = new ServerHandler();
 		}
 	}
 
-	private class HostLinked extends Linker {
+	private class HostCommunicator extends Communicator {
 		protected void setAttributes() {
 			name = "Hôte";
 			identificationWords = new LinkedList<>();
 			identificationWords.add(Message.JOIN);
-			listener = new HostHandler();
+			handler = new HostHandler();
 		}
 	}
 }

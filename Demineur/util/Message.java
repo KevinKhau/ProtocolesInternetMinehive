@@ -25,8 +25,8 @@ public class Message {
 	public static final String IDKC = "IDKC";
 
 	/* Server */
-	public static final String IDOK = "IDOK";
-	public static final String IDNO = "IDNO";
+	public static final String IDOK = "IDOK"; // +toHost
+	public static final String IDNO = "IDNO"; // +toHost
 	public static final String IDIG = "IDIG";
 	public static final String LMNB = "LMNB";
 	public static final String MATC = "MATC";
@@ -45,7 +45,7 @@ public class Message {
 	public static final String RUOK = "RUOK"; // +toHost, +inHost
 
 	/* Host */
-	public static final String JNNO = "JNNO";
+	public static final String JNNO = "JNNO"; 
 	public static final String JNOK = "JNOK";
 	public static final String BDIT = "BDIT";
 	public static final String IGNB = "IGNB";
@@ -59,6 +59,7 @@ public class Message {
 	public static final String SCPC = "SCPC";
 	public static final String AFKP = "AFKP";
 	public static final String BACK = "BACK";
+	public static final String LOGI = "LOGI";
 	public static final String SDDT = "SDDT";
 	public static final String PLIN = "PLIN";
 	public static final String SCPS = "SCPS";
@@ -117,6 +118,7 @@ public class Message {
 		map.put(SCPC, 5);
 		map.put(AFKP, 1);
 		map.put(BACK, 1);
+		map.put(LOGI, 1);
 		map.put(SDDT, null);
 		map.put(PLIN, 3);
 		map.put(SCPS, 2);
@@ -162,7 +164,7 @@ public class Message {
 	 * @return argument, ou chaîne vide si non existant
 	 */
 	public String getArg(int index) {
-		if (args.length - 1 >= index) {
+		if (args.length > index) {
 			return args[index];
 		} else {
 			return null;

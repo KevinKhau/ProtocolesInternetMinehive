@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.net.BindException;
 import java.net.InetAddress;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -16,6 +17,7 @@ import data.EntityData;
 import data.HostData;
 import data.Player;
 import util.Message;
+import util.PlayersManager;
 import util.TFServerSocket;
 import util.TFSocket;
 
@@ -33,7 +35,7 @@ public class Server extends Entity {
 	public static final int MAX_ONLINE = 110;
 	Map<Player, ClientHandler> available = new ConcurrentHashMap<>();
 	Map<Player, HostData> inGame = new ConcurrentHashMap<>();
-	
+
 	Map<String, EntityData> hostsDataHelper = new ConcurrentHashMap<>();
 	Map<EntityData, SocketHandler> hostsData = new ConcurrentHashMap<>();
 
@@ -83,6 +85,28 @@ public class Server extends Entity {
 		return available.size() + inGame.size() >= MAX_ONLINE;
 	}
 
+	/**
+	 * Obtenir le Handler gérant la connexion d'un client disponible à partir d'un nom d'utilisateur
+	 * @param username
+	 */
+	public ClientHandler getHandler(String username) {
+		if (username == null) {
+			System.err.println("Message anormale reçu. Nom de joueur requis.");
+			return null;
+		}
+		Player p = users.get(username);
+		if (p == null) {
+			System.err.println("Utilisateur '" + username + "'inexistant.");
+			return null;
+		}
+		ClientHandler ch = available.get(p);
+		if (ch == null) {
+			System.err.println("Utilisateur '" + username + "' non connecté.");
+			return null;
+		}
+		return ch;
+	}
+
 	/** Gère la connexion et les messages avec une autre entité */
 	private abstract class SocketHandler extends Thread {
 		// TODO gérer inactivité client
@@ -109,7 +133,12 @@ public class Server extends Entity {
 				entityData = link();
 				while (running) {
 					Message rcv = socket.receive();
-					handleMessage(rcv);
+					System.out.println(rcv);
+					try {
+						handleMessage(rcv);
+					} catch (NullPointerException e) {
+						System.err.println("Mauvais nombre d'arguments reçu.");
+					}
 				}
 			} catch (IOException e) {
 				disconnect();
@@ -126,8 +155,14 @@ public class Server extends Entity {
 			System.err.println("Message inconnu de " + entityName);
 			socket.send(Message.IDKC);
 		}
-		
-		protected abstract void disconnect();
+
+		protected void disconnect() {
+			running = false;
+			if (entityData != null) {
+				list.remove(entityData);
+			}
+			socket.close();
+		}
 
 	}
 
@@ -167,7 +202,7 @@ public class Server extends Entity {
 				disconnect();
 			}
 		}
-		
+
 		/**
 		 * À REGI : identifie un joueur déjà existant, l'enregistre, ou invite à
 		 * réessayer jusqu'à validation. Gère les réponses {@link Message#IDOK},
@@ -371,33 +406,93 @@ public class Server extends Entity {
 			}
 			// Pas besoin de vérifier qu'il y a de la place, c'est fait à la création du Host
 			Message message = socket.receive();
-			if (!message.getType().equals(Message.REGI)) {
+			if (!message.getType().equals(Message.LOGI)) {
 				unknownMessage();
-				return link();
+				disconnect();
+				return null;
 			}
 			String matchName = message.getArg(0);
 			entityData = helper.get(matchName); 
 			if (entityData == null) {
 				socket.send(Message.IDNO, null, "Nom de partie inconnu.");
-				return link();
+				disconnect();
+				return null;
 			}
-			socket.send(Message.IDOK, null, "C'est parti pour du fun, " + entityData.name);
+			socket.send(Message.IDOK, null, "C'est parti, " + entityData.name + " !");
 			list.put(entityData, this);
 			return entityData;
 		}
 
 		@Override
 		protected void handleMessage(Message reception) {
-			// TODO Auto-generated method stub
-			
-		}
-
-		@Override
-		protected void disconnect() {
-			// TODO Auto-generated method stub
-			
+			ClientHandler ch;
+			switch (reception.getType()) {
+			case Message.SDDT:
+				ch = getHandler(reception.getArg(0));
+				if (ch != null) {
+					String[] args = reception.getArgs();
+					String[] transfer = Arrays.copyOfRange(args, 1, args.length);
+					ch.socket.send(Message.MATC, transfer);
+				}
+				break;
+			case Message.PLIN:
+				String username = reception.getArg(1);
+				if (username == null) {
+					System.err.println("Message anormale de l'hôte : Nom d'utilisateur non défini.");
+					break;
+				}
+				String password = reception.getArg(2);
+				if (password == null) {
+					System.err.println("Message anormale de l'hôte : Mot de passe non défini. Rappel : PLIN#MatchName#Username#Password");
+					break;
+				}
+				Player p = getPlayer(username);
+				if (p == null) {
+					socket.send(Message.PLNO, new String[]{username}, "Utilisateur inexistant.");
+					break;
+				}
+				if (!p.password.equals(password)) {
+					socket.send(Message.PLNO, new String[]{username}, "Mauvais mot de passe.");
+				}
+				if (inGame.containsKey(p)) {
+					socket.send(Message.PLNO, new String[]{username}, username + " a déjà une partie en cours, qu'il doit finir !");
+				}
+				socket.send(Message.PLOK, new String[]{username, String.valueOf(p.totalPoints)});
+				inGame.put(p, (HostData) entityData);
+				ch = available.remove(p);
+				if (ch != null) {
+					ch.disconnect();
+				}
+				break;
+			case Message.SCPS:
+				Player p2 = getPlayer(reception.getArg(0));
+				inGame.remove(p2);
+				p2.totalPoints = reception.getArgAsInt(1);
+				PlayersManager.writePlayer(p2);
+				break;
+			case Message.ENDS:
+				helper.remove(entityData.name);
+				list.remove(entityData);
+				disconnect();
+				break;
+			default:
+				unknownMessage();
+			}
 		}
 		
+		private Player getPlayer(String username) {
+			if (username == null) {
+				System.err.println("Message anormale de l'hôte : Nom d'utilisateur non défini.");
+				return null;
+			}
+			Player p = users.get(username);
+			if (p == null) {
+				socket.send(Message.PLNO, new String[]{username}, "Utilisateur inexistant.");
+				return null;
+			}
+			return p;
+		}
+
 	}
-	
+
 }
