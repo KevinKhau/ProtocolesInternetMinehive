@@ -111,38 +111,10 @@ public class Server extends Entity {
 	/**
 	 * Gère un seul client. // TODO rendre générique avec SocketHandler
 	 */
-	private class ClientHandler extends Thread {
-		TFSocket socket;
-
-		private volatile boolean running = true;
-
-		Player player;
+	private class ClientHandler extends SocketHandler {
 
 		public ClientHandler(TFSocket socket) {
-			super();
-			System.out.println("Nouvelle connexion : " + socket.getRemoteSocketAddress());
-			this.socket = socket;
-			this.socket.ping();
-		}
-
-		@Override
-		public void run() {
-			try {
-				player = identification();
-				if (player != null) {
-					addAvailable(player, this);
-					System.out.println("Utilisateur '" + player.username + "' connecté depuis "
-							+ socket.getRemoteSocketAddress() + ".");
-				}
-				while (running) {
-					handleMessage();
-				}
-			} catch (InterruptedException e) {
-				System.err.println(e.getMessage());
-				disconnect();
-			} catch (IOException e) {
-				disconnect();
-			}
+			super(socket, Player.NAME);
 		}
 
 		/**
@@ -153,77 +125,84 @@ public class Server extends Entity {
 		 * @return Un joueur identifié ou créé avec succès, ou tentatives
 		 *         récursives sinon.
 		 * @throws IOException
-		 * @throws InterruptedException
 		 */
-		public Player identification() throws IOException, InterruptedException {
+		@Override
+		public void identification() throws IOException {
 			if (!running) {
-				throw new InterruptedException();
+				disconnect();
 			}
 			Message message = socket.receive();
 			if (message.getType().equals(Message.LEAV)) {
 				System.out.println("Fin de la connexion avec " + socket.getRemoteSocketAddress() + ".");
 				disconnect();
-				return null;
+				return;
 			}
 			/* Serveur saturé */
 			if (isFull()) {
 				socket.send(Message.IDNO, null, "Le serveur est plein. Réessayez ultérieurement.");
-				return identification();
+				identification();
 			}
 			/* Anomalies */
 			if (!message.getType().equals(Message.REGI)) {
 				socket.send(Message.IDKS, null, "Vous devez d'abord vous connecter : REGI Username Password");
-				return identification();
+				identification();
 			}
 			/* Mauvais nombre d'arguments */
 			if (!validArguments(message)) {
 				socket.send(Message.IDNO, null, "Identifiant et/ou Mot de passe manquant");
-				return identification();
+				identification();
 			}
 			String username = message.getArg(0);
 			String password = message.getArg(1);
-			Player p = users.get(username);
+			entityData = users.get(username);
 			/* Première fois */
+			Player p = (Player) entityData;
 			if (p == null) {
 				p = new Player(username, password, Player.INITIAL_POINTS);
-				users.put(p.username, p);
-				writePlayer(p);
+				users.put(username, p);
+				writePlayer( p);
 				socket.send(Message.IDOK, null, "Bienvenue " + username + " !");
-				return p;
 			}
 			/* Mauvais mot de passe */
 			if (!p.password.equals(password)) {
 				socket.send(Message.IDNO, null, "Mauvais mot de passe");
-				return identification();
+				identification();
 			}
 			/* Déjà connecté */
 			if (available.containsKey(p)) {
 				System.out.println("Connection override de " + p.username + ".");
 				socket.send(Message.IDOK, null, "Bon retour " + username + " !");
-				return p;
+				return;
 			}
 			/* Déjà en partie */
 			HostData hd = inGame.get(p);
 			if (hd != null) {
 				socket.send(Message.IDIG, new String[] { hd.getIP().toString(), String.valueOf(hd.getPort()) },
 						"Finissez votre partie en cours !");
-				return identification();
+				identification();;
 			}
 			/* Connexion classique */
 			socket.send(Message.IDOK, null, "Bonjour " + username + " !");
-			return p;
+			return;
+		}
+		
+		@Override
+		protected void addEntityData() {
+			Player player = (Player) entityData;
+			addAvailable(player, this);
+			System.out.println("Utilisateur '" + player.username + "' connecté depuis "
+					+ socket.getRemoteSocketAddress() + ".");
 		}
 
 		/**
 		 * Gère toutes les requêtes possibles du client après son
 		 * identification.
 		 * 
-		 * @throws InterruptedException
 		 * @throws IOException
 		 */
-		private void handleMessage() throws IOException {
-			Message msg = socket.receive();
-			switch (msg.getType()) {
+		@Override
+		protected void handleMessage(Message reception) {
+			switch (reception.getType()) {
 			case Message.IMOK: // Permet de reset le SO_TIMEOUT de la socket
 				break;
 			case Message.REGI:
@@ -234,21 +213,21 @@ public class Server extends Entity {
 				socket.send(Message.IDKS, null, "LSMA en cours d'implémentation");
 				break;
 			case Message.LSAV:
-				sendAvailable(msg);
+				sendAvailable(reception);
 				break;
 			case Message.LSUS:
-				sendUsers(msg);
+				sendUsers(reception);
 				break;
 			case Message.NWMA:
-				createMatch(msg);
+				createMatch(reception);
 				break;
 			case Message.LEAV:
 				System.out.println(
-						"Déconnexion de l'utilisateur " + player.username + ", " + socket.getRemoteSocketAddress());
+						"Déconnexion de l'utilisateur " + ((Player) entityData).username + ", " + socket.getRemoteSocketAddress());
 				disconnect();
 				break;
 			default:
-				socket.send(Message.IDKS, null, "Commande inconnue ou pas encore implémentée");
+				unknownMessage();
 				break;
 			}
 		}
@@ -290,6 +269,7 @@ public class Server extends Entity {
 				return;
 			}
 
+			Player player = (Player) entityData;
 			/* ALL : inviter tous les joueurs disponibles */
 			String arg1 = msg.getArg(0);
 			if (arg1 != null && arg1.equals(ALL)) {
@@ -320,16 +300,16 @@ public class Server extends Entity {
 			disconnect();
 		}
 
-		/**
-		 * Autorise la Thread à s'arrêter, enlève le Player correspondant de
-		 * Thread s'il existe. Ferme la socket et les streams associés.
-		 */
-		public void disconnect() {
-			running = false;
-			if (player != null) {
-				available.remove(player);
+		@Override
+		protected void removeEntityData() {
+			if (entityData != null) {
+				available.remove(entityData);
 			}
-			socket.close();
+		}
+
+		@Override
+		protected void unknownMessage() {
+			socket.send(Message.IDKS, null, "Commande inconnue ou pas encore implémentée");
 		}
 	}
 
@@ -340,27 +320,28 @@ public class Server extends Entity {
 		}
 
 		@Override
-		protected EntityData link() throws IOException {
+		protected void identification() throws IOException {
 			if (!running) {
 				disconnect();
+				return;
 			}
 			// Pas besoin de vérifier qu'il y a de la place, c'est fait à la création du Host
 			Message message = socket.receive();
 			if (!message.getType().equals(Message.LOGI)) {
 				unknownMessage();
 				disconnect();
-				return null;
+				return;
 			}
 			String matchName = message.getArg(0);
 			entityData = hostsDataHelper.get(matchName); 
 			if (entityData == null) {
 				socket.send(Message.IDNO, null, "Nom de partie inconnu.");
 				disconnect();
-				return null;
+				return;
+			} else {
+				socket.send(Message.IDOK, null, "C'est parti, " + entityData.name + " !");
+				return;
 			}
-			socket.send(Message.IDOK, null, "C'est parti, " + entityData.name + " !");
-			hostsData.put((HostData) entityData, this);
-			return entityData;
 		}
 
 		@Override
@@ -433,12 +414,22 @@ public class Server extends Entity {
 			}
 			return p;
 		}
+		
+		@Override
+		protected void addEntityData() {
+			hostsData.put((HostData) entityData, this);
+		}
 
 		@Override
 		protected void removeEntityData() {
 			if (entityData != null) {
 				hostsData.remove(entityData);
 			}
+		}
+
+		@Override
+		protected void unknownMessage() {
+			socket.send(Message.IDKS, null, "Commande inconnue ou pas encore implémentée");
 		}
 
 	}

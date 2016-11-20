@@ -27,7 +27,10 @@ abstract class SocketHandler extends Thread {
 	@Override
 	public void run() {
 		try {
-			entityData = link();
+			identification();
+			if (running) {
+				addEntityData();
+			}
 			while (running) {
 				Message rcv = socket.receive();
 				System.out.println(rcv);
@@ -42,22 +45,24 @@ abstract class SocketHandler extends Thread {
 		}
 	}
 
-	/** Instructions d'initialisation avec l'expéditeur */
-	protected abstract EntityData link() throws IOException;
+	/** Instructions d'initialisation avec l'expéditeur. On veut juste s'assurer de l'identité de l'expéditeur, mais il n'est pas encore ajouté à la liste en question. */
+	protected abstract void identification() throws IOException;
 
 	/** Vérification de messages en boucle */
 	protected abstract void handleMessage(Message reception);
 
-	protected void unknownMessage() {
-		System.err.println("Message inconnu de " + entityName);
-		socket.send(Message.IDKC);
-	}
+	protected abstract void unknownMessage();
 
+	/**
+	 * Autorise la Thread à s'arrêter, enlève le Player correspondant de
+	 * Thread s'il existe. Ferme la socket et les streams associés.
+	 */
 	protected void disconnect() {
 		running = false;
 		removeEntityData();
 		socket.close();
 	}
 	
+	protected abstract void addEntityData();
 	protected abstract void removeEntityData();
 }
