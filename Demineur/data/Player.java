@@ -8,7 +8,8 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlAccessorType(XmlAccessType.FIELD)
 @XmlRootElement(name = "player")
-public class Player {
+public class Player extends EntityData {
+	public static final String NAME = "Joueur";
 	public static final int INITIAL_POINTS = 0;
 	
 	@XmlAttribute (name = "username", required = true)
@@ -22,11 +23,12 @@ public class Player {
 	
 	// Necessary for JAXB
 	public Player() {
-		super();
-		this.totalPoints = INITIAL_POINTS;
+		super(NAME);
+//		this.totalPoints = INITIAL_POINTS; // CHECK useless code
 	}
 	
 	public Player(String username, String password) {
+		super(NAME);
 		this.username = username;
 		this.password = password;
 	}
@@ -37,7 +39,7 @@ public class Player {
 	}
 
 	public Player(String username, String password, int points) {
-		super();
+		super(NAME);
 		this.username = username;
 		this.password = password;
 		this.totalPoints = points;

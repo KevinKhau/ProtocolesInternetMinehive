@@ -7,8 +7,8 @@ import java.util.Map;
 import game.Board;
 
 /**
- * Pour simplifier le code, {@link util.MyPrintWriter} peut envoyer un message
- * sans créer de new {@link Message}, tandis que {@link util.MyBufferedReader}
+ * Pour simplifier le code, {@link util.TFPrintWriter} peut envoyer un message
+ * sans créer de new {@link Message}, tandis que {@link util.TFBufferedReader}
  * transmet un {@link Message} facilement traitable.
  */
 public class Message {

@@ -1,10 +1,7 @@
 package network;
 
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.net.InetAddress;
-import java.net.Socket;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.LinkedList;
@@ -13,476 +10,389 @@ import java.util.NoSuchElementException;
 import java.util.Scanner;
 
 import util.Message;
-import util.MyBufferedReader;
-import util.MyPrintWriter;
+import util.TFSocket;
 
-public class Client implements AutoCloseable {
+public class Client extends Entity {
 
 	/*
 	 * Temps maximal d'attente des réponses du serveur avant de redonner la main
 	 * à l'utilisateur
 	 */
-	public static final long maxWaitTime = 10000;
+	public static final long MAX_WAIT_TIME = 5000;
 
 	private enum State {
-		OFFLINE, CONNECTED, PLAYING
+		OFFLINE, CONNECTED, IN
 	};
 
-	InetAddress serverIP;
-	final int serverPort = 5555;
-
-	Socket socket;
-	MyPrintWriter out;
-	MyBufferedReader in;
-
-	boolean waitingResponse = false;
-	volatile boolean running = true;
+	/* FUTURE Déplacer an attributs de Handle une fois contraintes Scanner résolues */
+	InetAddress destIP;
+	int destPort = 5555;
 
 	Scanner reader = new Scanner(System.in);
-	public State state = State.OFFLINE;
 
 	public static void main(String[] args) {
-		try (Client c = new Client()) {
-			System.out.println("Fin client");
-		}
+		new Client();
+		System.out.println("Fin client");
 	}
 
 	public Client() {
+		name = "Client";
 		try {
-			serverIP = InetAddress.getLocalHost();
-//			serverIP = InetAddress.getByName("192.168.137.67"); // TEST Pour tester avoir d'autres machines
+			destIP = InetAddress.getLocalHost();
+			/* TEST pour tester avec d'autres machines */
+			// destIP = InetAddress.getByName("192.168.137.67");
 		} catch (UnknownHostException e) {
 			System.err.println("Serveur inconnu.");
 			System.exit(1);
 		}
 		while (true) {
 			// TODO proposer communication soit avec serveur, soit avec hôte
+			System.out.println("Serveur");
 			linkServer();
-			System.out.println("Host time !");
-			linkHost();
+//			System.out.println("Hôte");
+//			linkHost();
 		}
+		// reader.close();
 	}
 
 	public void linkServer() {
-		try {
-			this.socket = new Socket(serverIP, serverPort); // TEST
-			this.out = new MyPrintWriter(new OutputStreamWriter(socket.getOutputStream()));
-			this.in = new MyBufferedReader(new InputStreamReader(socket.getInputStream()));
-			System.out.println("Client connecté au serveur " + socket.getLocalSocketAddress() + ", port=" + serverPort);
-			new Thread(new ServerListener()).start();
-			while (running) {
-				while (state == State.OFFLINE && running) {
-					serverLogin();
-				}
-				while (state == State.CONNECTED && running) {
-					communicate();
-				}
-			}
-		} catch (IllegalMonitorStateException e) {
-			System.err.println(e.getMessage() + ": Arrêt du client pendant qu'il était en attente.");
-		} catch (NoSuchElementException e) {
-			e.printStackTrace();
-		} catch (UnknownHostException ex) {
-			System.err.println("Serveur inconnu : " + serverIP);
-		} catch (SocketException ex) {
-			System.err.println("Connexion non établie ou interrompue avec : " + serverIP + ", port=" + serverPort);
-		} catch (IOException e) {
-			System.err.println("Communication impossible avec le serveur.");
-			e.printStackTrace();
-		}
+		destPort = 5555;
+		new ServerLinker();
 	}
 
 	public void linkHost() {
-		final InetAddress hostIP = serverIP;
-		int hostPort = intKeyboardInput("Entrez le numéro de port de l'hôte.");
-		try {
-			this.socket = new Socket(hostIP, hostPort);
-			this.out = new MyPrintWriter(new OutputStreamWriter(socket.getOutputStream()));
-			this.in = new MyBufferedReader(new InputStreamReader(socket.getInputStream()));
-			System.out.println("Client connecté à l'hôte " + socket.getLocalSocketAddress() + ", port=" + hostPort);
-			new Thread(new HostListener()).start();
-			while (running) {
-				while (state == State.OFFLINE && running) {
-					hostLogin();
-				}
-				while (state == State.CONNECTED && running) {
-					communicate();
-				}
-			}
-		} catch (IllegalMonitorStateException e) {
-			System.err.println(e.getMessage() + ": Arrêt du client pendant qu'il était en attente.");
-		} catch (NoSuchElementException e) {
-			e.printStackTrace();
-		} catch (UnknownHostException ex) {
-			System.err.println("Hôte inconnu : " + hostIP);
-		} catch (SocketException ex) {
-			System.err.println("Connexion non établie ou interrompue avec : " + hostIP + ", port=" + hostPort);
-		} catch (IOException e) {
-			System.err.println("Communication impossible avec l'hôte.");
-			e.printStackTrace();
-		}
-	}
-
-	/**
-	 * Attend une action de la part de l'utilisateur avant d'envoyer un message
-	 * au serveur
-	 * 
-	 * @return Message interprété par l'action utilisateur
-	 */
-	public Message input(String indication) {
-		return keyboardInput(indication); // FUTURE Changer en onClic() après
-		// implémentation interface graphique
-	}
-
-	/**
-	 * Attend une entrée clavier de la part de l'utilisateur
-	 * 
-	 * @return Message valide
-	 */
-	private Message keyboardInput(String indication) {
-		if (indication != null) {
-			System.out.println(indication);
-		}
-		Message m;
-		try {
-			m = Message.validMessage(reader.nextLine());
-		} catch (IllegalArgumentException e) {
-			System.err.println(e.getMessage());
-			return keyboardInput(indication);
-		}
-		return m;
+		destPort = intKeyboardInput("Entrez le numéro de port de l'hôte.");
+		new HostLinked();
 	}
 
 	private int intKeyboardInput(String indication) {
-		if (indication != null) {
-			System.out.println(indication);
-		}
-		while (!reader.hasNextInt()) {
-			System.out.print("Tapez un entier : ");
+		while (true) {
+			if (indication != null) {
+				System.out.println(indication);
+			}
 			try {
-				reader.next();
-			} catch (Exception e) {
-				System.err.println(e.getMessage());
+				return Integer.parseInt(reader.nextLine());
+			} catch (NumberFormatException e) {
+				System.err.println("Entier attendu !");
+			} catch (NoSuchElementException e) {
+				System.out.println("Au revoir !");
+				System.exit(0);
 			}
 		}
-		return reader.nextInt();
 	}
 
 	/**
-	 * Tente de s'identifier auprès du serveur
-	 * 
-	 * @return false tant que le serveur n'a pas envoyé IDOK
-	 * @throws IOException
+	 * Effectue une suite d'instructions par rapport à un destinataire suite à des entrées utilisateur
 	 */
-	private void serverLogin() {
-		System.out.println("Tentative de connexion au serveur.");
-		Message send = input("Envoyez un message au serveur. Format : TYPE[#ARG]...[#Contenu] : ");
-		List<String> allowed = new LinkedList<>();
-		allowed.add(Message.REGI);
-		allowed.add(Message.LEAV);
-		if (!allowed.contains(send.getType())) {
-			System.err.println("Type de message de connexion invalide. Attendu : " + allowed.toString());
-			serverLogin();
-		}
-		out.send(send);
-		leaveOrWait(send.getType());
-	}
+	private abstract class Linker {
+		String name;
+		SocketHandler listener;
+		List<String> identificationWords;
 
-	/**
-	 * Tente de s'identifier auprès de l'hôte, de la même manière qu'avec le serveur
-	 * 
-	 * @return false tant que le serveur n'a pas envoyé IDOK
-	 * @throws IOException
-	 */
-	private void hostLogin() {
-		System.out.println("Tentative de connexion à l'hôte.");
-		Message send = input("Envoyez un message à l'hôte. Format : TYPE[#ARG]...[#Contenu] : ");
-		List<String> allowed = new LinkedList<>();
-		allowed.add(Message.JOIN);
-		if (!allowed.contains(send.getType())) {
-			System.err.println("Type de message de connexion invalide. Attendu : " + allowed.toString());
-			hostLogin();
-		}
-		out.send(send);
-		waitResponse();
-	}
-
-	public void communicate() {
-		Message m = input("Envoyez un message. Format : TYPE[#ARG]...[#Contenu] : ");
-		out.send(m);
-		leaveOrWait(m.getType());
-	}
-
-	private void leaveOrWait(String type) {
-		if (type.equals(Message.LEAV)) {
-			System.out.println("Fin de la connexion avec " + socket.getRemoteSocketAddress());
-			close();
-			return;
-		} else {
-			waitResponse();
-		}
-	}
-
-	@Override
-	public void close() {
-		running = false;
-		try {
-			state = State.OFFLINE;
-			out.close();
-			socket.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-
-	public void waitResponse() {
-		synchronized (this) {
-			waitingResponse = true;
+		State state = State.OFFLINE;
+		
+		volatile boolean waitingResponse = false;
+		volatile boolean running = true;
+		
+		TFSocket socket;
+		
+		public Linker() {
+			setAttributes();
 			try {
-				wait(maxWaitTime);
-			} catch (InterruptedException e) {
+				socket = new TFSocket(destIP, destPort);
+				System.out.println("Client connecté à " + name + " : " + socket.remoteData() + ".");
+				state = State.CONNECTED;
+				new Thread(listener).start();
+				while (running) {
+					while (state == State.CONNECTED && running) {
+						login();
+					}
+					while (state == State.IN && running) {
+						communicate();
+					}
+				}
+			} catch (IllegalMonitorStateException e) {
+				System.err.println("Interruption du client pendant qu'il était en attente.");
+			} catch (NoSuchElementException e) {
+				e.printStackTrace();
+			} catch (UnknownHostException e) {
+				System.err.println(name + " inconnu : " + "IP=" + destIP + ", port=" + destPort + ".");
+			} catch (SocketException e) {
+				System.err.println(
+						"Connexion non établie avec " + name + " : " + "IP=" + destIP + ", port=" + destPort + ".");
+			} catch (IOException e) {
+				System.err.println(
+						"Communication impossible avec " + name + " : " + "IP=" + destIP + ", port=" + destPort + ".");
 				e.printStackTrace();
 			}
 		}
-	}
 
-	class ServerListener implements Runnable {
+		protected abstract void setAttributes();
 
-		int count = 0;
+		/**
+		 * Attend une action de la part de l'utilisateur avant d'envoyer un
+		 * message au serveur
+		 * 
+		 * @return Message interprété par l'action utilisateur
+		 */
+		public Message input(String indication) {
+			return keyboardInput(indication); // FUTURE Changer en onClic()
+												// après
+			// implémentation interface graphique
+		}
 
-		@Override
-		public void run() {
-			while (running) {
+		/**
+		 * Attend une entrée clavier de la part de l'utilisateur
+		 * 
+		 * @return Message valide
+		 */
+		private Message keyboardInput(String indication) {
+			while (true) {
+				if (indication != null) {
+					System.out.println(indication);
+				}
 				try {
-					Message rcv = in.receive();
-					switch (rcv.getType()) {
-					case Message.RUOK:
-						out.send(Message.IMOK);
-						break;
-
-						/* REGI */
-					case Message.IDOK:
-						System.out.println("Connexion au serveur établie : " + rcv.getContent());
-						state = State.CONNECTED;
-						wakeClient();
-						break;
-					case Message.IDNO:
-						System.out.println("Connexion échouée : " + rcv.getContent() + ".");
-						wakeClient();
-						break;
-					case Message.IDIG:
-						System.out.println(rcv);
-						wakeClient();
-						break;
-
-						/* LS */
-					case Message.LMNB:
-						count += rcv.getArgAsInt(0);
-						System.out.println(rcv);
-						if (count == 0) {
-							wakeClient();
-						}
-						break;
-					case Message.MATC:
-						System.out.println(rcv);
-						wakeClient();
-						break;
-					case Message.LANB:
-						count += rcv.getArgAsInt(0);
-						System.out.println(rcv);
-						if (count == 0) {
-							wakeClient();
-						}
-						break;
-					case Message.AVAI:
-						System.out.println(rcv);
-						wakeClient();
-						break;
-					case Message.LUNB:
-						count += rcv.getArgAsInt(0);
-						System.out.println(rcv);
-						if (count == 0) {
-							wakeClient();
-						}
-						break;
-					case Message.USER:
-						System.out.println(rcv);
-						wakeClient();
-						break;
-
-						/* NWMA */
-					case Message.NWOK:
-						System.out.println(rcv);
-						wakeClient();
-						break;
-					case Message.FULL:
-						System.out.println(rcv);
-						wakeClient();
-						break;
-					case Message.NWNO:
-						System.out.println(rcv);
-						wakeClient();
-						break;
-
-					case Message.KICK:
-						System.out.println("Éjecté par le serveur : " + rcv + ".");
-						close();
-						break;
-
-					case Message.IDKS:
-						System.out.println("Le serveur reste béant : '" + rcv + "'.");
-						wakeClient();
-						break;
-					default:
-						System.err.println("Réponse inconnue du serveur : '" + rcv + "'.");
-					}
-				} catch (IllegalArgumentException ex) {
-					System.err.println(ex.getMessage());
-					close();
-				} catch (SocketException ex) {
-					System.err
-					.println("Connexion non établie ou interrompue avec : " + socket.getRemoteSocketAddress());
-					close();
-				} catch (IOException e) {
-					System.err.println("Communication impossible avec le serveur " + socket.getRemoteSocketAddress());
-					e.printStackTrace();
-					close();
+					return Message.validMessage(reader.nextLine());
+				} catch (IllegalArgumentException e) {
+					System.err.println(e.getMessage());
+				} catch (NoSuchElementException e) {
+					System.out.println("Au revoir !");
+					System.exit(0);
 				}
 			}
 		}
 
 		/**
-		 * Après avoir envoyé un {@linkplain Message} au {@linkplain Server}, le
-		 * {@linkplain Client} est en attente d'une réponse. Il bloque donc
-		 * jusqu'à que le {@linkplain ServerListener} aie fini de traiter les
-		 * messages reçus du {@linkplain Server}.
+		 * Tente de s'identifier auprès du destinataire
 		 */
-		private synchronized void wakeClient() {
-			if (waitingResponse) {
-				count--;
-				if (count > 0) {
-					return;
-				}
-				synchronized (Client.this) {
-					waitingResponse = false;
-					Client.this.notify();
-				}
+		protected void login() {
+			System.out.println("Tentative de connexion à " + name + ".");
+			Message send = input("Envoyez un message de connexion à " + name + ". Format : TYPE[#ARG]...[#Contenu] : ");
+			if (!identificationWords.contains(send.getType())) {
+				System.err
+						.println("Type de message de connexion invalide. Attendu : " + identificationWords.toString());
+				login();
+			}
+			socket.send(send);
+			leaveOrWait(send.getType());
+		}
+
+		protected void communicate() {
+			Message m = input("Envoyez un message à " + name + ". Format : TYPE[#ARG]...[#Contenu] : ");
+			socket.send(m);
+			leaveOrWait(m.getType());
+		}
+
+		private void leaveOrWait(String type) {
+			if (type.equals(Message.LEAV)) {
+				System.out.println("Fin de la connexion avec " + socket.getRemoteSocketAddress());
+				disconnect();
+				return;
+			} else {
+				waitResponse();
 			}
 		}
 
-	}
-
-	class HostListener implements Runnable {
-
-		int count = 0;
-
-		@Override
-		public void run() {
-			// TODO Finir, tester Client.HostListener
-			while(running) {
+		public void waitResponse() {
+			synchronized (Linker.this) {
+				waitingResponse = true;
 				try {
-					Message rcv = in.receive();
-					switch (rcv.getType()) {
-					/* Connection and activity */
-					case Message.RUOK:
-						out.send(Message.IMOK);
-						break;
-					case Message.DECO:
-						System.out.println(rcv);
-						break;
-					case Message.AFKP:
-						System.out.println(rcv);
-						break;
-					case Message.BACK:
-						System.out.println(rcv);
-						break;
-
-						/* JOIN */
-					case Message.JNNO:
-						System.out.println("Connexion à l'hôte échouée : " + rcv.getContent() + ".");
-						wakeClient();
-						break;
-					case Message.JNOK:
-						System.out.println("Connexion à l'hôte établie : " + rcv.getContent() + ".");
-						state = State.CONNECTED;
-						count += rcv.getArgAsInt(0);
-						if (count == 0) {
-							wakeClient();
-						}
-						break;
-					case Message.BDIT:
-						System.out.println(rcv);
-						wakeClient();
-						break;
-					case Message.IGNB: // TODO vérifier qu'à cette étape le client est encore bloqué
-						count += rcv.getArgAsInt(0);
-						System.out.println(rcv);
-						if (count == 0) {
-							wakeClient();
-						};
-						break;
-					case Message.IGPL:
-						System.out.println(rcv);
-						wakeClient();
-						break;
-					case Message.CONN:
-						System.out.println(rcv);
-						break;			
-
-						/* CLIC */
-					case Message.LATE:
-						System.out.println(rcv);
-						wakeClient();
-						break;
-					case Message.OORG:
-						System.out.println(rcv);
-						wakeClient();
-						break;
-					case Message.SQRD:
-						System.out.println(rcv);
-						wakeClient();
-						break;
-
-						/* Fin de partie */
-					case Message.ENDC:
-						System.out.println(rcv);
-						break;
-					case Message.SCPC:
-						System.out.println(rcv);
-						break;
-					case Message.IDKH:
-						System.out.println("L'hôte reste béant : '" + rcv + "'.");
-						wakeClient();
-						break;
-					default:
-						System.err.println("Réponse inconnue de l'hôte : '" + rcv + "'.");
-					}
-				} catch (SocketException ex) {
-					System.err.println("Connexion non établie ou interrompue avec : " + socket.getRemoteSocketAddress());
-					close();
-				} catch (IOException e) {
-					System.err.println("Communication impossible avec le serveur " + socket.getRemoteSocketAddress());
+					Linker.this.wait(MAX_WAIT_TIME);
+				} catch (InterruptedException e) {
 					e.printStackTrace();
-					close();
 				}
 			}
-
+		}
+		
+		public synchronized void disconnect() {
+			running = false;
+			state = State.OFFLINE;
+			socket.close();
 		}
 
 		/**
-		 * Équivalent de ServerListener#wakeClient()
+		 * Thread qui reste en écoute permanente d'une ServerSocket. Lance des
+		 * instructions selon les messages reçus, et autorise le Client à répondre
+		 * ou non selon {@linkplain SocketHandler#count}, géré par wakeClient()
 		 */
-		private synchronized void wakeClient() {
-			if (waitingResponse) {
-				count--;
-				if (count > 0) {
-					return;
-				}
-				synchronized (Client.this) {
-					waitingResponse = false;
-					Client.this.notify();
+		abstract class SocketHandler implements Runnable {
+			int count = 0;
+		
+			@Override
+			/**
+			 * Écoute en boucle en traitant chaque message reçu.
+			 */
+			public void run() {
+				while (running) {
+					try {
+						Message rcv = socket.receive();
+						handleMessage(rcv);
+					} catch (IOException e) {
+						disconnect();
+					}
 				}
 			}
+		
+			/** Vérification de messages en boucle */
+			protected abstract void handleMessage(Message reception);
+		
+			/**
+			 * Après avoir envoyé un {@linkplain Message} au {@linkplain Server}, le
+			 * {@linkplain Client} est en attente d'une réponse. Il bloque donc
+			 * jusqu'à que le {@linkplain ServerHandler} aie fini de traiter les
+			 * messages reçus du {@linkplain Server}.
+			 */
+			protected synchronized final void wakeHandler() {
+				if (waitingResponse) {
+					if (count > 0) {
+						count--;
+					}
+					if (count > 0) {
+						return;
+					}
+					synchronized (Linker.this) {
+						waitingResponse = false;
+						Linker.this.notify();
+					}
+				}
+			}
+		
+			/** Comportement par défaut si le message reçu est inconnu */
+			protected void unknownMessage() {
+				System.err.println("Réponse inconnue du serveur.");
+				socket.send(Message.IDKC);
+			}
+		}
+
+		class ServerHandler extends SocketHandler {
+			@Override
+			protected void handleMessage(Message reception) {
+				System.out.println(reception);
+				switch (reception.getType()) {
+				/* REGI */
+				case Message.IDOK:
+					System.out.println("Connexion au serveur établie !");
+					state = State.IN;
+					wakeHandler();
+					break;
+				case Message.IDNO:
+					System.out.println("Connexion échouée.");
+				case Message.IDIG:
+					wakeHandler();
+					break;
+		
+				/* LS */
+				case Message.LMNB:
+				case Message.LANB:
+				case Message.LUNB:
+					count = reception.getArgAsInt(0);
+					if (count == 0) {
+						wakeHandler();
+					}
+					break;
+				case Message.MATC:
+				case Message.AVAI:
+				case Message.USER:
+					wakeHandler();
+					break;
+		
+				/* NWMA */
+				case Message.NWOK:
+				case Message.FULL:
+				case Message.NWNO:
+					wakeHandler();
+					break;
+		
+				case Message.KICK:
+					System.out.println("Éjecté par le serveur.");
+					disconnect();
+					break;
+		
+				case Message.IDKS:
+					System.out.println("Le serveur reste béant !");
+					wakeHandler();
+					break;
+				default:
+					unknownMessage();
+				}
+			}
+		}
+
+		class HostHandler extends SocketHandler {
+			@Override
+			protected void handleMessage(Message reception) {
+				System.out.println(reception);
+				switch (reception.getType()) {
+				/* Connection and activity */
+				case Message.DECO:
+				case Message.AFKP:
+				case Message.BACK:
+					break;
+		
+				/* JOIN */
+				case Message.JNNO:
+					System.out.println("Connexion à l'hôte échouée.");
+					wakeHandler();
+					break;
+				case Message.JNOK:
+					System.out.println("Connexion à l'hôte établie !");
+					state = State.IN;
+				case Message.IGNB: // TODO vérifier qu'à cette étape le client est
+									// encore bloqué
+					count = reception.getArgAsInt(0);
+					if (count == 0) {
+						wakeHandler();
+					}
+					;
+					break;
+				case Message.BDIT:
+				case Message.IGPL:
+					wakeHandler();
+					break;
+				case Message.CONN:
+					break;
+		
+				/* CLIC */
+				case Message.LATE:
+				case Message.OORG:
+				case Message.SQRD:
+					System.out.println(reception);
+					wakeHandler();
+					break;
+		
+				/* Fin de partie */
+				case Message.ENDC:
+				case Message.SCPC:
+					break;
+		
+				case Message.IDKH:
+					System.out.println("L'hôte reste béant : '" + reception + "'.");
+					wakeHandler();
+					break;
+				default:
+					unknownMessage();
+				}
+			}
+		}
+	}
+
+	private class ServerLinker extends Linker {
+		@Override
+		protected void setAttributes() {
+			name = "Server";
+			identificationWords = new LinkedList<>();
+			identificationWords.add(Message.REGI);
+			identificationWords.add(Message.LEAV);
+			listener = new ServerHandler();
+		}
+	}
+
+	private class HostLinked extends Linker {
+		protected void setAttributes() {
+			name = "Hôte";
+			identificationWords = new LinkedList<>();
+			identificationWords.add(Message.JOIN);
+			listener = new HostHandler();
 		}
 	}
 }

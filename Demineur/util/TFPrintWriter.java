@@ -6,13 +6,14 @@ import java.io.PrintWriter;
 import static util.Message.encode;
 import static util.StringUtil.getSpaces;
 
+@Deprecated
 /**
  * Abstraction supérieure de PrintWriter : Utiliser .send(...), qui code les
  * messages au bon format avant de les envoyer
  */
-public class MyPrintWriter extends PrintWriter {
+public class TFPrintWriter extends PrintWriter {
 
-	public MyPrintWriter(OutputStreamWriter osw) {
+	public TFPrintWriter(OutputStreamWriter osw) {
 		super(osw, true);
 	}
 

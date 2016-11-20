@@ -94,7 +94,7 @@ public class BoardUI extends Pane {
 		} else {
 			flags.add(x, y);
 		}
-		
+
 		drawBoard();
 	}
 
