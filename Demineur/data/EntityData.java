@@ -8,4 +8,5 @@ public class EntityData {
 		this.name = name;
 	}
 	
+	
 }

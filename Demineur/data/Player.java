@@ -24,7 +24,6 @@ public class Player extends EntityData {
 	// Necessary for JAXB
 	public Player() {
 		super(NAME);
-//		this.totalPoints = INITIAL_POINTS; // CHECK useless code
 	}
 	
 	public Player(String username, String password) {

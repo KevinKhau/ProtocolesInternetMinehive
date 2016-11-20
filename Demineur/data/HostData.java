@@ -10,6 +10,8 @@ import java.net.ServerSocket;
  */
 public class HostData extends EntityData {
 
+	public static final String NAME = "Hôte";
+	
 	private static int count = 1;
 
 	/** Dépendant du compteur global {@link HostData#count} */

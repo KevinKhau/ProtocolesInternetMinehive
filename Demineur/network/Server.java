@@ -33,7 +33,9 @@ public class Server extends Entity {
 	public static final int MAX_ONLINE = 110;
 	Map<Player, ClientHandler> available = new ConcurrentHashMap<>();
 	Map<Player, HostData> inGame = new ConcurrentHashMap<>();
-	Map<String, HostData> hostsData = new ConcurrentHashMap<>();
+	
+	Map<String, EntityData> hostsDataHelper = new ConcurrentHashMap<>();
+	Map<EntityData, SocketHandler> hostsData = new ConcurrentHashMap<>();
 
 	public static final int ACTIVE_DELAY = 300000;
 
@@ -85,53 +87,52 @@ public class Server extends Entity {
 	private abstract class SocketHandler extends Thread {
 		// TODO gérer inactivité client
 		TFSocket socket;
-		private volatile boolean running = true;
+		protected volatile boolean running = true;
 
 		EntityData entityData;
-		Map<Object, Object> list;
+		String entityName = "Entité";
+		Map<String, EntityData> helper;
+		Map<EntityData, SocketHandler> list;
 
-		public SocketHandler(TFSocket socket) {
+		public SocketHandler(TFSocket socket, String name) {
 			super();
+			this.entityName = name;
 			System.out.println(
-					"Nouvelle connexion entrante " + entityData.name + " : " + socket.getRemoteSocketAddress());
+					"Nouvelle connexion entrante " + entityName + " : " + socket.getRemoteSocketAddress());
 			this.socket = socket;
 			this.socket.ping();
 		}
 
 		@Override
 		public void run() {
-			link();
-			while (running) {
-				try {
+			try {
+				entityData = link();
+				while (running) {
 					Message rcv = socket.receive();
 					handleMessage(rcv);
-				} catch (IOException e) {
-					disconnect();
 				}
+			} catch (IOException e) {
+				disconnect();
 			}
 		}
 
 		/** Instructions d'initialisation avec l'expéditeur */
-		protected abstract void link();
+		protected abstract EntityData link() throws IOException;
 
 		/** Vérification de messages en boucle */
 		protected abstract void handleMessage(Message reception);
 
-		/**
-		 * Autorise la Thread à s'arrêter, enlève le Player correspondant de
-		 * Thread s'il existe..
-		 */
-		protected void disconnect() {
-			running = false;
-			if (entityData != null) {
-				list.remove(entityData);
-			}
+		protected void unknownMessage() {
+			System.err.println("Message inconnu de " + entityName);
+			socket.send(Message.IDKC);
 		}
+		
+		protected abstract void disconnect();
 
 	}
 
 	/**
-	 * Gère un seul client.
+	 * Gère un seul client. // TODO rendre générique avec SocketHandler
 	 */
 	private class ClientHandler extends Thread {
 		TFSocket socket;
@@ -166,7 +167,7 @@ public class Server extends Entity {
 				disconnect();
 			}
 		}
-
+		
 		/**
 		 * À REGI : identifie un joueur déjà existant, l'enregistre, ou invite à
 		 * réessayer jusqu'à validation. Gère les réponses {@link Message#IDOK},
@@ -355,4 +356,48 @@ public class Server extends Entity {
 		}
 	}
 
+	private class HostHandler extends SocketHandler {
+
+		public HostHandler(TFSocket socket) {
+			super(socket, HostData.NAME);
+			helper = hostsDataHelper;
+			list = hostsData;
+		}
+
+		@Override
+		protected EntityData link() throws IOException {
+			if (!running) {
+				disconnect();
+			}
+			// Pas besoin de vérifier qu'il y a de la place, c'est fait à la création du Host
+			Message message = socket.receive();
+			if (!message.getType().equals(Message.REGI)) {
+				unknownMessage();
+				return link();
+			}
+			String matchName = message.getArg(0);
+			entityData = helper.get(matchName); 
+			if (entityData == null) {
+				socket.send(Message.IDNO, null, "Nom de partie inconnu.");
+				return link();
+			}
+			socket.send(Message.IDOK, null, "C'est parti pour du fun, " + entityData.name);
+			list.put(entityData, this);
+			return entityData;
+		}
+
+		@Override
+		protected void handleMessage(Message reception) {
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		protected void disconnect() {
+			// TODO Auto-generated method stub
+			
+		}
+		
+	}
+	
 }
