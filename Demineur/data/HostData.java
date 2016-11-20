@@ -8,12 +8,12 @@ import java.net.ServerSocket;
  * Stocké côté serveur, regroupe les informations d'identité et de connexion
  * d'un hôte.
  */
-public class HostData {
+public class HostData extends EntityData {
 
 	private static int count = 1;
 
 	/** Dépendant du compteur global {@link HostData#count} */
-	private String name;
+//	name;
 	/** Addresse IP locale, non modifiable */
 	private InetAddress IP;
 	/** Doit être un port libre */
@@ -25,7 +25,7 @@ public class HostData {
 	 * @throws IOException
 	 */
 	public HostData() throws IOException {
-		this.name = "Partie_" + String.valueOf(count);
+		super("Partie_" + String.valueOf(count));
 		count++;
 		try (ServerSocket ss = new ServerSocket(0)) {
 			IP = InetAddress.getLocalHost();
@@ -36,7 +36,7 @@ public class HostData {
 	}
 
 	public HostData(int port) throws IOException {
-		this.name = "Partie_" + String.valueOf(count);
+		super("Partie_" + String.valueOf(count));
 		count++;
 		try (ServerSocket ss = new ServerSocket(port)) {
 			this.IP = ss.getInetAddress();

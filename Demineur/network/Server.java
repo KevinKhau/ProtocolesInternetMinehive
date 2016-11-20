@@ -7,13 +7,12 @@ import static util.PlayersManager.writePlayer;
 import java.io.IOException;
 import java.net.BindException;
 import java.net.InetAddress;
-import java.net.SocketException;
-import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import data.EntityData;
 import data.HostData;
 import data.Player;
 import util.Message;
@@ -23,7 +22,7 @@ import util.TFSocket;
 /**
  * Reste attentif à la connexion de nouveaux clients ou hôtes
  */
-public class Server {
+public class Server extends Entity {
 
 	InetAddress serverIP;
 	final int serverPort = 5555;
@@ -34,7 +33,7 @@ public class Server {
 	public static final int MAX_ONLINE = 110;
 	Map<Player, ClientHandler> available = new ConcurrentHashMap<>();
 	Map<Player, HostData> inGame = new ConcurrentHashMap<>();
-	List<HostData> hostsData = new ArrayList<>();
+	Map<String, HostData> hostsData = new ConcurrentHashMap<>();
 
 	public static final int ACTIVE_DELAY = 300000;
 
@@ -43,6 +42,7 @@ public class Server {
 	}
 
 	public Server() {
+		name = "Serveur";
 		try (TFServerSocket server = new TFServerSocket(serverPort)) {
 			serverIP = InetAddress.getLocalHost();
 			System.out.println("Lancement serveur : IP=" + serverIP + ", port=" + serverPort + ".");
@@ -81,12 +81,59 @@ public class Server {
 		return available.size() + inGame.size() >= MAX_ONLINE;
 	}
 
+	/** Gère la connexion et les messages avec une autre entité */
+	private abstract class SocketHandler extends Thread {
+		// TODO gérer inactivité client
+		TFSocket socket;
+		private volatile boolean running = true;
+
+		EntityData entityData;
+		Map<Object, Object> list;
+
+		public SocketHandler(TFSocket socket) {
+			super();
+			System.out.println(
+					"Nouvelle connexion entrante " + entityData.name + " : " + socket.getRemoteSocketAddress());
+			this.socket = socket;
+			this.socket.ping();
+		}
+
+		@Override
+		public void run() {
+			link();
+			while (running) {
+				try {
+					Message rcv = socket.receive();
+					handleMessage(rcv);
+				} catch (IOException e) {
+					disconnect();
+				}
+			}
+		}
+
+		/** Instructions d'initialisation avec l'expéditeur */
+		protected abstract void link();
+
+		/** Vérification de messages en boucle */
+		protected abstract void handleMessage(Message reception);
+
+		/**
+		 * Autorise la Thread à s'arrêter, enlève le Player correspondant de
+		 * Thread s'il existe..
+		 */
+		protected void disconnect() {
+			running = false;
+			if (entityData != null) {
+				list.remove(entityData);
+			}
+		}
+
+	}
+
 	/**
 	 * Gère un seul client.
-	 *
 	 */
-	private class ClientHandler extends Thread implements AutoCloseable {
-		// TODO gérer inactivité client
+	private class ClientHandler extends Thread {
 		TFSocket socket;
 
 		private volatile boolean running = true;
@@ -97,7 +144,7 @@ public class Server {
 			super();
 			System.out.println("Nouvelle connexion : " + socket.getRemoteSocketAddress());
 			this.socket = socket;
-			new Thread(new Ping()).start();
+			this.socket.ping();
 		}
 
 		@Override
@@ -110,13 +157,13 @@ public class Server {
 							+ socket.getRemoteSocketAddress() + ".");
 				}
 				while (running) {
-					handleAvailable();
+					handleMessage();
 				}
 			} catch (InterruptedException e) {
 				System.err.println(e.getMessage());
-				close();
+				disconnect();
 			} catch (IOException e) {
-				close();
+				disconnect();
 			}
 		}
 
@@ -137,7 +184,7 @@ public class Server {
 			Message message = socket.receive();
 			if (message.getType().equals(Message.LEAV)) {
 				System.out.println("Fin de la connexion avec " + socket.getRemoteSocketAddress() + ".");
-				close();
+				disconnect();
 				return null;
 			}
 			/* Serveur saturé */
@@ -196,10 +243,7 @@ public class Server {
 		 * @throws InterruptedException
 		 * @throws IOException
 		 */
-		private void handleAvailable() throws InterruptedException, IOException {
-			if (!running) {
-				throw new InterruptedException();
-			}
+		private void handleMessage() throws IOException {
 			Message msg = socket.receive();
 			switch (msg.getType()) {
 			case Message.IMOK: // Permet de reset le SO_TIMEOUT de la socket
@@ -209,7 +253,7 @@ public class Server {
 				break;
 			case Message.LSMA:
 				// TODO Traitement LSMA
-				socket.send(Message.IDKS, null, "LSMA en cours d'implémentation"); 
+				socket.send(Message.IDKS, null, "LSMA en cours d'implémentation");
 				break;
 			case Message.LSAV:
 				sendAvailable(msg);
@@ -223,7 +267,7 @@ public class Server {
 			case Message.LEAV:
 				System.out.println(
 						"Déconnexion de l'utilisateur " + player.username + ", " + socket.getRemoteSocketAddress());
-				close();
+				disconnect();
 				break;
 			default:
 				socket.send(Message.IDKS, null, "Commande inconnue ou pas encore implémentée");
@@ -295,39 +339,20 @@ public class Server {
 		 */
 		public void kick() {
 			socket.send(Message.KICK);
-			close();
+			disconnect();
 		}
 
 		/**
 		 * Autorise la Thread à s'arrêter, enlève le Player correspondant de
 		 * Thread s'il existe. Ferme la socket et les streams associés.
 		 */
-		@Override
-		public void close() {
+		public void disconnect() {
 			running = false;
 			if (player != null) {
 				available.remove(player);
 			}
+			socket.close();
 		}
-
-		private class Ping implements Runnable {
-
-			public static final int frequency = 5000;
-
-			@Override
-			public void run() {
-				while (running) {
-					socket.send(Message.RUOK);
-					try {
-						Thread.sleep(frequency);
-					} catch (InterruptedException e) {
-						System.err.println("Interruption du Thread ConnectionChecker pendant sleep()");
-					}
-				}
-			}
-
-		}
-
 	}
 
 }

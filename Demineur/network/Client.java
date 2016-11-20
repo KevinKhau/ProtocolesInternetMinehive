@@ -12,7 +12,7 @@ import java.util.Scanner;
 import util.Message;
 import util.TFSocket;
 
-public class Client implements AutoCloseable {
+public class Client extends Entity {
 
 	/*
 	 * Temps maximal d'attente des réponses du serveur avant de redonner la main
@@ -24,24 +24,19 @@ public class Client implements AutoCloseable {
 		OFFLINE, CONNECTED, IN
 	};
 
+	/* FUTURE Déplacer an attributs de Handle une fois contraintes Scanner résolues */
 	InetAddress destIP;
 	int destPort = 5555;
 
-	TFSocket socket;
-
-	volatile boolean waitingResponse = false;
-	volatile boolean running = true;
-
 	Scanner reader = new Scanner(System.in);
-	public State state = State.OFFLINE;
 
 	public static void main(String[] args) {
-		try (Client c = new Client()) {
-			System.out.println("Fin client");
-		}
+		new Client();
+		System.out.println("Fin client");
 	}
 
 	public Client() {
+		name = "Client";
 		try {
 			destIP = InetAddress.getLocalHost();
 			/* TEST pour tester avec d'autres machines */
@@ -57,16 +52,17 @@ public class Client implements AutoCloseable {
 //			System.out.println("Hôte");
 //			linkHost();
 		}
+		// reader.close();
 	}
 
 	public void linkServer() {
 		destPort = 5555;
-		new ServerSender();
+		new ServerLinker();
 	}
 
 	public void linkHost() {
 		destPort = intKeyboardInput("Entrez le numéro de port de l'hôte.");
-		new HostSender();
+		new HostLinked();
 	}
 
 	private int intKeyboardInput(String indication) {
@@ -85,21 +81,22 @@ public class Client implements AutoCloseable {
 		}
 	}
 
-	@Override
-	public synchronized void close() {
-		running = false;
-		state = State.OFFLINE;
-	}
-
 	/**
 	 * Effectue une suite d'instructions par rapport à un destinataire suite à des entrées utilisateur
 	 */
-	private abstract class Sender {
+	private abstract class Linker {
 		String name;
-		Listener listener;
+		SocketHandler listener;
 		List<String> identificationWords;
 
-		public Sender() {
+		State state = State.OFFLINE;
+		
+		volatile boolean waitingResponse = false;
+		volatile boolean running = true;
+		
+		TFSocket socket;
+		
+		public Linker() {
 			setAttributes();
 			try {
 				socket = new TFSocket(destIP, destPort);
@@ -189,7 +186,7 @@ public class Client implements AutoCloseable {
 		private void leaveOrWait(String type) {
 			if (type.equals(Message.LEAV)) {
 				System.out.println("Fin de la connexion avec " + socket.getRemoteSocketAddress());
-				close();
+				disconnect();
 				return;
 			} else {
 				waitResponse();
@@ -197,22 +194,28 @@ public class Client implements AutoCloseable {
 		}
 
 		public void waitResponse() {
-			synchronized (Client.this) {
+			synchronized (Linker.this) {
 				waitingResponse = true;
 				try {
-					Client.this.wait(MAX_WAIT_TIME);
+					Linker.this.wait(MAX_WAIT_TIME);
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
 			}
 		}
+		
+		public synchronized void disconnect() {
+			running = false;
+			state = State.OFFLINE;
+			socket.close();
+		}
 
 		/**
 		 * Thread qui reste en écoute permanente d'une ServerSocket. Lance des
 		 * instructions selon les messages reçus, et autorise le Client à répondre
-		 * ou non selon {@linkplain Listener#count}, géré par wakeClient()
+		 * ou non selon {@linkplain SocketHandler#count}, géré par wakeClient()
 		 */
-		abstract class Listener implements Runnable {
+		abstract class SocketHandler implements Runnable {
 			int count = 0;
 		
 			@Override
@@ -225,21 +228,21 @@ public class Client implements AutoCloseable {
 						Message rcv = socket.receive();
 						handleMessage(rcv);
 					} catch (IOException e) {
-						close();
+						disconnect();
 					}
 				}
 			}
 		
-			/** Vérification à de message en boucle */
+			/** Vérification de messages en boucle */
 			protected abstract void handleMessage(Message reception);
 		
 			/**
 			 * Après avoir envoyé un {@linkplain Message} au {@linkplain Server}, le
 			 * {@linkplain Client} est en attente d'une réponse. Il bloque donc
-			 * jusqu'à que le {@linkplain ServerListener} aie fini de traiter les
+			 * jusqu'à que le {@linkplain ServerHandler} aie fini de traiter les
 			 * messages reçus du {@linkplain Server}.
 			 */
-			protected synchronized final void wakeClient() {
+			protected synchronized final void wakeHandler() {
 				if (waitingResponse) {
 					if (count > 0) {
 						count--;
@@ -247,9 +250,9 @@ public class Client implements AutoCloseable {
 					if (count > 0) {
 						return;
 					}
-					synchronized (Client.this) {
+					synchronized (Linker.this) {
 						waitingResponse = false;
-						Client.this.notify();
+						Linker.this.notify();
 					}
 				}
 			}
@@ -261,7 +264,7 @@ public class Client implements AutoCloseable {
 			}
 		}
 
-		class ServerListener extends Listener {
+		class ServerHandler extends SocketHandler {
 			@Override
 			protected void handleMessage(Message reception) {
 				System.out.println(reception);
@@ -270,12 +273,12 @@ public class Client implements AutoCloseable {
 				case Message.IDOK:
 					System.out.println("Connexion au serveur établie !");
 					state = State.IN;
-					wakeClient();
+					wakeHandler();
 					break;
 				case Message.IDNO:
 					System.out.println("Connexion échouée.");
 				case Message.IDIG:
-					wakeClient();
+					wakeHandler();
 					break;
 		
 				/* LS */
@@ -284,30 +287,30 @@ public class Client implements AutoCloseable {
 				case Message.LUNB:
 					count = reception.getArgAsInt(0);
 					if (count == 0) {
-						wakeClient();
+						wakeHandler();
 					}
 					break;
 				case Message.MATC:
 				case Message.AVAI:
 				case Message.USER:
-					wakeClient();
+					wakeHandler();
 					break;
 		
 				/* NWMA */
 				case Message.NWOK:
 				case Message.FULL:
 				case Message.NWNO:
-					wakeClient();
+					wakeHandler();
 					break;
 		
 				case Message.KICK:
 					System.out.println("Éjecté par le serveur.");
-					close();
+					disconnect();
 					break;
 		
 				case Message.IDKS:
 					System.out.println("Le serveur reste béant !");
-					wakeClient();
+					wakeHandler();
 					break;
 				default:
 					unknownMessage();
@@ -315,7 +318,7 @@ public class Client implements AutoCloseable {
 			}
 		}
 
-		class HostListener extends Listener {
+		class HostHandler extends SocketHandler {
 			@Override
 			protected void handleMessage(Message reception) {
 				System.out.println(reception);
@@ -329,7 +332,7 @@ public class Client implements AutoCloseable {
 				/* JOIN */
 				case Message.JNNO:
 					System.out.println("Connexion à l'hôte échouée.");
-					wakeClient();
+					wakeHandler();
 					break;
 				case Message.JNOK:
 					System.out.println("Connexion à l'hôte établie !");
@@ -338,13 +341,13 @@ public class Client implements AutoCloseable {
 									// encore bloqué
 					count = reception.getArgAsInt(0);
 					if (count == 0) {
-						wakeClient();
+						wakeHandler();
 					}
 					;
 					break;
 				case Message.BDIT:
 				case Message.IGPL:
-					wakeClient();
+					wakeHandler();
 					break;
 				case Message.CONN:
 					break;
@@ -354,7 +357,7 @@ public class Client implements AutoCloseable {
 				case Message.OORG:
 				case Message.SQRD:
 					System.out.println(reception);
-					wakeClient();
+					wakeHandler();
 					break;
 		
 				/* Fin de partie */
@@ -364,7 +367,7 @@ public class Client implements AutoCloseable {
 		
 				case Message.IDKH:
 					System.out.println("L'hôte reste béant : '" + reception + "'.");
-					wakeClient();
+					wakeHandler();
 					break;
 				default:
 					unknownMessage();
@@ -373,23 +376,23 @@ public class Client implements AutoCloseable {
 		}
 	}
 
-	private class ServerSender extends Sender {
+	private class ServerLinker extends Linker {
 		@Override
 		protected void setAttributes() {
 			name = "Server";
 			identificationWords = new LinkedList<>();
 			identificationWords.add(Message.REGI);
 			identificationWords.add(Message.LEAV);
-			listener = new ServerListener();
+			listener = new ServerHandler();
 		}
 	}
 
-	private class HostSender extends Sender {
+	private class HostLinked extends Linker {
 		protected void setAttributes() {
 			name = "Hôte";
 			identificationWords = new LinkedList<>();
 			identificationWords.add(Message.JOIN);
-			listener = new HostListener();
+			listener = new HostHandler();
 		}
 	}
 }

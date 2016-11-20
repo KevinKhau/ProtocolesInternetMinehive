@@ -21,7 +21,7 @@ import util.TFSocket;
  * Hôte lancé par le serveur //FUTURE Programmer lancement par serveur au lieu
  * de manuel une fois dév achevée
  */
-public class Host {
+public class Host extends Entity {
 
 	public static final int MAX_PLAYERS = 10;
 
@@ -31,7 +31,6 @@ public class Host {
 	InetAddress serverIP;
 	int serverPort;
 
-	String name;
 	InetAddress IP;
 	int port;
 
@@ -145,7 +144,7 @@ public class Host {
 		}
 
 	}
-
+	
 	private class PlayerHandler extends Thread implements AutoCloseable {
 
 		// TODO gérer inactivité client
@@ -238,8 +237,9 @@ public class Host {
 			}
 
 			/* Nouvelle connexion */
-			// TODO échange de données Server-Host
-			InGamePlayer p2 = new InGamePlayer(username, password, this);
+			// TODO échange de données Server-Host 
+			
+			InGamePlayer p2 = new InGamePlayer(username, password, this); // TEST à supprimer
 			inGamePlayers.put(username, p2);
 			this.player = p2;
 			sendGameState(p2);
@@ -318,9 +318,13 @@ public class Host {
 			}
 
 		}
+		
+		private class ServerHandler {
+			
+		}
 
 		/**
-		 * Autorise la Thread à s'arrêter, met le joueur inactif. Ferme la socket et les streams associés.
+		 * Autorise la Thread à s'arrêter, met le joueur inactif.
 		 */
 		@Override
 		public void close() {
@@ -328,6 +332,7 @@ public class Host {
 			if (player != null) {
 				player.setInactive();
 			}
+			socket.close();
 		}
 
 	}

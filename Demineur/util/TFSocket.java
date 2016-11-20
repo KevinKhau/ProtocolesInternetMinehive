@@ -21,6 +21,8 @@ public class TFSocket extends Socket {
 	private PrintWriter out;
 	private BufferedReader in;
 
+	volatile boolean running = true;
+	
 	public TFSocket(InetAddress address, int port) throws IOException {
 		super(address, port);
 		init();
@@ -78,25 +80,20 @@ public class TFSocket extends Socket {
 			raw = in.readLine();
 		} catch (SocketTimeoutException e) {
 			System.err.println("Pas de réponse du client depuis " + CONNECTED_DELAY + ". Considéré déconnecté.");
-			close();
 			throw e;
 		} catch (IllegalArgumentException e) {
 			System.err.println(e.getMessage());
 			System.out.println("Message reçu invalide !");
-			close();
 			throw e;
 		} catch (BindException e) {
 			System.err.println("Socket serveur déjà en cours d'utilisation : " + remoteData() + ".");
-			close();
 			throw e;
 		} catch (SocketException e) {
 			System.err.println("Connexion non établie ou interrompue avec : " + remoteData() + ".");
-			close();
 			throw e;
 		} catch (IOException e) {
 			System.err.println("Communication impossible avec le client : " + remoteData() + ".");
 			e.printStackTrace();
-			close();
 			throw e;
 		}
 
@@ -133,9 +130,41 @@ public class TFSocket extends Socket {
 
 		return msg;
 	}
+	
+	/** Envoie RUOK à répétition */
+	public void ping() {
+		new Thread(new Ping()).start();
+	}
 
 	public String remoteData() {
 		return getRemoteSocketAddress().toString();
+	}
+	
+	@Override
+	public synchronized void close() {
+		running = false;
+		try {
+			super.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	private class Ping implements Runnable {
+		public static final int FREQUENCY = 5000;
+		
+		@Override
+		public void run() {
+			while (running) {
+				send(Message.RUOK);
+				try {
+					Thread.sleep(FREQUENCY);
+				} catch (InterruptedException e) {
+					System.err.println("Interruption du Thread Ping pendant sleep()");
+				}
+			}
+		}
+		
 	}
 	
 }
