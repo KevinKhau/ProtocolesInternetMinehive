@@ -48,7 +48,10 @@ abstract class SocketHandler extends Thread {
 	/** Instructions d'initialisation avec l'expéditeur. On veut juste s'assurer de l'identité de l'expéditeur, mais il n'est pas encore ajouté à la liste en question. */
 	protected abstract void identification() throws IOException;
 
-	/** Vérification de messages en boucle */
+	/**
+	 * Gère toutes les requêtes possibles de l'expéditeur après son
+	 * identification.
+	 */
 	protected abstract void handleMessage(Message reception);
 
 	protected abstract void unknownMessage();

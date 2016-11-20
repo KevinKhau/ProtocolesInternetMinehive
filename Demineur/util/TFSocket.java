@@ -34,7 +34,7 @@ public class TFSocket extends Socket {
 	public void init() throws IOException {
 		this.out = new PrintWriter(new OutputStreamWriter(getOutputStream()), true);
 		this.in = new BufferedReader(new InputStreamReader(getInputStream()));
-		setSoTimeout(CONNECTED_DELAY);
+//		setSoTimeout(CONNECTED_DELAY); //TEST
 	}
 
 	public void send(String type, String[] args, String content) {
@@ -155,14 +155,14 @@ public class TFSocket extends Socket {
 		
 		@Override
 		public void run() {
-			while (running) {
-				send(Message.RUOK);
-				try {
-					Thread.sleep(FREQUENCY);
-				} catch (InterruptedException e) {
-					System.err.println("Interruption du Thread Ping pendant sleep()");
-				}
-			}
+//			while (running) { //TEST
+//				send(Message.RUOK);
+//				try {
+//					Thread.sleep(FREQUENCY);
+//				} catch (InterruptedException e) {
+//					System.err.println("Interruption du Thread Ping pendant sleep()");
+//				}
+//			}
 		}
 		
 	}

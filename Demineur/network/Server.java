@@ -36,7 +36,7 @@ public class Server extends Entity {
 	Map<Player, ClientHandler> available = new ConcurrentHashMap<>();
 
 	Map<String, HostData> hostsDataHelper = new ConcurrentHashMap<>();
-	Map<HostData, SocketHandler> hostsData = new ConcurrentHashMap<>();
+	Map<HostData, SocketHandler> hosts = new ConcurrentHashMap<>();
 
 	Map<Player, HostData> inGame = new ConcurrentHashMap<>();
 
@@ -113,6 +113,9 @@ public class Server extends Entity {
 	 */
 	private class ClientHandler extends SocketHandler {
 
+		/** Correspond à l'entityData casté. initialisé lors de identification() */ 
+		Player player; 
+		
 		public ClientHandler(TFSocket socket) {
 			super(socket, Player.NAME);
 		}
@@ -130,6 +133,7 @@ public class Server extends Entity {
 		public void identification() throws IOException {
 			if (!running) {
 				disconnect();
+				return;
 			}
 			Message message = socket.receive();
 			if (message.getType().equals(Message.LEAV)) {
@@ -141,45 +145,50 @@ public class Server extends Entity {
 			if (isFull()) {
 				socket.send(Message.IDNO, null, "Le serveur est plein. Réessayez ultérieurement.");
 				identification();
+				return;
 			}
 			/* Anomalies */
 			if (!message.getType().equals(Message.REGI)) {
 				socket.send(Message.IDKS, null, "Vous devez d'abord vous connecter : REGI Username Password");
 				identification();
+				return;
 			}
 			/* Mauvais nombre d'arguments */
 			if (!validArguments(message)) {
 				socket.send(Message.IDNO, null, "Identifiant et/ou Mot de passe manquant");
 				identification();
+				return;
 			}
 			String username = message.getArg(0);
 			String password = message.getArg(1);
 			entityData = users.get(username);
 			/* Première fois */
-			Player p = (Player) entityData;
-			if (p == null) {
-				p = new Player(username, password, Player.INITIAL_POINTS);
-				users.put(username, p);
-				writePlayer( p);
+			if (entityData == null) {
+				player = new Player(username, password, Player.INITIAL_POINTS);
+				users.put(username, player);
+				writePlayer( player);
 				socket.send(Message.IDOK, null, "Bienvenue " + username + " !");
 			}
+			player = (Player) entityData;
 			/* Mauvais mot de passe */
-			if (!p.password.equals(password)) {
+			if (!player.password.equals(password)) {
 				socket.send(Message.IDNO, null, "Mauvais mot de passe");
 				identification();
+				return;
 			}
 			/* Déjà connecté */
-			if (available.containsKey(p)) {
-				System.out.println("Connection override de " + p.username + ".");
+			if (available.containsKey(player)) {
+				System.out.println("Connection override de " + player.username + ".");
 				socket.send(Message.IDOK, null, "Bon retour " + username + " !");
 				return;
 			}
 			/* Déjà en partie */
-			HostData hd = inGame.get(p);
+			HostData hd = inGame.get(player);
 			if (hd != null) {
 				socket.send(Message.IDIG, new String[] { hd.getIP().toString(), String.valueOf(hd.getPort()) },
 						"Finissez votre partie en cours !");
-				identification();;
+				identification();
+				return;
 			}
 			/* Connexion classique */
 			socket.send(Message.IDOK, null, "Bonjour " + username + " !");
@@ -188,18 +197,11 @@ public class Server extends Entity {
 		
 		@Override
 		protected void addEntityData() {
-			Player player = (Player) entityData;
 			addAvailable(player, this);
 			System.out.println("Utilisateur '" + player.username + "' connecté depuis "
 					+ socket.getRemoteSocketAddress() + ".");
 		}
 
-		/**
-		 * Gère toutes les requêtes possibles du client après son
-		 * identification.
-		 * 
-		 * @throws IOException
-		 */
 		@Override
 		protected void handleMessage(Message reception) {
 			switch (reception.getType()) {
@@ -209,8 +211,8 @@ public class Server extends Entity {
 				socket.send(Message.IDKS, null, "Vous êtes déjà connecté !");
 				break;
 			case Message.LSMA:
-				// TODO Traitement LSMA
-				socket.send(Message.IDKS, null, "LSMA en cours d'implémentation");
+				socket.send(Message.LMNB, new String[]{String.valueOf(hosts)});
+				hosts.values().forEach(handler -> handler.socket.send(Message.RQDT, new String[]{player.username}));
 				break;
 			case Message.LSAV:
 				sendAvailable(reception);
@@ -223,7 +225,7 @@ public class Server extends Entity {
 				break;
 			case Message.LEAV:
 				System.out.println(
-						"Déconnexion de l'utilisateur " + ((Player) entityData).username + ", " + socket.getRemoteSocketAddress());
+						"Déconnexion de l'utilisateur " + player.username + ", " + socket.getRemoteSocketAddress());
 				disconnect();
 				break;
 			default:
@@ -247,7 +249,7 @@ public class Server extends Entity {
 		}
 
 		private void createMatch(Message msg) {
-			if (hostsData.size() >= 10) {
+			if (hosts.size() >= 10) {
 				socket.send(Message.FULL, null, "Trop de parties en cours. Réessayez ultérieurement.");
 				return;
 			}
@@ -269,7 +271,6 @@ public class Server extends Entity {
 				return;
 			}
 
-			Player player = (Player) entityData;
 			/* ALL : inviter tous les joueurs disponibles */
 			String arg1 = msg.getArg(0);
 			if (arg1 != null && arg1.equals(ALL)) {
@@ -393,7 +394,7 @@ public class Server extends Entity {
 				break;
 			case Message.ENDS:
 				hostsDataHelper.remove(entityData.name);
-				hostsData.remove(entityData);
+				hosts.remove(entityData);
 				disconnect();
 				break;
 			default:
@@ -417,13 +418,13 @@ public class Server extends Entity {
 		
 		@Override
 		protected void addEntityData() {
-			hostsData.put((HostData) entityData, this);
+			hosts.put((HostData) entityData, this);
 		}
 
 		@Override
 		protected void removeEntityData() {
 			if (entityData != null) {
-				hostsData.remove(entityData);
+				hosts.remove(entityData);
 			}
 		}
 
