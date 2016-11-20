@@ -158,15 +158,13 @@ public class Host extends Entity {
 			super();
 			System.out.println("Nouvelle connexion : " + socket.getRemoteSocketAddress());
 			this.socket = socket;
-			new Thread(new Ping()).start();
+			this.socket.ping();
 		}
 
 		@Override
 		public void run() {
 			try {
-				while (running) {
-					player = identification();
-				}
+				player = identification();
 				//				if (player != null) {
 				//					addAvailable(player, this);
 				//					System.out.println("Utilisateur '" + player.username + "' connecté depuis "
@@ -299,28 +297,6 @@ public class Host extends Entity {
 				socket.send(Message.IDKH, null, "Commande inconnue ou pas encore implémentée");
 				break;
 			}
-		}
-
-		private class Ping implements Runnable {
-
-			public static final int frequency = 5000;
-
-			@Override
-			public void run() {
-				while (running) {
-					socket.send(Message.RUOK);
-					try {
-						Thread.sleep(frequency);
-					} catch (InterruptedException e) {
-						System.err.println("Interruption du Thread ConnectionChecker pendant sleep()");
-					}
-				}
-			}
-
-		}
-		
-		private class ServerHandler {
-			
 		}
 
 		/**

@@ -29,15 +29,16 @@ public class Server extends Entity {
 	InetAddress serverIP;
 	final int serverPort = 5555;
 
-	Map<String, Player> users = getPlayersFromXML();
-
 	public static final String ALL = "ALL";
 	public static final int MAX_ONLINE = 110;
-	Map<Player, ClientHandler> available = new ConcurrentHashMap<>();
-	Map<Player, HostData> inGame = new ConcurrentHashMap<>();
 
-	Map<String, EntityData> hostsDataHelper = new ConcurrentHashMap<>();
-	Map<EntityData, SocketHandler> hostsData = new ConcurrentHashMap<>();
+	Map<String, Player> users = getPlayersFromXML();
+	Map<Player, ClientHandler> available = new ConcurrentHashMap<>();
+
+	Map<String, HostData> hostsDataHelper = new ConcurrentHashMap<>();
+	Map<HostData, SocketHandler> hostsData = new ConcurrentHashMap<>();
+
+	Map<Player, HostData> inGame = new ConcurrentHashMap<>();
 
 	public static final int ACTIVE_DELAY = 300000;
 
@@ -105,65 +106,6 @@ public class Server extends Entity {
 			return null;
 		}
 		return ch;
-	}
-
-	/** Gère la connexion et les messages avec une autre entité */
-	private abstract class SocketHandler extends Thread {
-		// TODO gérer inactivité client
-		TFSocket socket;
-		protected volatile boolean running = true;
-
-		EntityData entityData;
-		String entityName = "Entité";
-		Map<String, EntityData> helper;
-		Map<EntityData, SocketHandler> list;
-
-		public SocketHandler(TFSocket socket, String name) {
-			super();
-			this.entityName = name;
-			System.out.println(
-					"Nouvelle connexion entrante " + entityName + " : " + socket.getRemoteSocketAddress());
-			this.socket = socket;
-			this.socket.ping();
-		}
-
-		@Override
-		public void run() {
-			try {
-				entityData = link();
-				while (running) {
-					Message rcv = socket.receive();
-					System.out.println(rcv);
-					try {
-						handleMessage(rcv);
-					} catch (NullPointerException e) {
-						System.err.println("Mauvais nombre d'arguments reçu.");
-					}
-				}
-			} catch (IOException e) {
-				disconnect();
-			}
-		}
-
-		/** Instructions d'initialisation avec l'expéditeur */
-		protected abstract EntityData link() throws IOException;
-
-		/** Vérification de messages en boucle */
-		protected abstract void handleMessage(Message reception);
-
-		protected void unknownMessage() {
-			System.err.println("Message inconnu de " + entityName);
-			socket.send(Message.IDKC);
-		}
-
-		protected void disconnect() {
-			running = false;
-			if (entityData != null) {
-				list.remove(entityData);
-			}
-			socket.close();
-		}
-
 	}
 
 	/**
@@ -395,8 +337,6 @@ public class Server extends Entity {
 
 		public HostHandler(TFSocket socket) {
 			super(socket, HostData.NAME);
-			helper = hostsDataHelper;
-			list = hostsData;
 		}
 
 		@Override
@@ -412,14 +352,14 @@ public class Server extends Entity {
 				return null;
 			}
 			String matchName = message.getArg(0);
-			entityData = helper.get(matchName); 
+			entityData = hostsDataHelper.get(matchName); 
 			if (entityData == null) {
 				socket.send(Message.IDNO, null, "Nom de partie inconnu.");
 				disconnect();
 				return null;
 			}
 			socket.send(Message.IDOK, null, "C'est parti, " + entityData.name + " !");
-			list.put(entityData, this);
+			hostsData.put((HostData) entityData, this);
 			return entityData;
 		}
 
@@ -471,12 +411,13 @@ public class Server extends Entity {
 				PlayersManager.writePlayer(p2);
 				break;
 			case Message.ENDS:
-				helper.remove(entityData.name);
-				list.remove(entityData);
+				hostsDataHelper.remove(entityData.name);
+				hostsData.remove(entityData);
 				disconnect();
 				break;
 			default:
 				unknownMessage();
+				break;
 			}
 		}
 		
@@ -491,6 +432,13 @@ public class Server extends Entity {
 				return null;
 			}
 			return p;
+		}
+
+		@Override
+		protected void removeEntityData() {
+			if (entityData != null) {
+				hostsData.remove(entityData);
+			}
 		}
 
 	}
