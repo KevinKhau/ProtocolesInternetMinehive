@@ -24,7 +24,10 @@ import util.TFSocket;
 public class Server extends Entity {
 
 	InetAddress serverIP;
-	final int serverPort = 5555;
+	/** Port de réception pour les clients */
+	final int serverPort_Client = 5555;
+	/** Port de réception pour les hôtes */
+	final int serverPort_Host = 7777;
 
 	public static final String ALL = "ALL";
 	public static final int MAX_ONLINE = 110;
@@ -45,11 +48,42 @@ public class Server extends Entity {
 
 	public Server() {
 		super("Serveur");
-		try (TFServerSocket server = new TFServerSocket(serverPort)) {
-			serverIP = InetAddress.getLocalHost();
-			System.out.println("Lancement serveur : IP=" + serverIP + ", port=" + serverPort + ".");
+		new Thread(new ClientListener(serverIP, serverPort_Client)).start();
+		new Thread(new HostListener(serverIP, serverPort_Host)).start();
+	}
+	
+	public class ClientListener extends Listener {
+		public ClientListener(InetAddress IP, int port) {
+			super(IP, port);
+		}
+		@Override
+		protected void listen(TFServerSocket serverSocket) throws IOException {
+			new Thread(new ClientHandler(serverSocket.accept())).start();
+		}
+	}
+	public class HostListener extends Listener {
+		public HostListener(InetAddress IP, int port) {
+			super(IP, port);
+		}
+		@Override
+		protected void listen(TFServerSocket serverSocket) throws IOException {
+			new Thread(new HostHandler(serverSocket.accept())).start();
+		}
+	}
+	
+	public void listen(InetAddress IP, int port, String senderName) {
+		try (TFServerSocket server = new TFServerSocket(port)) {
+			IP = InetAddress.getLocalHost();
+			System.out.println("Lancement serveur : IP=" + IP + ", port=" + port + ".");
 			while (true) {
-				new Thread(new ClientHandler(server.accept())).start();
+				if (senderName.equals(Host.NAME)) {
+					new Thread(new HostHandler(server.accept())).start();
+				} else if (senderName.equals(Client.NAME)) {
+					new Thread(new ClientHandler(server.accept())).start();
+				} else {
+					System.err.println("Nom d'entité à accueillir invalide");
+					break;
+				}
 			}
 		} catch (BindException e) {
 			System.err.println("Socket serveur déjà en cours d'utilisation.");
@@ -57,7 +91,7 @@ public class Server extends Entity {
 			System.err.println("Valeur de port invalide, doit être entre 0 et 65535.");
 			e.printStackTrace();
 		} catch (IOException e) {
-			System.err.println("Problème de traitement de la socket : port " + serverPort + ".");
+			System.err.println("Problème de traitement de la socket : port=" + port + ".");
 			System.err.println("Port occupé ?");
 			e.printStackTrace();
 		}
@@ -84,7 +118,9 @@ public class Server extends Entity {
 	}
 
 	/**
-	 * Obtenir le Handler gérant la connexion d'un client disponible à partir d'un nom d'utilisateur
+	 * Obtenir le Handler gérant la connexion d'un client disponible à partir
+	 * d'un nom d'utilisateur
+	 * 
 	 * @param username
 	 */
 	public ClientHandler getHandler(String username) {
@@ -108,9 +144,11 @@ public class Server extends Entity {
 	/** Server <- Client */
 	private class ClientHandler extends SenderHandler {
 
-		/** Correspond à l'entityData casté. Initialisé lors de identification() */ 
-		Player player; 
-		
+		/**
+		 * Correspond à l'entityData casté. Initialisé lors de identification()
+		 */
+		Player player;
+
 		public ClientHandler(TFSocket socket) {
 			super(socket, Player.NAME);
 		}
@@ -161,7 +199,7 @@ public class Server extends Entity {
 			if (senderData == null) {
 				player = new Player(username, password, Player.INITIAL_POINTS);
 				users.put(username, player);
-				writePlayer( player);
+				writePlayer(player);
 				socket.send(Message.IDOK, null, "Bienvenue " + username + " !");
 			}
 			player = (Player) senderData;
@@ -189,12 +227,12 @@ public class Server extends Entity {
 			socket.send(Message.IDOK, null, "Bonjour " + username + " !");
 			return;
 		}
-		
+
 		@Override
 		protected void addEntityData() {
 			addAvailable(player, this);
-			System.out.println("Utilisateur '" + player.username + "' identifié depuis "
-					+ socket.getRemoteSocketAddress() + ".");
+			System.out.println(
+					"Utilisateur '" + player.username + "' identifié depuis " + socket.getRemoteSocketAddress() + ".");
 		}
 
 		@Override
@@ -204,8 +242,8 @@ public class Server extends Entity {
 				socket.send(Message.IDKS, null, "Vous êtes déjà connecté !");
 				break;
 			case Message.LSMA:
-				socket.send(Message.LMNB, new String[]{String.valueOf(hosts.size())});
-				hosts.values().forEach(handler -> handler.socket.send(Message.RQDT, new String[]{player.username}));
+				socket.send(Message.LMNB, new String[] { String.valueOf(hosts.size()) });
+				hosts.values().forEach(handler -> handler.socket.send(Message.RQDT, new String[] { player.username }));
 				break;
 			case Message.LSAV:
 				sendAvailable(reception);
@@ -254,8 +292,10 @@ public class Server extends Entity {
 			} catch (IOException e) {
 				socket.send(Message.NWNO, null, e.getMessage());
 			}
+			hostsDataHelper.put(hd.name, hd);
 			// Runtime -> java [Host path] serverIP serverPort hd.getName()
-			// hd.getIP() hd.getPort() // FUTURE Lancer programme externe
+			// hd.getIP() hd.getPort() // ASAP Lancer programme externe
+			
 			String[] sendArgs = new String[] { hd.getIP().toString(), String.valueOf(hd.getPort()) };
 			// FUTURE corriger après dev future
 			socket.send(Message.NWOK, sendArgs,
@@ -322,7 +362,8 @@ public class Server extends Entity {
 				disconnect();
 				return;
 			}
-			// Pas besoin de vérifier qu'il y a de la place, c'est fait à la création du Host
+			// Pas besoin de vérifier qu'il y a de la place, c'est fait à la
+			// création du Host
 			Message message = socket.receive();
 			if (!message.getType().equals(Message.LOGI)) {
 				unknownMessage();
@@ -330,7 +371,7 @@ public class Server extends Entity {
 				return;
 			}
 			String matchName = message.getArg(0);
-			senderData = hostsDataHelper.get(matchName); 
+			senderData = hostsDataHelper.get(matchName);
 			if (senderData == null) {
 				socket.send(Message.IDNO, null, "Nom de partie inconnu.");
 				disconnect();
@@ -361,7 +402,8 @@ public class Server extends Entity {
 				}
 				String password = reception.getArg(2);
 				if (password == null) {
-					System.err.println("Message anormale de l'hôte : Mot de passe non défini. Rappel : PLIN#MatchName#Username#Password");
+					System.err.println(
+							"Message anormale de l'hôte : Mot de passe non défini. Rappel : PLIN#MatchName#Username#Password");
 					break;
 				}
 				Player p = getPlayer(username);
@@ -369,12 +411,13 @@ public class Server extends Entity {
 					break;
 				}
 				if (!p.password.equals(password)) {
-					socket.send(Message.PLNO, new String[]{username}, "Mauvais mot de passe.");
+					socket.send(Message.PLNO, new String[] { username }, "Mauvais mot de passe.");
 				}
 				if (inGame.containsKey(p)) {
-					socket.send(Message.PLNO, new String[]{username}, username + " a déjà une partie en cours, qu'il doit finir !");
+					socket.send(Message.PLNO, new String[] { username },
+							username + " a déjà une partie en cours, qu'il doit finir !");
 				}
-				socket.send(Message.PLOK, new String[]{username, String.valueOf(p.totalPoints)});
+				socket.send(Message.PLOK, new String[] { username, String.valueOf(p.totalPoints) });
 				inGame.put(p, (HostData) senderData);
 				ch = available.remove(p);
 				if (ch != null) {
@@ -399,7 +442,7 @@ public class Server extends Entity {
 				break;
 			}
 		}
-		
+
 		private Player getPlayer(String username) {
 			if (username == null) {
 				System.err.println("Message anormale de l'hôte : Nom d'utilisateur non défini.");
@@ -407,12 +450,12 @@ public class Server extends Entity {
 			}
 			Player p = users.get(username);
 			if (p == null) {
-				socket.send(Message.PLNO, new String[]{username}, "Utilisateur inexistant.");
+				socket.send(Message.PLNO, new String[] { username }, "Utilisateur inexistant.");
 				return null;
 			}
 			return p;
 		}
-		
+
 		@Override
 		protected void addEntityData() {
 			hosts.put((HostData) senderData, this);

@@ -5,11 +5,14 @@ import java.net.UnknownHostException;
 import java.util.LinkedList;
 import java.util.NoSuchElementException;
 
+import network.Communicator.ReceiverHandler;
+import network.Communicator.State;
 import util.Message;
 
 public class Client extends Entity {
 
-	public static InetAddress COMMON_IP;
+	public static final String NAME = "Client";
+	public static InetAddress commonIP;
 
 	public static void main(String[] args) {
 		new Client();
@@ -17,18 +20,18 @@ public class Client extends Entity {
 	}
 
 	public Client() {
-		super("Client");
+		super(NAME);
 		try {
-			COMMON_IP = InetAddress.getLocalHost();
+			commonIP = InetAddress.getLocalHost();
 			/* TEST pour tester avec d'autres machines */
 			// destIP = InetAddress.getByName("192.168.137.67");
 		} catch (UnknownHostException e) {
-			System.err.println("Serveur inconnu.");
+			System.err.println("IP introuvable.");
 			System.exit(1);
 		}
 		while (true) {
 			// TODO proposer communication soit avec serveur, soit avec hôte
-//			linkServer();
+			linkServer();
 			 linkHost();
 		}
 		// reader.close();
@@ -49,7 +52,7 @@ public class Client extends Entity {
 		@Override
 		protected void setAttributes() {
 			receiverName = "Server";
-			receiverIP = COMMON_IP;
+			receiverIP = commonIP;
 			receiverPort = 5555;
 			identificationWords = new LinkedList<>();
 			identificationWords.add(Message.REGI);
@@ -63,7 +66,7 @@ public class Client extends Entity {
 		@Override
 		protected void setAttributes() {
 			receiverName = "Hôte";
-			receiverIP = COMMON_IP;
+			receiverIP = commonIP;
 			receiverPort = intKeyboardInput("Entrez le numéro de port de l'hôte.");
 			identificationWords = new LinkedList<>();
 			identificationWords.add(Message.JOIN);
@@ -82,6 +85,115 @@ public class Client extends Entity {
 				} catch (NoSuchElementException e) {
 					System.out.println("Au revoir !");
 					System.exit(0);
+				}
+			}
+		}
+		
+		/** Client <- Server */
+		class ClientServerHandler extends ReceiverHandler {
+			@Override
+			protected void handleMessage(Message reception) {
+				switch (reception.getType()) {
+				/* REGI */
+				case Message.IDOK:
+					System.out.println("Identification au serveur établie !");
+					state = State.IN;
+					wakeCommunicator();
+					break;
+				case Message.IDNO:
+					System.out.println("Identification échouée.");
+				case Message.IDIG:
+					wakeCommunicator();
+					break;
+
+				/* LS */
+				case Message.LMNB:
+				case Message.LANB:
+				case Message.LUNB:
+					count = reception.getArgAsInt(0);
+					if (count == 0) {
+						wakeCommunicator();
+					}
+					break;
+				case Message.MATC:
+				case Message.AVAI:
+				case Message.USER:
+					wakeCommunicator();
+					break;
+
+				/* NWMA */
+				case Message.NWOK:
+				case Message.FULL:
+				case Message.NWNO:
+					wakeCommunicator();
+					break;
+
+				case Message.KICK:
+					System.out.println("Éjecté par le serveur.");
+					disconnect();
+					break;
+
+				case Message.IDKS:
+					System.out.println(receiverName + " reste béant : '" + reception + "'.");
+					wakeCommunicator();
+					break;
+				default:
+					unknownMessage();
+				}
+			}
+		}
+
+		/** Client <- Host */
+		class ClientHostHandler extends ReceiverHandler {
+			@Override
+			protected void handleMessage(Message reception) {
+				switch (reception.getType()) {
+				/* Connection and activity */
+				case Message.DECO:
+				case Message.AFKP:
+				case Message.BACK:
+					break;
+
+				/* JOIN */
+				case Message.JNNO:
+					System.out.println("Identification à l'hôte échouée.");
+					wakeCommunicator();
+					break;
+				case Message.JNOK:
+					System.out.println("Identification à l'hôte établie !");
+					state = State.IN;
+				case Message.IGNB:
+					count = reception.getArgAsInt(0);
+					if (count == 0) {
+						wakeCommunicator();
+					}
+					break;
+				case Message.BDIT:
+				case Message.IGPL:
+					wakeCommunicator();
+					break;
+				case Message.CONN:
+					break;
+
+				/* CLIC */
+				case Message.LATE:
+				case Message.OORG:
+				case Message.SQRD:
+					System.out.println(reception);
+					wakeCommunicator();
+					break;
+
+				/* Fin de partie */
+				case Message.ENDC:
+				case Message.SCPC:
+					break;
+
+				case Message.IDKH:
+					System.out.println(receiverName + " reste béant : '" + reception + "'.");
+					wakeCommunicator();
+					break;
+				default:
+					unknownMessage();
 				}
 			}
 		}

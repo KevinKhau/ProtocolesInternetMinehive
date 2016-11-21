@@ -4,12 +4,10 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
 
-import network.Host.InGamePlayer;
 import util.Message;
 import util.TFSocket;
 
@@ -62,16 +60,24 @@ public abstract class Communicator {
 			}
 		} catch (NoSuchElementException e) {
 			e.printStackTrace();
+			disconnect();
 		} catch (UnknownHostException e) {
 			System.err.println(receiverName + " inconnu : " + "IP=" + receiverIP + ", port=" + receiverPort + ".");
+			disconnect();
 		} catch (SocketException e) {
 			System.err.println("Connexion non établie avec " + receiverName + " : " + "IP=" + receiverIP + ", port="
 					+ receiverPort + ".");
+			disconnect();
 		} catch (IOException e) {
 			System.err.println("Communication impossible avec " + receiverName + " : " + "IP=" + receiverIP + ", port="
 					+ receiverPort + ".");
 			e.printStackTrace();
+			disconnect();
 		}
+	}
+	
+	public void activity() {
+		
 	}
 
 	protected abstract void setAttributes();
@@ -141,6 +147,10 @@ public abstract class Communicator {
 		}
 	}
 
+	/**
+	 * Attend passivement une réponse de la part de l'entité réceptrice.
+	 * wakeClient() se chargera de notify() le Thread.
+	 */
 	public void waitResponse() {
 		synchronized (Communicator.this) {
 			waitingResponse = true;
@@ -155,7 +165,10 @@ public abstract class Communicator {
 	public synchronized void disconnect() {
 		running = false;
 		state = State.OFFLINE;
-		communicatorSocket.close();
+		if (communicatorSocket != null) {
+			communicatorSocket.close();
+		}
+		reader.close();
 	}
 	
 	/**
@@ -192,7 +205,7 @@ public abstract class Communicator {
 		 * jusqu'à que le {@linkplain ClientServerHandler} aie fini de traiter
 		 * les messages reçus du {@linkplain Server}.
 		 */
-		protected synchronized final void wakeCommunicator() {
+		protected synchronized void wakeCommunicator() {
 			if (waitingResponse) {
 				if (count > 0) {
 					count--;
@@ -326,8 +339,6 @@ public abstract class Communicator {
 	/** Host <- Server, instancié dans l'hôte */
 	abstract class HostServerHandler extends ReceiverHandler {
 
-		Host host;
-		
 		@Override
 		protected abstract void handleMessage(Message reception);
 		

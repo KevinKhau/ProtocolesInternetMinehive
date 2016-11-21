@@ -6,11 +6,6 @@ import java.util.Map;
 
 import game.Board;
 
-/**
- * Pour simplifier le code, {@link util.TFPrintWriter} peut envoyer un message
- * sans créer de new {@link Message}, tandis que {@link util.TFBufferedReader}
- * transmet un {@link Message} facilement traitable.
- */
 public class Message {
 	/* Client */
 	public static final String REGI = "REGI";
@@ -97,7 +92,7 @@ public class Message {
 		map.put(FULL, 0);
 		map.put(NWNO, 0);
 		map.put(KICK, 0);
-		map.put(RQDT, 0);
+		map.put(RQDT, 1);
 		map.put(PLNO, 1);
 		map.put(PLOK, 2);
 		map.put(IDKS, 0);
