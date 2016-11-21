@@ -12,6 +12,7 @@ import java.util.Random;
 
 import javafx.geometry.VPos;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.SplitPane.Divider;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.TextAlignment;
@@ -26,6 +27,9 @@ public class Board {
 	public final int width = WIDTH;
 	public final int height = HEIGHT;
 	public final int nb_bombs = NB_BOMBS;
+
+	/** Nombre total de cases découvertes, celles avec des mines incluses */
+	public int totalVisible = 0;
 	
 	public static final int BOMB_VAL = -1;
 
@@ -62,7 +66,7 @@ public class Board {
 	}
 	
 	/**
-	 * Renvoie la valeur de la case, indépendamment des autres bits (mine, caché, etc.)
+	 * Renvoie le numéro de la case, indépendamment des autres bits (mine, caché, etc.)
 	 * @param x
 	 * @param y
 	 * @return
@@ -111,14 +115,14 @@ public class Board {
 		}
 	}
 	
-	public String contentAt(int x, int y) {
-		return contentFrom(board[x + y * width]);
-	}
 	/**
 	 * Obtenir le contenu d'une case. 
 	 * @param square
 	 * @return Si cachée : X. Si mine : -1. Sinon, valeur.
 	 */
+	public synchronized String contentAt(int x, int y) {
+		return contentFrom(board[x + y * width]);
+	}
 	public synchronized String contentFrom(byte square) {
 		if (isHiddenFrom(square)) {
 			return "X";
@@ -127,6 +131,11 @@ public class Board {
 		} else {
 			return String.valueOf(numberFrom(square));
 		}
+	}
+	
+	public synchronized void setVisible(int position) {
+		board[position] &= REVEAL_MASK;
+		totalVisible++;
 	}
 	
 	public synchronized LinkedList<String> lineContentAt(int ordinate) {
@@ -235,7 +244,7 @@ public class Board {
 				return clickAt(x, y, user);
 			}
 			list.add(x, y, -1, Square.Points.MINE);
-			board[position] &= REVEAL_MASK; // Set visible
+			setVisible(position);
 			return list.getList();
 			
 		} else { // it's not a bomb
@@ -322,7 +331,7 @@ public class Board {
 			return;
 		}
 		
-		board[position] &= REVEAL_MASK; // Set visible
+		setVisible(position);
 		
 		// Check for current square value
 		int value = valueFrom(board[position]);
@@ -388,7 +397,7 @@ public class Board {
 	
 	public void revealAll() {
 		for (int i = 0; i < board.length; i++) {
-			board[i] &= REVEAL_MASK;
+			setVisible(i);
 		}
 	}
 	
@@ -520,6 +529,24 @@ public class Board {
 	}
 	public boolean validOrdinate(int ordinate) {
 		return ordinate >= 0 && ordinate < height;
+	}
+	
+	public int getTotalVisible() {
+		return totalVisible;
+	}
+	public int getTotalSquares() {
+		return width * height;
+	}
+	
+	/** @return Pourcentage entier */
+	public int getCompletion() {
+		int completion = 0;
+		try {
+			completion = (getTotalVisible() * 100) / getTotalSquares();
+		} catch (ArithmeticException e) {
+			return 0;
+		}
+		return completion;
 	}
 	
 	/*

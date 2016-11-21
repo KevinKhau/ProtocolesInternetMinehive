@@ -7,13 +7,10 @@ import static util.PlayersManager.writePlayer;
 import java.io.IOException;
 import java.net.BindException;
 import java.net.InetAddress;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import data.EntityData;
 import data.HostData;
 import data.Player;
 import util.Message;
@@ -36,7 +33,7 @@ public class Server extends Entity {
 	Map<Player, ClientHandler> available = new ConcurrentHashMap<>();
 
 	Map<String, HostData> hostsDataHelper = new ConcurrentHashMap<>();
-	Map<HostData, SocketHandler> hosts = new ConcurrentHashMap<>();
+	Map<HostData, SenderHandler> hosts = new ConcurrentHashMap<>();
 
 	Map<Player, HostData> inGame = new ConcurrentHashMap<>();
 
@@ -47,7 +44,7 @@ public class Server extends Entity {
 	}
 
 	public Server() {
-		name = "Serveur";
+		super("Serveur");
 		try (TFServerSocket server = new TFServerSocket(serverPort)) {
 			serverIP = InetAddress.getLocalHost();
 			System.out.println("Lancement serveur : IP=" + serverIP + ", port=" + serverPort + ".");
@@ -108,12 +105,10 @@ public class Server extends Entity {
 		return ch;
 	}
 
-	/**
-	 * Gère un seul client. // TODO rendre générique avec SocketHandler
-	 */
-	private class ClientHandler extends SocketHandler {
+	/** Server <- Client */
+	private class ClientHandler extends SenderHandler {
 
-		/** Correspond à l'entityData casté. initialisé lors de identification() */ 
+		/** Correspond à l'entityData casté. Initialisé lors de identification() */ 
 		Player player; 
 		
 		public ClientHandler(TFSocket socket) {
@@ -149,7 +144,7 @@ public class Server extends Entity {
 			}
 			/* Anomalies */
 			if (!message.getType().equals(Message.REGI)) {
-				socket.send(Message.IDKS, null, "Vous devez d'abord vous connecter : REGI Username Password");
+				socket.send(Message.IDKS, null, "Vous devez d'abord vous identifier : REGI Username Password");
 				identification();
 				return;
 			}
@@ -161,15 +156,15 @@ public class Server extends Entity {
 			}
 			String username = message.getArg(0);
 			String password = message.getArg(1);
-			entityData = users.get(username);
+			senderData = users.get(username);
 			/* Première fois */
-			if (entityData == null) {
+			if (senderData == null) {
 				player = new Player(username, password, Player.INITIAL_POINTS);
 				users.put(username, player);
 				writePlayer( player);
 				socket.send(Message.IDOK, null, "Bienvenue " + username + " !");
 			}
-			player = (Player) entityData;
+			player = (Player) senderData;
 			/* Mauvais mot de passe */
 			if (!player.password.equals(password)) {
 				socket.send(Message.IDNO, null, "Mauvais mot de passe");
@@ -198,20 +193,18 @@ public class Server extends Entity {
 		@Override
 		protected void addEntityData() {
 			addAvailable(player, this);
-			System.out.println("Utilisateur '" + player.username + "' connecté depuis "
+			System.out.println("Utilisateur '" + player.username + "' identifié depuis "
 					+ socket.getRemoteSocketAddress() + ".");
 		}
 
 		@Override
 		protected void handleMessage(Message reception) {
 			switch (reception.getType()) {
-			case Message.IMOK: // Permet de reset le SO_TIMEOUT de la socket
-				break;
 			case Message.REGI:
 				socket.send(Message.IDKS, null, "Vous êtes déjà connecté !");
 				break;
 			case Message.LSMA:
-				socket.send(Message.LMNB, new String[]{String.valueOf(hosts)});
+				socket.send(Message.LMNB, new String[]{String.valueOf(hosts.size())});
 				hosts.values().forEach(handler -> handler.socket.send(Message.RQDT, new String[]{player.username}));
 				break;
 			case Message.LSAV:
@@ -228,6 +221,8 @@ public class Server extends Entity {
 						"Déconnexion de l'utilisateur " + player.username + ", " + socket.getRemoteSocketAddress());
 				disconnect();
 				break;
+			case Message.IDKC:
+				System.out.println(senderName + " n'a pas reconnu une commande.");
 			default:
 				unknownMessage();
 				break;
@@ -303,8 +298,8 @@ public class Server extends Entity {
 
 		@Override
 		protected void removeEntityData() {
-			if (entityData != null) {
-				available.remove(entityData);
+			if (senderData != null) {
+				available.remove(senderData);
 			}
 		}
 
@@ -314,7 +309,8 @@ public class Server extends Entity {
 		}
 	}
 
-	private class HostHandler extends SocketHandler {
+	/** Server <- Host */
+	private class HostHandler extends SenderHandler {
 
 		public HostHandler(TFSocket socket) {
 			super(socket, HostData.NAME);
@@ -334,13 +330,13 @@ public class Server extends Entity {
 				return;
 			}
 			String matchName = message.getArg(0);
-			entityData = hostsDataHelper.get(matchName); 
-			if (entityData == null) {
+			senderData = hostsDataHelper.get(matchName); 
+			if (senderData == null) {
 				socket.send(Message.IDNO, null, "Nom de partie inconnu.");
 				disconnect();
 				return;
 			} else {
-				socket.send(Message.IDOK, null, "C'est parti, " + entityData.name + " !");
+				socket.send(Message.IDOK, null, "C'est parti, " + senderData.name + " !");
 				return;
 			}
 		}
@@ -370,7 +366,6 @@ public class Server extends Entity {
 				}
 				Player p = getPlayer(username);
 				if (p == null) {
-					socket.send(Message.PLNO, new String[]{username}, "Utilisateur inexistant.");
 					break;
 				}
 				if (!p.password.equals(password)) {
@@ -380,7 +375,7 @@ public class Server extends Entity {
 					socket.send(Message.PLNO, new String[]{username}, username + " a déjà une partie en cours, qu'il doit finir !");
 				}
 				socket.send(Message.PLOK, new String[]{username, String.valueOf(p.totalPoints)});
-				inGame.put(p, (HostData) entityData);
+				inGame.put(p, (HostData) senderData);
 				ch = available.remove(p);
 				if (ch != null) {
 					ch.disconnect();
@@ -393,10 +388,12 @@ public class Server extends Entity {
 				PlayersManager.writePlayer(p2);
 				break;
 			case Message.ENDS:
-				hostsDataHelper.remove(entityData.name);
-				hosts.remove(entityData);
+				hostsDataHelper.remove(senderData.name);
+				hosts.remove(senderData);
 				disconnect();
 				break;
+			case Message.IDKH:
+				System.out.println(senderName + " n'a pas reconnu une commande.");
 			default:
 				unknownMessage();
 				break;
@@ -418,13 +415,13 @@ public class Server extends Entity {
 		
 		@Override
 		protected void addEntityData() {
-			hosts.put((HostData) entityData, this);
+			hosts.put((HostData) senderData, this);
 		}
 
 		@Override
 		protected void removeEntityData() {
-			if (entityData != null) {
-				hosts.remove(entityData);
+			if (senderData != null) {
+				hosts.remove(senderData);
 			}
 		}
 

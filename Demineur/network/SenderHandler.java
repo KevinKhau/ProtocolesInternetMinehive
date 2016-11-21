@@ -7,19 +7,18 @@ import util.Message;
 import util.TFSocket;
 
 /** Gère la connexion et les messages d'une autre entité expéditrice */
-abstract class SocketHandler extends Thread {
-	// TODO gérer inactivité client
+abstract class SenderHandler extends Thread {
+	// TODO gérer inactivité de l'expéditeur
 	TFSocket socket;
 	protected volatile boolean running = true;
 
-	EntityData entityData;
-	String entityName = "Entité";
+	EntityData senderData;
+	String senderName = "Entité";
 
-	public SocketHandler(TFSocket socket, String name) {
+	public SenderHandler(TFSocket socket, String name) {
 		super();
-		this.entityName = name;
-		System.out.println(
-				"Nouvelle connexion entrante " + entityName + " : " + socket.getRemoteSocketAddress());
+		this.senderName = name;
+		System.out.println("Nouvelle connexion entrante " + senderName + " : " + socket.getRemoteSocketAddress());
 		this.socket = socket;
 		this.socket.ping();
 	}
@@ -45,7 +44,18 @@ abstract class SocketHandler extends Thread {
 		}
 	}
 
-	/** Instructions d'initialisation avec l'expéditeur. On veut juste s'assurer de l'identité de l'expéditeur, mais il n'est pas encore ajouté à la liste en question. */
+	/**
+	 * <p>
+	 * Instructions d'initialisation avec l'expéditeur. On veut juste s'assurer
+	 * de l'identité de l'expéditeur, mais il n'est pas encore ajouté à la liste
+	 * en question.
+	 * </p>
+	 * <p>
+	 * FUTURE Nombre de récursions limitée à au moins 1024, définissable avec
+	 * -xss. Solution 1 : Limiter le nombre de tentatives de connexion.
+	 * Solution 2 : mode itératif.
+	 * </p>
+	 */
 	protected abstract void identification() throws IOException;
 
 	/**
@@ -57,15 +67,16 @@ abstract class SocketHandler extends Thread {
 	protected abstract void unknownMessage();
 
 	/**
-	 * Autorise la Thread à s'arrêter, enlève le Player correspondant de
-	 * Thread s'il existe. Ferme la socket et les streams associés.
+	 * Autorise la Thread à s'arrêter, enlève le Player correspondant de Thread
+	 * s'il existe. Ferme la socket et les streams associés.
 	 */
 	protected void disconnect() {
 		running = false;
 		removeEntityData();
 		socket.close();
 	}
-	
+
 	protected abstract void addEntityData();
+
 	protected abstract void removeEntityData();
 }

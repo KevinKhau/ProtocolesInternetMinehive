@@ -18,7 +18,6 @@ public class ScannerTest {
 		sc.close();
 	}
 
-	@Test
 	public void onlyInts() throws InterruptedException {
 		while (true) {
 			try {
