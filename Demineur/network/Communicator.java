@@ -16,7 +16,7 @@ import util.TFSocket;
  * Effectue une suite d'instructions par rapport à un destinataire récepteur
  * suite à des entrées utilisateur.
  */
-public abstract class Communicator {
+public abstract class Communicator implements Runnable {
 	InetAddress receiverIP;
 	int receiverPort = 5555;
 
@@ -50,14 +50,6 @@ public abstract class Communicator {
 			System.out.println("Connecté à " + receiverName + " : " + communicatorSocket.remoteData() + ".");
 			state = State.CONNECTED;
 			new Thread(handler).start();
-			while (running) {
-				while (state == State.CONNECTED && running) {
-					login();
-				}
-				while (state == State.IN && running) {
-					communicate();
-				}
-			}
 		} catch (NoSuchElementException e) {
 			e.printStackTrace();
 			disconnect();
@@ -76,10 +68,18 @@ public abstract class Communicator {
 		}
 	}
 	
-	public void activity() {
-		
+	@Override
+	public void run() {
+		while (running) {
+			while (state == State.CONNECTED && running) {
+				login();
+			}
+			while (state == State.IN && running) {
+				communicate();
+			}
+		}
 	}
-
+	
 	protected abstract void setAttributes();
 
 	/**
@@ -168,7 +168,6 @@ public abstract class Communicator {
 		if (communicatorSocket != null) {
 			communicatorSocket.close();
 		}
-		reader.close();
 	}
 	
 	/**

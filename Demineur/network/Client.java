@@ -5,8 +5,6 @@ import java.net.UnknownHostException;
 import java.util.LinkedList;
 import java.util.NoSuchElementException;
 
-import network.Communicator.ReceiverHandler;
-import network.Communicator.State;
 import util.Message;
 
 public class Client extends Entity {
@@ -34,17 +32,16 @@ public class Client extends Entity {
 			linkServer();
 			 linkHost();
 		}
-		// reader.close();
 	}
 
 	public void linkServer() {
 		System.out.println("Client - Serveur");
-		new ServerCommunicator();
+		new ServerCommunicator().run();
 	}
 
 	public void linkHost() {
 		System.out.println("Client - Hôte");
-		new HostCommunicator();
+		new HostCommunicator().run();
 	}
 
 	/** Client -> Server */
@@ -179,7 +176,6 @@ public class Client extends Entity {
 				case Message.LATE:
 				case Message.OORG:
 				case Message.SQRD:
-					System.out.println(reception);
 					wakeCommunicator();
 					break;
 

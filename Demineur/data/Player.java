@@ -63,4 +63,9 @@ public class Player extends EntityData {
 	public boolean checkPassword(String password) {
 		return this.password.equals(password);
 	}
+	
+	@Override
+	public boolean equals(Object obj) {
+		return (obj instanceof Player) && ((Player) obj).username == this.username;
+	}
 }

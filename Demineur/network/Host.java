@@ -40,7 +40,7 @@ public class Host extends Entity {
 	int port;
 
 	Board board = new Board();
-	int multiplicator = 0;
+	volatile int multiplicator = 0;
 
 	volatile Map<String, Player> standingByHelper = new ConcurrentHashMap<>();
 	volatile Map<Player, PlayerHandler> standingBy = new ConcurrentHashMap<>();
@@ -55,7 +55,11 @@ public class Host extends Entity {
 
 	public static void main(String[] args) {
 		try { // TEST
-			new Host(InetAddress.getLocalHost(), 7777, "Partie_1", InetAddress.getLocalHost(), 59697); // TEST
+			if (args.length < 1) {
+				System.err.println("Paramètre port de connexion pour les clients attendu.");
+				System.exit(1);
+			}
+			new Host(InetAddress.getLocalHost(), 7777, "Partie_1", InetAddress.getLocalHost(), Integer.parseInt(args[0])); // TEST
 //			new Host(null, 7777, "HostTest", InetAddress.getLocalHost(), 3333);
 		} catch (UnknownHostException e1) {
 			e1.printStackTrace();
@@ -102,16 +106,11 @@ public class Host extends Entity {
 		this.IP = IP;
 		this.port = port;
 
-		new Thread() {
-			@Override
-			public void run() {
-				serverCommunicator = new ServerCommunicator();
-			}
-		}.start();
+		serverCommunicator = new ServerCommunicator();
+		new Thread(serverCommunicator).start();
 		
 		// FUTURE Attente passive
-		while (true) {
-//			System.out.println(serverCommunicator); // TEST
+		while (serverCommunicator.running) {
 			if (serverCommunicator == null || serverCommunicator.state == State.OFFLINE) {
 				continue;
 			}
@@ -266,7 +265,7 @@ public class Host extends Entity {
 			}
 
 			/* Inform other players */
-			inGamePlayers.values().stream().filter(p -> (p != player && p.active)).forEach(p -> socket.send(Message.CONN, player.publicData()));
+			inGamePlayers.values().stream().filter(p -> (!p.equals(player) && p.active)).forEach(p -> socket.send(Message.CONN, player.publicData()));
 		}
 
 		@Override

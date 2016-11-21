@@ -4,7 +4,7 @@ package util;
 /** Paramètres de configuration développeur */
 public class Params {
 
-	private static boolean output = true;
+	private static boolean output = false;
 	
 	/** Afficher les messages bruts lors de leur réception */
 	public static boolean rawReception = output && false;
