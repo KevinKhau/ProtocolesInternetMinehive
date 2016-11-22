@@ -12,11 +12,9 @@ import java.util.Random;
 
 import javafx.geometry.VPos;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.control.SplitPane.Divider;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.TextAlignment;
-import util.Message;
 
 public class Board {
 	public static final int WIDTH = 30;
@@ -26,7 +24,7 @@ public class Board {
 	/* En cas d'implémentation future où ces données peuvent varier */
 	public final int width = WIDTH;
 	public final int height = HEIGHT;
-	public final int nb_bombs = NB_BOMBS;
+	public final int nbMines = NB_BOMBS;
 
 	/** Nombre total de cases découvertes, celles avec des mines incluses */
 	public int totalVisible = 0;
@@ -42,7 +40,7 @@ public class Board {
 	private static final byte DEFUSE_BOMB = (byte) 0b10111111;
 	
 	private boolean first;
-	private int nb_revealed; // Count revealed squares that are not bombs
+	private int nbRevealed; // Count revealed squares that are not bombs
 	
 	/** FUTURE Rendre volatile chaque élément de board */
 	private byte board[];
@@ -151,7 +149,7 @@ public class Board {
 	public void reset() {
 		// Reset board
 		Arrays.fill(board, HIDDEN_BIT);
-		nb_revealed = 0;
+		nbRevealed = 0;
 		
 		// Place new bombs
 		initBombs();
@@ -162,10 +160,7 @@ public class Board {
 	
 	// Returns true if the game has ended
 	public boolean isFinished() {
-		if (nb_revealed == board.length - nb_bombs)
-			return true;
-		else
-			return false;
+		return nbRevealed == board.length - nbMines;
 	}
 	
 	private void initBombs() {
@@ -176,7 +171,7 @@ public class Board {
 		while (bombs <= 5) {
 			bombs = rand.nextInt(board.length / 5);
 		}*/
-		int bombs = nb_bombs;
+		int bombs = nbMines;
 		
 		// Get bomb positions
 		for (int i = 0; i < bombs; i++) {
