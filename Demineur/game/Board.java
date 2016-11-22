@@ -42,6 +42,7 @@ public class Board {
 	private static final byte DEFUSE_BOMB = (byte) 0b10111111;
 	
 	private boolean first;
+	private int nb_revealed; // Count revealed squares that are not bombs
 	
 	/** FUTURE Rendre volatile chaque élément de board */
 	private byte board[];
@@ -150,12 +151,21 @@ public class Board {
 	public void reset() {
 		// Reset board
 		Arrays.fill(board, HIDDEN_BIT);
+		nb_revealed = 0;
 		
 		// Place new bombs
 		initBombs();
 		
 		// Next player will be first
 		first = true;
+	}
+	
+	// Returns true if the game has ended
+	public boolean isFinished() {
+		if (nb_revealed == board.length - nb_bombs)
+			return true;
+		else
+			return false;
 	}
 	
 	private void initBombs() {
@@ -179,50 +189,56 @@ public class Board {
 				// A bomb is already present here, will try another place
 				i--;
 			} else {
-				// Create bomb
-				board[position] = BOMB_BIT | HIDDEN_BIT;
-				
-				// Increment values around the bomb
-				// Left
-				if (x > 0) {
-					board[position - 1]++;
-				}
-				
-				// Top Left
-				if (x > 0 && y > 0) {
-					board[position - 1 - width]++;
-				}
-				
-				// Up
-				if (y > 0) {
-					board[position - width]++;
-				}
-				
-				// Top Right
-				if (x < width - 1 && y > 0) {
-					board[position + 1 - width]++;
-				}
-				
-				// Right
-				if (x < width - 1) {
-					board[position + 1]++;
-				}
-				
-				// Right Bottom
-				if (x < width - 1 && y < height - 1) {
-					board[position + 1 + width]++;
-				}
-				
-				// Down
-				if (y < height - 1) {
-					board[position + width]++;
-				}
-				
-				// Left Bottom
-				if (x > 0 && y < height - 1) {
-					board[position - 1 + width]++;
-				}
+				// Place mine
+				placeMine(position, x, y);
+
 			}
+		}
+	}
+
+	private void placeMine(int position, int x, int y) {
+		// Put the mine on the board
+		board[position] = BOMB_BIT | HIDDEN_BIT;
+		
+		// Increment values around the bomb
+		// Left
+		if (x > 0) {
+			board[position - 1]++;
+		}
+		
+		// Top Left
+		if (x > 0 && y > 0) {
+			board[position - 1 - width]++;
+		}
+		
+		// Up
+		if (y > 0) {
+			board[position - width]++;
+		}
+		
+		// Top Right
+		if (x < width - 1 && y > 0) {
+			board[position + 1 - width]++;
+		}
+		
+		// Right
+		if (x < width - 1) {
+			board[position + 1]++;
+		}
+		
+		// Right Bottom
+		if (x < width - 1 && y < height - 1) {
+			board[position + 1 + width]++;
+		}
+		
+		// Down
+		if (y < height - 1) {
+			board[position + width]++;
+		}
+		
+		// Left Bottom
+		if (x > 0 && y < height - 1) {
+			board[position - 1 + width]++;
 		}
 	}
 
@@ -332,6 +348,23 @@ public class Board {
 			else 
 				board[position]++;
 		}
+		
+		/* We need to add this mine elsewhere to have 
+		 * the same amount of mines as nb_bombs */
+		Random rand = new Random();
+		
+		int b_x;
+		int b_y;
+		int b_position;
+		
+		do {
+			b_x = rand.nextInt(width);
+			b_y = rand.nextInt(height);
+			b_position = b_x + b_y * width;
+		} while (position == b_position); // We can't put the mine at the same position it was removed
+		
+		// Place the new mine
+		placeMine(b_position, b_x, b_y);
 	}
 	
 	private void reveal(int x, int y, MessageList list) {
@@ -478,7 +511,7 @@ public class Board {
 						if ((board[j + i * width] & VALUE_MASK) == 0) {
 							System.out.print(' '); // Empty
 						} else {
-							/* UNIX only
+							/* UNIX only, colored output in terminal
 							int val = board[j + i * width] & VALUE_MASK;
 							switch (val) {
 							case 1:
