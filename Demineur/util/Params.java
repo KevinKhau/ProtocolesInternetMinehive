@@ -1,6 +1,6 @@
 package util;
 
-// TODO Configurer à partir d'un fichier parameters.properties
+// FUTURE Configurer à partir d'un fichier parameters.properties
 /** Paramètres de configuration développeur */
 public class Params {
 
