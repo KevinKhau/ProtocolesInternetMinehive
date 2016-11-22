@@ -26,7 +26,7 @@ import util.TFSocket;
 public class Host extends Entity {
 
 	public static final String NAME = "Hôte";
-	
+
 	public static final int MAX_PLAYERS = 10;
 
 	public static final int ACTIVE_DELAY = 30000;
@@ -44,7 +44,7 @@ public class Host extends Entity {
 
 	volatile Map<String, Player> standingByHelper = new ConcurrentHashMap<>();
 	volatile Map<Player, PlayerHandler> standingBy = new ConcurrentHashMap<>();
-	
+
 	volatile Map<String, InGamePlayer> inGamePlayers = new ConcurrentHashMap<>();
 
 	private static void deny(String message) {
@@ -60,7 +60,7 @@ public class Host extends Entity {
 				System.exit(1);
 			}
 			new Host(InetAddress.getLocalHost(), 7777, "Partie_1", InetAddress.getLocalHost(), Integer.parseInt(args[0])); // TEST
-//			new Host(null, 7777, "HostTest", InetAddress.getLocalHost(), 3333);
+			//			new Host(null, 7777, "HostTest", InetAddress.getLocalHost(), 3333);
 		} catch (UnknownHostException e1) {
 			e1.printStackTrace();
 		}
@@ -108,26 +108,25 @@ public class Host extends Entity {
 
 		serverCommunicator = new ServerCommunicator();
 		new Thread(serverCommunicator).start();
-		
+
 		// FUTURE Attente passive
-		while (serverCommunicator.running) {
-			if (serverCommunicator == null || serverCommunicator.state == State.OFFLINE) {
-				continue;
+		try (TFServerSocket ss = new TFServerSocket(port)) {
+			while (serverCommunicator.running) {
+				if (serverCommunicator != null && serverCommunicator.state == State.IN) {
+					System.out.println("Lancement hôte : IP=" + IP + ", port=" + port + ".");
+					// FUTURE extends Listener
+					new Thread(new PlayerHandler(ss.accept())).start();
+				}
 			}
-			try (TFServerSocket ss = new TFServerSocket(port)) {
-				System.out.println("Lancement hôte : IP=" + IP + ", port=" + port + ".");
-				// FUTURE  extends Listener
-				new Thread(new PlayerHandler(ss.accept())).start();
-			} catch (BindException e) {
-				System.err.println("Socket hôte déjà en cours d'utilisation.");
-			} catch (IllegalArgumentException e) {
-				System.err.println("Valeur de port invalide, doit être entre 0 et 65535.");
-				e.printStackTrace();
-			} catch (IOException e) {
-				System.err.println("Problème de traitement de la socket : port " + serverPort + ".");
-				System.err.println("Port occupé ?");
-				e.printStackTrace();
-			} 
+		} catch (BindException e) {
+			System.err.println("Socket hôte déjà en cours d'utilisation.");
+		} catch (IllegalArgumentException e) {
+			System.err.println("Valeur de port invalide, doit être entre 0 et 65535.");
+			e.printStackTrace();
+		} catch (IOException e) {
+			System.err.println("Problème de traitement de la socket : port " + serverPort + ".");
+			System.err.println("Port occupé ?");
+			e.printStackTrace();
 		}
 	}
 
@@ -155,7 +154,7 @@ public class Host extends Entity {
 			this.handler = handler;
 			setActive();
 		}
-		
+
 		private String[] publicData() {
 			return new String[] { this.username, valueOf(inGamePoints), valueOf(totalPoints), valueOf(safeSquares),
 					valueOf(foundMines) };
@@ -178,67 +177,68 @@ public class Host extends Entity {
 
 		/** Correspond à l'entityData casté. Initialisé lors de identification() */
 		InGamePlayer inGamePlayer;
-
+		volatile boolean identified = false;
+		
 		public PlayerHandler(TFSocket socket) {
 			super(socket, InGamePlayer.NAME);
 		}
 
 		@Override
 		public void identification() throws IOException {
-			if (!running) {
-				disconnect();
-				return;
-			}
-			Message message = socket.receive();
-			/* Anomalies */
-			if (!message.getType().equals(Message.JOIN)) {
-				socket.send(Message.IDKH, null, "Vous devez d'abord vous identifier : JOIN Username Password");
-				identification();
-				return;
-			}
-			/* Mauvais nombre d'arguments */
-			if (!validArguments(message)) {
-				socket.send(Message.IDNO, null, "Identifiant et/ou Mot de passe manquant");
-				identification();
-				return;
-			}
-			String username = message.getArg(0);
-			String password = message.getArg(1);
-			senderData = inGamePlayers.get(username);
+			while (running) {
+				Message message = socket.receive();
+				
+				/* Anomalies */
+				if (!message.getType().equals(Message.JOIN)) {
+					socket.send(Message.IDKH, null, "Vous devez d'abord vous identifier : JOIN Username Password");
+					continue;
+				}
+				/* Mauvais nombre d'arguments */
+				if (!validArguments(message)) {
+					socket.send(Message.IDNO, null, "Identifiant et/ou Mot de passe manquant");
+					continue;
+				}
+				String username = message.getArg(0);
+				String password = message.getArg(1);
+				senderData = inGamePlayers.get(username);
 
-			/* Reconnexion */
-			if (senderData != null) {
-				inGamePlayer = (InGamePlayer) senderData;
-				if (!inGamePlayer.checkPassword(password)) {
-					socket.send(Message.JNNO, null, "Mot de passe incorrect.");
-					identification();
-					return;
+				/* Reconnexion */
+				if (senderData != null) {
+					inGamePlayer = (InGamePlayer) senderData;
+					if (!inGamePlayer.checkPassword(password)) {
+						socket.send(Message.JNNO, null, "Mot de passe incorrect.");
+						continue;
+					}
+
+					if (inGamePlayer.active) {
+						socket.send(Message.JNNO, null, "Vous semblez déjà en train de jouer.");
+						continue;
+						// THINK kick() ?
+					}
+
+					inGamePlayer.setActive();
+					sendGameState(inGamePlayer);
+					break;
 				}
 
-				if (inGamePlayer.active) {
-					socket.send(Message.JNNO, null, "Vous semblez déjà en train de jouer.");
-					identification(); // THINK kick() ?
-					return;
+				/* Hôte saturé */
+				if (inGamePlayers.size() >= MAX_PLAYERS) {
+					socket.send(Message.JNNO, null, "Nombre maximum de joueurs atteint. Plus de place disponible !");
+					continue;
 				}
 
-				inGamePlayer.setActive();
-				sendGameState(inGamePlayer);
-				return;
+				/* Nouvelle connexion */
+				Player p = new Player(username, password);
+				standingByHelper.put(p.username, p);
+				standingBy.put(p, this);
+				serverCommunicator.communicate(new Message(Message.PLIN, new String[]{Host.this.name, username, password}, null));
+				waitResponse();
+				if (identified) {
+					break;
+				} else {
+					continue;
+				}
 			}
-
-			/* Hôte saturé */
-			if (inGamePlayers.size() >= MAX_PLAYERS) {
-				socket.send(Message.JNNO, null, "Nombre maximum de joueurs atteint. Plus de place disponible !");
-				identification();
-				return;
-			}
-
-			/* Nouvelle connexion */
-			Player p = new Player(username, password);
-			standingByHelper.put(p.username, p);
-			standingBy.put(p, this);
-			serverCommunicator.transferRequest(new Message(Message.PLIN, new String[]{Host.this.name, username, password}, null));
-			return;
 		}
 
 		/**
@@ -265,7 +265,9 @@ public class Host extends Entity {
 			}
 
 			/* Inform other players */
-			inGamePlayers.values().stream().filter(p -> (!p.equals(player) && p.active)).forEach(p -> socket.send(Message.CONN, player.publicData()));
+			inGamePlayers.values().stream().filter(p -> (!p.equals(player) && p.active)).forEach(p -> {
+				p.handler.socket.send(Message.CONN, player.publicData());	
+			});
 		}
 
 		@Override
@@ -279,6 +281,7 @@ public class Host extends Entity {
 
 				if (!board.validAbscissa(abscissa) || !board.validOrdinate(ordinate)) {
 					socket.send(Message.OORG, new String[]{valueOf(abscissa), valueOf(ordinate)}, "Coordonnées invalides ! ");
+					break;
 				}
 
 				List<String[]> allArgs = board.clickAt(abscissa, ordinate, inGamePlayer.username);
@@ -288,8 +291,8 @@ public class Host extends Entity {
 				}
 
 				for (String[] line : allArgs) {
+					line[3] = valueOf(Integer.parseInt(line[3]) * multiplicator);
 					for (InGamePlayer igp : inGamePlayers.values()) {
-						line[3] = valueOf(Integer.parseInt(line[3]) * multiplicator);
 						igp.handler.socket.send(Message.SQRD, line);
 					}
 				}
@@ -313,6 +316,19 @@ public class Host extends Entity {
 			}
 		}
 
+		/**
+		 * Bloque ce PlayerHandler en attendant une réponse du Server
+		 */
+		private void waitResponse() {
+			synchronized (PlayerHandler.this) {
+				try {
+					PlayerHandler.this.wait();
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+
 	}
 
 	/**
@@ -322,7 +338,7 @@ public class Host extends Entity {
 
 		private volatile boolean waitingRequest = true;
 		Message send = null;
-		
+
 		@Override
 		protected void setAttributes() {
 			receiverName = "Server";
@@ -330,13 +346,11 @@ public class Host extends Entity {
 			receiverPort = serverPort;
 			handler = new ImplHostServerHandler();
 		}
-		
+
 		/** Host <- Server */
 		private class ImplHostServerHandler extends HostServerHandler {
 			@Override
 			protected void handleMessage(Message reception) {
-				String username;
-				Player waitingPlayer;
 				switch (reception.getType()) {
 				case Message.IDOK:
 					state = State.IN;
@@ -347,7 +361,7 @@ public class Host extends Entity {
 					wakeCommunicator();
 					break;
 				case Message.RQDT:
-					username = getUsername(reception);
+					String username = getUsername(reception);
 					if (username == null) {
 						return;
 					}
@@ -364,39 +378,10 @@ public class Host extends Entity {
 					communicatorSocket.send(Message.SDDT, args.stream().toArray(String[]::new));
 					break;
 				case Message.PLNO:
-					wakeCommunicator();
-					username = getUsername(reception);
-					if (username == null) {
-						return;
-					}
-					waitingPlayer = standingByHelper.remove(username);
-					if (waitingPlayer != null) {
-						Message m = new Message(Message.JNNO, null, reception.getContent());
-						transferResponse(waitingPlayer, m);
-					} else {
-						playerNotFound(waitingPlayer);
-					}
+					refusePlayer(reception);
 					break;
 				case Message.PLOK:
-					wakeCommunicator();
-					username = getUsername(reception);
-					if (username == null) {
-						return;
-					}
-					waitingPlayer = standingByHelper.remove(username);
-					if (waitingPlayer != null) {
-						PlayerHandler ph = standingBy.remove(waitingPlayer);
-						if (ph == null) {
-							playerNotFound(waitingPlayer);
-							return;
-						}
-						InGamePlayer igp = new InGamePlayer(waitingPlayer, ph);
-						inGamePlayers.put(igp.username, igp);
-						ph.inGamePlayer = igp;
-						ph.sendGameState(igp);
-					} else {
-						playerNotFound(waitingPlayer);
-					}
+					acceptPlayer(reception);
 					break;
 				case Message.IDKS:
 					System.out.println(receiverName + " reste béant : '" + reception + "'.");
@@ -405,7 +390,54 @@ public class Host extends Entity {
 					break;
 				}
 			}
+
+			private void refusePlayer(Message reception) {
+				String username = getUsername(reception);
+				if (username == null) {
+					return;
+				}
+				Player waitingPlayer = standingByHelper.remove(username);
+				if (waitingPlayer != null) {
+					PlayerHandler ph = standingBy.remove(waitingPlayer);
+					if (ph == null) {
+						playerNotFound(waitingPlayer);
+						return;
+					}
+					Message m = new Message(Message.JNNO, null, reception.getContent());
+					synchronized (ph) {
+						ph.notify();
+					}
+					ph.socket.send(m);
+				} else {
+					playerNotFound(waitingPlayer);
+				}
+			}
 			
+			private void acceptPlayer(Message reception) {
+				String username = getUsername(reception);
+				if (username == null) {
+					return;
+				}
+				Player waitingPlayer = standingByHelper.remove(username);
+				if (waitingPlayer != null) {
+					PlayerHandler ph = standingBy.remove(waitingPlayer);
+					if (ph == null) {
+						playerNotFound(waitingPlayer);
+						return;
+					}
+					InGamePlayer igp = new InGamePlayer(waitingPlayer, ph);
+					inGamePlayers.put(igp.username, igp);
+					ph.inGamePlayer = igp;
+					synchronized (ph) {
+						ph.identified = true;
+						ph.notify();
+					}
+					ph.sendGameState(igp);
+				} else {
+					playerNotFound(waitingPlayer);
+				}
+			}
+
 			@Override
 			protected synchronized void wakeCommunicator() {
 				if (waitingResponse) {
@@ -425,14 +457,14 @@ public class Host extends Entity {
 		}
 
 		/** Transfert un message du Client au Serveur */
-		public void transferRequest(Message message) {
+		public void communicate(Message message) {
 			this.send = message;
 			synchronized (ServerCommunicator.this) {
 				waitingRequest = false;
 				ServerCommunicator.this.notify();
 			}
 		}
-		
+
 		/**
 		 * En boucle : 
 		 * Attend passivement jusqu'à requête Client.
@@ -452,22 +484,23 @@ public class Host extends Entity {
 			}
 			if (!waitingRequest) {
 				communicatorSocket.send(send);
-				waitResponse();
+				waitingRequest = true;
 			}
-			
+
 		}
-		
+
 		@Override
 		protected void login() {
-			communicatorSocket.send(Message.LOGI, new String[] { name });
+			Message m = new Message(Message.LOGI, new String[] { name }, null);
+			waitingRequest = false;
+			waitingResponse = true;
+			communicatorSocket.send(m);
 			waitResponse();
 		}
 
-		/** Attend une réponse du Serveur à destination du Client */
 		@Override
 		public synchronized void waitResponse() {
 			synchronized (ServerCommunicator.this) {
-				waitingResponse = true;
 				while (waitingResponse) {
 					try {
 						ServerCommunicator.this.wait(MAX_WAIT_TIME);
@@ -480,21 +513,13 @@ public class Host extends Entity {
 				}
 			}
 		}
-		
-		/** Transfert un message reçu du Serveur au Client */
-		public void transferResponse(Player standingByPlayer, Message reception) {
-			PlayerHandler ph = standingBy.remove(standingByPlayer);
-			if (ph == null) {
-				playerNotFound(standingByPlayer);
-				return;
-			}
-			ph.socket.send(reception);
-		}
 
 		public void playerNotFound(Player standingByPlayer) {
-			System.err.println("Le joueur " + standingByPlayer.name + " ne semble plus connecté.");
+			if (standingByPlayer != null) {
+				System.err.println("Le joueur " + standingByPlayer.name + " ne semble plus connecté.");
+			}
 		}
-		
+
 	}
 
 }

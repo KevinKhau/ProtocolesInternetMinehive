@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ranking>
+    <player username="Kevin" password="Khau">
+        <name>Joueur</name>
+        <points>40</points>
+    </player>
+    <player username="AlHassane" password="Megninta">
+        <name>Joueur</name>
+        <points>80</points>
+    </player>
+    <player username="Aylin" password="Kocoglu">
+        <name>Joueur</name>
+        <points>90</points>
+    </player>
+    <player username="Christophe" password="Lam">
+        <name>Joueur</name>
+        <points>20</points>
+    </player>
+    <player username="Adil" password="Champion">
+        <name>Joueur</name>
+        <points>10</points>
+    </player>
+    <player username="Somaya" password="Benkhemis">
+        <name>Joueur</name>
+        <points>70</points>
+    </player>
+    <player username="Valloris" password="Cylly">
+        <name>Joueur</name>
+        <points>30</points>
+    </player>
+    <player username="Tomek" password="Lecocq">
+        <name>Joueur</name>
+        <points>80</points>
+    </player>
+    <player username="Helmi" password="Zegaya">
+        <name>Joueur</name>
+        <points>100</points>
+    </player>
+    <player username="Kev" password="Kh">
+        <name>Joueur</name>
+        <points>0</points>
+    </player>
+</ranking>

@@ -53,17 +53,7 @@ public abstract class Communicator implements Runnable {
 		} catch (NoSuchElementException e) {
 			e.printStackTrace();
 			disconnect();
-		} catch (UnknownHostException e) {
-			System.err.println(receiverName + " inconnu : " + "IP=" + receiverIP + ", port=" + receiverPort + ".");
-			disconnect();
-		} catch (SocketException e) {
-			System.err.println("Connexion non établie avec " + receiverName + " : " + "IP=" + receiverIP + ", port="
-					+ receiverPort + ".");
-			disconnect();
 		} catch (IOException e) {
-			System.err.println("Communication impossible avec " + receiverName + " : " + "IP=" + receiverIP + ", port="
-					+ receiverPort + ".");
-			e.printStackTrace();
 			disconnect();
 		}
 	}
@@ -126,6 +116,7 @@ public abstract class Communicator implements Runnable {
 			System.err
 					.println("Type de message d'identification invalide. Attendu : " + identificationWords.toString());
 			login();
+			return;
 		}
 		communicatorSocket.send(send);
 		leaveOrWait(send.getType());
@@ -141,7 +132,6 @@ public abstract class Communicator implements Runnable {
 		if (type.equals(Message.LEAV)) {
 			System.out.println("Fin de la connexion avec " + communicatorSocket.getRemoteSocketAddress());
 			disconnect();
-			return;
 		} else {
 			waitResponse();
 		}
@@ -149,7 +139,7 @@ public abstract class Communicator implements Runnable {
 
 	/**
 	 * Attend passivement une réponse de la part de l'entité réceptrice.
-	 * wakeClient() se chargera de notify() le Thread.
+	 * {@linkplain ReceiverHandler#wakeCommunicator()} se chargera de notify() le Thread.
 	 */
 	public void waitResponse() {
 		synchronized (Communicator.this) {
@@ -223,115 +213,6 @@ public abstract class Communicator implements Runnable {
 		protected void unknownMessage() {
 			System.err.println("Réponse inconnue de " + receiverName);
 			communicatorSocket.send(Message.IDKC);
-		}
-	}
-
-	/** Client <- Server */
-	class ClientServerHandler extends ReceiverHandler {
-		@Override
-		protected void handleMessage(Message reception) {
-			switch (reception.getType()) {
-			/* REGI */
-			case Message.IDOK:
-				System.out.println("Identification au serveur établie !");
-				state = State.IN;
-				wakeCommunicator();
-				break;
-			case Message.IDNO:
-				System.out.println("Identification échouée.");
-			case Message.IDIG:
-				wakeCommunicator();
-				break;
-
-			/* LS */
-			case Message.LMNB:
-			case Message.LANB:
-			case Message.LUNB:
-				count = reception.getArgAsInt(0);
-				if (count == 0) {
-					wakeCommunicator();
-				}
-				break;
-			case Message.MATC:
-			case Message.AVAI:
-			case Message.USER:
-				wakeCommunicator();
-				break;
-
-			/* NWMA */
-			case Message.NWOK:
-			case Message.FULL:
-			case Message.NWNO:
-				wakeCommunicator();
-				break;
-
-			case Message.KICK:
-				System.out.println("Éjecté par le serveur.");
-				disconnect();
-				break;
-
-			case Message.IDKS:
-				System.out.println(receiverName + " reste béant : '" + reception + "'.");
-				wakeCommunicator();
-				break;
-			default:
-				unknownMessage();
-			}
-		}
-	}
-
-	/** Client <- Host */
-	class ClientHostHandler extends ReceiverHandler {
-		@Override
-		protected void handleMessage(Message reception) {
-			switch (reception.getType()) {
-			/* Connection and activity */
-			case Message.DECO:
-			case Message.AFKP:
-			case Message.BACK:
-				break;
-
-			/* JOIN */
-			case Message.JNNO:
-				System.out.println("Identification à l'hôte échouée.");
-				wakeCommunicator();
-				break;
-			case Message.JNOK:
-				System.out.println("Identification à l'hôte établie !");
-				state = State.IN;
-			case Message.IGNB:
-				count = reception.getArgAsInt(0);
-				if (count == 0) {
-					wakeCommunicator();
-				}
-				break;
-			case Message.BDIT:
-			case Message.IGPL:
-				wakeCommunicator();
-				break;
-			case Message.CONN:
-				break;
-
-			/* CLIC */
-			case Message.LATE:
-			case Message.OORG:
-			case Message.SQRD:
-				System.out.println(reception);
-				wakeCommunicator();
-				break;
-
-			/* Fin de partie */
-			case Message.ENDC:
-			case Message.SCPC:
-				break;
-
-			case Message.IDKH:
-				System.out.println(receiverName + " reste béant : '" + reception + "'.");
-				wakeCommunicator();
-				break;
-			default:
-				unknownMessage();
-			}
 		}
 	}
 

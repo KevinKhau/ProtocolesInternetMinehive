@@ -386,6 +386,9 @@ public class Server extends Entity {
 		protected void handleMessage(Message reception) {
 			ClientHandler ch;
 			switch (reception.getType()) {
+			case Message.LOGI:
+				socket.send("IDKS", null, "Vous êtes déjà connecté !");
+				break;
 			case Message.SDDT:
 				ch = getHandler(reception.getArg(0));
 				if (ch != null) {
@@ -412,10 +415,12 @@ public class Server extends Entity {
 				}
 				if (!p.password.equals(password)) {
 					socket.send(Message.PLNO, new String[] { username }, "Mauvais mot de passe.");
+					break;
 				}
 				if (inGame.containsKey(p)) {
 					socket.send(Message.PLNO, new String[] { username },
 							username + " a déjà une partie en cours, qu'il doit finir !");
+					break;
 				}
 				socket.send(Message.PLOK, new String[] { username, String.valueOf(p.totalPoints) });
 				inGame.put(p, (HostData) senderData);
@@ -437,6 +442,7 @@ public class Server extends Entity {
 				break;
 			case Message.IDKH:
 				System.out.println(senderName + " n'a pas reconnu une commande.");
+				break;
 			default:
 				unknownMessage();
 				break;

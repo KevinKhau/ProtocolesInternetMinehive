@@ -226,8 +226,18 @@ public class Board {
 		}
 	}
 
-	/** Retourne les points du joueur à ajouter ou retirer lors du clic */
+	/** 
+	 * Retourne les points du joueur à ajouter ou retirer lors du clic
+	 * @return Une liste de tableau de Strings, chaque tableau correspondant à :
+	 * x y valeur points username
+	 */
 	public List<String[]> clickAt(int x, int y, String user) {
+		if (x < 0 || x >= width) {
+			throw new ArrayIndexOutOfBoundsException("Abscisse invalide : " + x);
+		}
+		if (y < 0 || y >= height) {
+			throw new ArrayIndexOutOfBoundsException("Ordonnée invalide : " + y);
+		}
 		int position = x + y * width;
 		MessageList list = new MessageList(user);
 

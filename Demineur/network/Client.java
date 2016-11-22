@@ -56,36 +56,7 @@ public class Client extends Entity {
 			identificationWords.add(Message.LEAV);
 			handler = new ClientServerHandler();
 		}
-	}
 
-	/** Client -> Host */
-	private class HostCommunicator extends Communicator {
-		@Override
-		protected void setAttributes() {
-			receiverName = "Hôte";
-			receiverIP = commonIP;
-			receiverPort = intKeyboardInput("Entrez le numéro de port de l'hôte.");
-			identificationWords = new LinkedList<>();
-			identificationWords.add(Message.JOIN);
-			handler = new ClientHostHandler();
-		}
-
-		private int intKeyboardInput(String indication) {
-			while (true) {
-				if (indication != null) {
-					System.out.println(indication);
-				}
-				try {
-					return Integer.parseInt(reader.nextLine());
-				} catch (NumberFormatException e) {
-					System.err.println("Entier attendu !");
-				} catch (NoSuchElementException e) {
-					System.out.println("Au revoir !");
-					System.exit(0);
-				}
-			}
-		}
-		
 		/** Client <- Server */
 		class ClientServerHandler extends ReceiverHandler {
 			@Override
@@ -136,6 +107,35 @@ public class Client extends Entity {
 					break;
 				default:
 					unknownMessage();
+				}
+			}
+		}
+	}
+
+	/** Client -> Host */
+	private class HostCommunicator extends Communicator {
+		@Override
+		protected void setAttributes() {
+			receiverName = "Hôte";
+			receiverIP = commonIP;
+			receiverPort = intKeyboardInput("Entrez le numéro de port de l'hôte.");
+			identificationWords = new LinkedList<>();
+			identificationWords.add(Message.JOIN);
+			handler = new ClientHostHandler();
+		}
+
+		private int intKeyboardInput(String indication) {
+			while (true) {
+				if (indication != null) {
+					System.out.println(indication);
+				}
+				try {
+					return Integer.parseInt(reader.nextLine());
+				} catch (NumberFormatException e) {
+					System.err.println("Entier attendu !");
+				} catch (NoSuchElementException e) {
+					System.out.println("Au revoir !");
+					System.exit(0);
 				}
 			}
 		}

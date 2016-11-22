@@ -38,6 +38,7 @@ public class TFSocket extends Socket {
 //		setSoTimeout(CONNECTED_DELAY); //TEST
 	}
 
+	// CHECK Vérifier que synchronized empêche les affichages d'overlap
 	public void send(String type, String[] args, String content) {
 		String before = "> Envoi : ";
 		if (Params.rawExpedition || Params.codedExpedition) {
@@ -87,7 +88,7 @@ public class TFSocket extends Socket {
 			System.out.println("Message reçu invalide !");
 			throw e;
 		} catch (BindException e) {
-			System.err.println("Socket serveur déjà en cours d'utilisation : " + remoteData() + ".");
+			System.err.println("IP ou port de connexion défini invalide : " + remoteData() + ".");
 			throw e;
 		} catch (SocketException e) {
 			System.err.println("Connexion non établie ou interrompue avec : " + remoteData() + ".");
