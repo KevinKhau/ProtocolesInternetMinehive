@@ -16,4 +16,7 @@ public class Params {
 	/** Afficher les messages codés pour expédition */
 	public static boolean codedExpedition = output && false;
 	
+	public static final String DIR_BIN = "TempusFinis";
+	public static final String DIR_LOG = "logs";
+	
 }

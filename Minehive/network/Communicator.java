@@ -1,9 +1,10 @@
 package network;
 
 import java.io.IOException;
+import java.net.BindException;
+import java.net.ConnectException;
 import java.net.InetAddress;
 import java.net.SocketException;
-import java.net.UnknownHostException;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
@@ -53,9 +54,21 @@ public abstract class Communicator implements Runnable {
 		} catch (NoSuchElementException e) {
 			e.printStackTrace();
 			disconnect();
-		} catch (IOException e) {
+		} catch (BindException e) {
+			System.err.println("IP ou port de connexion de " + receiverName + " défini invalide.");
 			disconnect();
+		} catch (ConnectException e) {
+			System.err.println(receiverName + " ne semble pas lancé.");
+			disconnect();
+		} catch (SocketException e) {
+			System.err.println("Connexion interrompue avec " + receiverName + ".");
+			disconnect();
+		} catch (IOException e) {
+			System.err.println("Communication impossible " + receiverName + ".");
+			disconnect();
+			e.printStackTrace();
 		}
+		
 	}
 	
 	@Override
@@ -148,6 +161,9 @@ public abstract class Communicator implements Runnable {
 				Communicator.this.wait(MAX_WAIT_TIME);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
+			}
+			if (waitingResponse) {
+				System.err.println("Pas de réponse de " + receiverName + ". Nouvelle tentative.");
 			}
 		}
 	}

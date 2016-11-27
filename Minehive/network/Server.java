@@ -5,8 +5,12 @@ import static util.PlayersManager.getPlayersFromXML;
 import static util.PlayersManager.writePlayer;
 
 import java.io.IOException;
-import java.net.BindException;
 import java.net.InetAddress;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.net.UnknownHostException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -48,6 +52,12 @@ public class Server extends Entity {
 
 	public Server() {
 		super("Serveur");
+		try {
+			serverIP = InetAddress.getLocalHost();
+		} catch (UnknownHostException e) {
+			System.err.println("IP du serveur invalide.");
+			System.exit(1);
+		}
 		new Thread(new ClientListener(serverIP, serverPort_Client)).start();
 		new Thread(new HostListener(serverIP, serverPort_Host)).start();
 	}
@@ -71,32 +81,6 @@ public class Server extends Entity {
 		}
 	}
 	
-	public void listen(InetAddress IP, int port, String senderName) {
-		try (TFServerSocket server = new TFServerSocket(port)) {
-			IP = InetAddress.getLocalHost();
-			System.out.println("Lancement serveur : IP=" + IP + ", port=" + port + ".");
-			while (true) {
-				if (senderName.equals(Host.NAME)) {
-					new Thread(new HostHandler(server.accept())).start();
-				} else if (senderName.equals(Client.NAME)) {
-					new Thread(new ClientHandler(server.accept())).start();
-				} else {
-					System.err.println("Nom d'entité à accueillir invalide");
-					break;
-				}
-			}
-		} catch (BindException e) {
-			System.err.println("Socket serveur déjà en cours d'utilisation.");
-		} catch (IllegalArgumentException e) {
-			System.err.println("Valeur de port invalide, doit être entre 0 et 65535.");
-			e.printStackTrace();
-		} catch (IOException e) {
-			System.err.println("Problème de traitement de la socket : port=" + port + ".");
-			System.err.println("Port occupé ?");
-			e.printStackTrace();
-		}
-	}
-
 	public synchronized boolean addAvailable(Player player, ClientHandler handler) {
 		if (!isFull()) {
 			ClientHandler h = available.get(player);
@@ -201,6 +185,7 @@ public class Server extends Entity {
 				users.put(username, player);
 				writePlayer(player);
 				socket.send(Message.IDOK, null, "Bienvenue " + username + " !");
+				return;
 			}
 			player = (Player) senderData;
 			/* Mauvais mot de passe */
@@ -269,16 +254,14 @@ public class Server extends Entity {
 
 		private synchronized void sendAvailable(Message msg) {
 			socket.send(Message.LANB, new String[] { String.valueOf(available.size()) });
-			for (Player p : available.keySet()) {
-				socket.send(Message.AVAI, new String[] { p.username, String.valueOf(p.totalPoints) });
-			}
+			available.keySet().forEach(
+					p -> socket.send(Message.AVAI, new String[] { p.username, String.valueOf(p.totalPoints) }));
 		}
 
 		private synchronized void sendUsers(Message msg) {
 			socket.send(Message.LUNB, new String[] { String.valueOf(users.size()) });
-			for (Player p : users.values()) {
-				socket.send(Message.USER, new String[] { p.username, String.valueOf(p.totalPoints) });
-			}
+			users.values().forEach(
+					p -> socket.send(Message.USER, new String[] { p.username, String.valueOf(p.totalPoints) }));
 		}
 
 		private void createMatch(Message msg) {
@@ -293,13 +276,19 @@ public class Server extends Entity {
 				socket.send(Message.NWNO, null, e.getMessage());
 			}
 			hostsDataHelper.put(hd.name, hd);
-			// Runtime -> java [Host path] serverIP serverPort hd.getName()
-			// hd.getIP() hd.getPort() // ASAP Lancer programme externe
-			
+			try {
+				// Runtime -> java [Host path] serverIP serverPort hd.getName()
+				// hd.getIP() hd.getPort() // ASAP Lancer programme externe
+				launchHost(hd);
+			} catch (Exception e) {
+				e.printStackTrace();
+				socket.send(Message.NWNO, null, "Problème technique : Le serveur n'a pas pu lancer un Host");
+				hostsDataHelper.remove(hd.name);
+				return;
+			}
 			String[] sendArgs = new String[] { hd.getIP().toString(), String.valueOf(hd.getPort()) };
 			// FUTURE corriger après dev future
-			socket.send(Message.NWOK, sendArgs,
-					"Votre partie a été créée. Mais n'y allez pas encore (jeu à implémenter) !");
+			socket.send(Message.NWOK, sendArgs, "Votre partie a été créée.");
 
 			/* Aucun invité */
 			if (msg.getArgs() == null) {
@@ -309,21 +298,44 @@ public class Server extends Entity {
 			/* ALL : inviter tous les joueurs disponibles */
 			String arg1 = msg.getArg(0);
 			if (arg1 != null && arg1.equals(ALL)) {
-				for (ClientHandler h : available.values()) {
-					h.socket.send(Message.NWOK, sendArgs, player.username + " vous défie !");
-				}
+				available.values().forEach(h -> h.socket.send(Message.NWOK, sendArgs, player.username + " vous défie !"));
+				return;
 			}
 
 			/* Liste spécifique de joueurs invités */
-			for (String playerName : msg.getArgs()) {
+			Arrays.asList(msg.getArgs()).forEach(playerName -> {
 				Player p = users.get(playerName);
-				if (p == null) {
-					continue;
+				if (p != null) {
+					ClientHandler h = available.get(p);
+					if (h != null) {
+						h.socket.send(Message.NWOK, sendArgs, player.username + " vous défie !");
+					}
 				}
-				ClientHandler h = available.get(p);
-				if (h != null) {
-					h.socket.send(Message.NWOK, sendArgs, player.username + " vous défie !");
+			});
+		}
+		
+		/**
+		 * Lance un nouveau processus Hôte indépendant.
+		 * @param hostData
+		 */
+		private void launchHost(HostData hostData) throws NullPointerException {
+			try {
+				String dirPath = null;
+				URL[] dirPaths = ((URLClassLoader) Thread.currentThread().getContextClassLoader()).getURLs();
+				if (dirPaths == null || dirPaths.length == 0) {
+					dirPath = "DIR_BIN";
+				} else {
+					dirPath = dirPaths[0].getPath();
+					dirPath = dirPath.substring(1, dirPath.length());
 				}
+				Path hostJarPath = Paths.get(dirPath, Host.JAR_NAME);
+				String args = String.join(" ", serverIP.getHostAddress(), String.valueOf(serverPort_Host),
+						hostData.name, hostData.IP.getHostAddress(), String.valueOf(hostData.port));
+				System.out.println(args);
+				Runtime.getRuntime().exec("java -jar " + hostJarPath.toString() + " " + args);
+				System.out.println("Host should be launched.");
+			} catch (IOException e) {
+				e.printStackTrace();
 			}
 		}
 
@@ -362,8 +374,7 @@ public class Server extends Entity {
 				disconnect();
 				return;
 			}
-			// Pas besoin de vérifier qu'il y a de la place, c'est fait à la
-			// création du Host
+
 			Message message = socket.receive();
 			if (!message.getType().equals(Message.LOGI)) {
 				unknownMessage();

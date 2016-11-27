@@ -48,8 +48,7 @@ public final class PlayersManager {
 		} catch (JAXBException e) {
 			e.printStackTrace();
 		}
-
-		return null;
+		return new HashMap<>();
 	}
 
 	public static void savePlayersToXML(HashMap<String, Player> players) {

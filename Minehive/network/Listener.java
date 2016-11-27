@@ -19,13 +19,12 @@ public abstract class Listener implements Runnable {
 	@Override
 	public void run() {
 		try (TFServerSocket serverSocket = new TFServerSocket(port)) {
-			IP = InetAddress.getLocalHost();
 			System.out.println("Lancement serveur : IP=" + IP + ", port=" + port + ".");
 			while (true) {
 				listen(serverSocket);
 			}
 		} catch (BindException e) {
-			System.err.println("Socket serveur déjà en cours d'utilisation.");
+			System.err.println("Socket serveur déjà en cours d'utilisation : IP=" + IP + ", port=" + port + ".");
 		} catch (IllegalArgumentException e) {
 			System.err.println("Valeur de port invalide, doit être entre 0 et 65535.");
 			e.printStackTrace();

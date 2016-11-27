@@ -30,7 +30,7 @@ public class Client extends Entity {
 		while (true) {
 			// TODO proposer communication soit avec serveur, soit avec hôte
 			linkServer();
-			 linkHost();
+			linkHost();
 		}
 	}
 
@@ -45,7 +45,7 @@ public class Client extends Entity {
 	}
 
 	/** Client -> Server */
-	private class ServerCommunicator extends Communicator {
+	public class ServerCommunicator extends Communicator {
 		@Override
 		protected void setAttributes() {
 			receiverName = "Server";

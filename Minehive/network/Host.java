@@ -7,15 +7,22 @@ import java.io.IOException;
 import java.net.BindException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.FileHandler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import data.Player;
 import game.Board;
 import network.Communicator.State;
 import util.Message;
+import util.Params;
 import util.TFServerSocket;
 import util.TFSocket;
 
@@ -25,8 +32,9 @@ import util.TFSocket;
  */
 public class Host extends Entity {
 
+	public static final String JAR_NAME = "Host.jar";
 	public static final String NAME = "Hôte";
-
+	
 	public static final int MAX_PLAYERS = 10;
 
 	public static final int ACTIVE_DELAY = 30000;
@@ -47,56 +55,69 @@ public class Host extends Entity {
 
 	volatile Map<String, InGamePlayer> inGamePlayers = new ConcurrentHashMap<>();
 
+	static Logger launchLogger = Logger.getLogger("HostLaunch");
+	
 	private static void deny(String message) {
 		System.err.println(message);
 		System.err.println("Attendu : java Host serverIP serverPort hostName hostIP hostPort");
+		launchLogger.log(Level.SEVERE, message);
 		System.exit(1);
 	}
 
 	public static void main(String[] args) {
-		try { // TEST
-			if (args.length < 1) {
-				System.err.println("Paramètre port de connexion pour les clients attendu.");
-				System.exit(1);
-			}
-			new Host(InetAddress.getLocalHost(), 7777, "Partie_1", InetAddress.getLocalHost(), Integer.parseInt(args[0])); // TEST
-			//			new Host(null, 7777, "HostTest", InetAddress.getLocalHost(), 3333);
-		} catch (UnknownHostException e1) {
-			e1.printStackTrace();
+		try {
+			Path logPath = Paths.get(Params.DIR_BIN, Params.DIR_LOG, "HostLaunch" + "Log.xml");
+			launchLogger.addHandler(new FileHandler(logPath.toString()));
+		} catch (SecurityException | IOException e) {
+			e.printStackTrace();
 		}
-		//		if (args.length < 5) {
-		//			deny("Mauvais nombre d'arguments.");
-		//		}
-		//
-		//		InetAddress serverIP = null;
-		//		try {
-		//			serverIP = InetAddress.getByName(args[0]);
-		//		} catch (UnknownHostException e) {
-		//			deny("Paramètre n°1 invalide, adresse IP du serveur non reconnue.");
-		//		}
-		//
-		//		int serverPort = 0;
-		//		try {
-		//			serverPort = Integer.parseInt(args[1]);
-		//		} catch (NumberFormatException e) {
-		//			deny("Paramètre n°2 invalide, numéro de port du serveur attendu.");
-		//			return;
-		//		}
-		//
-		//		InetAddress hostIP = null;
-		//		try {
-		//			hostIP = InetAddress.getByName(args[0]);
-		//		} catch (UnknownHostException e) {
-		//			deny("Paramètre n°4 invalide, adresse IP d'hôte non reconnue.");
-		//		}
-		//
-		//		int hostPort = 0;
-		//		try {
-		//			hostPort = Integer.parseInt(args[4]);
-		//		} catch (NumberFormatException e) {
-		//			deny("Paramètre n°5 invalide, numéro de port libre d'hôte attendu");
-		//		}
-		//		new Host(serverIP, serverPort, args[2], hostIP, hostPort);
+//		try { // TEST
+//			if (args.length < 1) {
+//				System.err.println("Paramètre port de connexion pour les clients attendu.");
+//				System.exit(1);
+//			}
+//			new Host(InetAddress.getLocalHost(), 7777, "Partie_1", InetAddress.getLocalHost(), Integer.parseInt(args[0])); // TEST
+//			//			new Host(null, 7777, "HostTest", InetAddress.getLocalHost(), 3333);
+//		} catch (UnknownHostException e1) {
+//			e1.printStackTrace();
+//		}
+		
+		launchLogger.log(Level.SEVERE, Arrays.toString(args));
+		launchLogger.log(Level.CONFIG, "first");
+		System.out.println(String.join(" ", args));
+		if (args.length < 5) {
+			deny("Mauvais nombre d'arguments.");
+		}
+
+		InetAddress serverIP = null;
+		try {
+			serverIP = InetAddress.getByName(args[0]);
+		} catch (UnknownHostException e) {
+			deny("Paramètre n°1 invalide, adresse IP du serveur non reconnue.");
+		}
+
+		int serverPort = 0;
+		try {
+			serverPort = Integer.parseInt(args[1]);
+		} catch (NumberFormatException e) {
+			deny("Paramètre n°2 invalide, numéro de port du serveur attendu.");
+			return;
+		}
+
+		InetAddress hostIP = null;
+		try {
+			hostIP = InetAddress.getByName(args[0]);
+		} catch (UnknownHostException e) {
+			deny("Paramètre n°4 invalide, adresse IP d'hôte non reconnue.");
+		}
+
+		int hostPort = 0;
+		try {
+			hostPort = Integer.parseInt(args[4]);
+		} catch (NumberFormatException e) {
+			deny("Paramètre n°5 invalide, numéro de port libre d'hôte attendu");
+		}
+		new Host(serverIP, serverPort, args[2], hostIP, hostPort);
 	}
 
 	public Host(InetAddress serverIP, int serverPort, String name, InetAddress IP, int port) {

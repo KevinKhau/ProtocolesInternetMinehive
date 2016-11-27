@@ -10,11 +10,11 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.BindException;
+import java.net.ConnectException;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
-import java.util.List;
 
 public class TFSocket extends Socket {
 
@@ -90,8 +90,11 @@ public class TFSocket extends Socket {
 		} catch (BindException e) {
 			System.err.println("IP ou port de connexion défini invalide : " + remoteData() + ".");
 			throw e;
+		} catch (ConnectException e) {
+			System.err.println("L'entité de réception ne semble pas lancée.");
+			throw e;
 		} catch (SocketException e) {
-			System.err.println("Connexion non établie ou interrompue avec : " + remoteData() + ".");
+			System.err.println("Connexion interrompue avec : " + remoteData() + ".");
 			throw e;
 		} catch (IOException e) {
 			System.err.println("Communication impossible avec le client : " + remoteData() + ".");
