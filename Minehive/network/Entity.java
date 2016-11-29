@@ -22,6 +22,7 @@ public abstract class Entity {
 		
 		this.LOGGER = Logger.getLogger(getClass().getSimpleName());
 		try {
+			Files.createDirectories(Paths.get(Params.DIR_BIN, Params.DIR_LOG));
 			DateFormat dateFormat = new SimpleDateFormat("yyyyMMdd-HHmmss");
 			Date date = new Date();
 			Path logPath = Paths.get(Params.DIR_BIN, Params.DIR_LOG, getClass().getSimpleName() + "Log" + dateFormat.format(date) + ".xml");
