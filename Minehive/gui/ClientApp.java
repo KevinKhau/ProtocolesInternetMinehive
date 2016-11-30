@@ -1,5 +1,7 @@
 package gui;
 
+import java.net.Socket;
+
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
@@ -7,7 +9,7 @@ import network.Client;
 
 public class ClientApp extends Application {
 	private Stage primaryStage;
-	private Client client;
+	private ClientModel client;
 	//private BorderPane rootLayout;
 	
 	public static void main(String[] args) {
@@ -22,7 +24,7 @@ public class ClientApp extends Application {
 		primaryStage.setHeight(600);
 		
 		Login login = new Login(client);
-		Scene scene = new Scene(login.getUI());
+		Scene scene = new Scene(login);
 		primaryStage.setScene(scene);		
 	}
 

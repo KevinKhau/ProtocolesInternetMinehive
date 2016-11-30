@@ -39,8 +39,8 @@ public abstract class Communicator implements Runnable {
 
 	State state = State.OFFLINE;
 
-	volatile boolean waitingResponse = false;
-	volatile boolean running = true;
+	public volatile boolean waitingResponse = false;
+	public volatile boolean running = true;
 
 	TFSocket communicatorSocket;
 
@@ -92,9 +92,7 @@ public abstract class Communicator implements Runnable {
 	 * @return Message interprété par l'action utilisateur
 	 */
 	public Message input(String indication) {
-		return keyboardInput(indication); // FUTURE Changer en onClic()
-		// après
-		// implémentation interface graphique
+		return keyboardInput(indication);
 	}
 
 	/**
@@ -103,7 +101,7 @@ public abstract class Communicator implements Runnable {
 	 * @return Message valide
 	 */
 	private Message keyboardInput(String indication) {
-		while (true) {
+		while (running) {
 			if (indication != null) {
 				System.out.println(indication);
 			}
@@ -116,12 +114,13 @@ public abstract class Communicator implements Runnable {
 				System.exit(0);
 			}
 		}
+		return null;
 	}
 
 	/**
 	 * Tente de s'identifier auprès du destinataire
 	 */
-	protected void login() {
+	public void login() {
 		System.out.println("Tentative d'identification à " + receiverName + ".");
 		Message send = input(
 				"Envoyez un message d'identification à " + receiverName + ". Format : TYPE[#ARG]...[#Contenu] : ");
@@ -133,6 +132,9 @@ public abstract class Communicator implements Runnable {
 		}
 		communicatorSocket.send(send);
 		leaveOrWait(send.getType());
+	}
+	
+	public void login(String username, String password) {
 	}
 
 	protected void communicate() {

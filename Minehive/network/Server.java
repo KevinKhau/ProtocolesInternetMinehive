@@ -15,6 +15,8 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import javax.print.attribute.standard.MediaSize.NA;
+
 import data.HostData;
 import data.Player;
 import util.Message;
@@ -27,6 +29,8 @@ import util.TFSocket;
  */
 public class Server extends Entity {
 
+	public static final String NAME = "Server";
+	
 	InetAddress serverIP;
 	/** Port de réception pour les clients */
 	final int serverPort_Client = 5555;
@@ -51,7 +55,7 @@ public class Server extends Entity {
 	}
 
 	public Server() {
-		super("Serveur");
+		super(NAME);
 		try {
 			serverIP = InetAddress.getLocalHost();
 		} catch (UnknownHostException e) {

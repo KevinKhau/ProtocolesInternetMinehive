@@ -18,20 +18,16 @@ import javafx.scene.text.Font;
 import network.Client;
 import util.ColorUtils;
 
-public class Game {
-	@SuppressWarnings("unused")
-	private Client client;
-	private BorderPane layout;
+public class Game extends BorderPane {
+	private ClientModel client;
 	private ObservableList<Player> gameMembers;
 
-	@SuppressWarnings("unchecked")
-	public Game(Client client) {
-		this.client = client;
-		layout = new BorderPane();
+	public Game(ClientModel client2) {
+		this.client = client2;
 		
-		BoardUI canvaspane = new BoardUI(client);
+		BoardUI canvaspane = new BoardUI(client2);
 		canvaspane.setPadding(new Insets(0, 5, 10, 10));
-		layout.setCenter(canvaspane);
+		this.setCenter(canvaspane);
 		
 		HBox hbox = new HBox();
 		hbox.setPadding(new Insets(15, 12, 15, 12));
@@ -41,7 +37,7 @@ public class Game {
 		Label points = new Label("0");
 		points.setFont(new Font(20));
 	    hbox.getChildren().addAll(points_text, points);
-		layout.setTop(hbox);
+		this.setTop(hbox);
 
 		TableView<Player> table = new TableView<Player>();
 		table.setRowFactory(row -> new TableRow<Player>(){
@@ -71,7 +67,7 @@ public class Game {
 		table.getColumns().setAll(nameCol, pointsCol);
 		table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
 		table.resizeColumn(pointsCol, TableView.USE_COMPUTED_SIZE);
-		layout.setRight(table);
+		this.setRight(table);
 	}
 
 	private ObservableList<Player> getGameMembers() { // TODO
@@ -84,7 +80,4 @@ public class Game {
 		return list;
 	}
 
-	public Parent getUI() {
-		return layout;
-	}
 }

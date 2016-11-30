@@ -11,6 +11,8 @@ public class Client extends Entity {
 
 	public static final String NAME = "Client";
 	public static InetAddress commonIP;
+	
+	public Communicator communicator;
 
 	public static void main(String[] args) {
 		new Client();
@@ -19,36 +21,126 @@ public class Client extends Entity {
 
 	public Client() {
 		super(NAME);
-		try {
-			commonIP = InetAddress.getLocalHost();
-			/* TEST pour tester avec d'autres machines */
-			// destIP = InetAddress.getByName("192.168.137.67");
-		} catch (UnknownHostException e) {
-			System.err.println("IP introuvable.");
-			System.exit(1);
-		}
+		setAddress();
+		/* TEST pour tester avec d'autres machines */
+		// destIP = setAddress("192.168.137.67");
 		while (true) {
 			// TODO proposer communication soit avec serveur, soit avec hôte
 			linkServer();
 			linkHost();
 		}
 	}
-
+	
+	public void setAddress() {
+		try {
+			commonIP = InetAddress.getLocalHost();
+		} catch (UnknownHostException e) {
+			System.err.println("IP introuvable.");
+			System.exit(1);
+		}
+	}
+	
+	public void setAddress(String address) {
+		try {
+			commonIP = InetAddress.getByName(address);
+		} catch (UnknownHostException e) {
+			System.err.println("IP introuvable.");
+			System.exit(1);
+		}
+	}
+	
 	public void linkServer() {
 		System.out.println("Client - Serveur");
-		new ServerCommunicator().run();
+		communicator = new ServerCommunicator();
+		communicator.run();
 	}
 
 	public void linkHost() {
 		System.out.println("Client - Hôte");
-		new HostCommunicator().run();
+		communicator = new HostCommunicator();
+		communicator.run();
 	}
 
+	public void linkGUIServer() {
+		System.out.println("GUI Client - Serveur");
+		communicator = new GUIServerCommunicator();
+		communicator.run();
+	}
+	
+	public class GUIServerCommunicator extends Communicator {
+		
+		@Override
+		protected void setAttributes() {
+			receiverName = Server.NAME;
+			receiverPort = 5555;
+			handler = new ClientServerHandler();
+		}
+		
+		@Override
+		public void login(String username, String password) {
+			communicatorSocket.send(Message.REGI, new String[]{username, password});
+			waitResponse();
+		}
+		
+		class ClientServerHandler extends ReceiverHandler {
+			@Override
+			protected void handleMessage(Message reception) {
+				switch (reception.getType()) {
+				/* REGI */
+				case Message.IDOK:
+					System.out.println("Identification au serveur établie !");
+					state = State.IN;
+					wakeCommunicator();
+					break;
+				case Message.IDNO:
+					System.out.println("Identification échouée.");
+				case Message.IDIG:
+					wakeCommunicator();
+					break;
+
+				/* LS?? */
+				case Message.LMNB:
+				case Message.LANB:
+				case Message.LUNB:
+					count = reception.getArgAsInt(0);
+					if (count == 0) {
+						wakeCommunicator();
+					}
+					break;
+				case Message.MATC:
+				case Message.AVAI:
+				case Message.USER:
+					wakeCommunicator();
+					break;
+
+				/* NWMA */
+				case Message.NWOK:
+				case Message.FULL:
+				case Message.NWNO:
+					wakeCommunicator();
+					break;
+
+				case Message.KICK:
+					System.out.println("Éjecté par le serveur.");
+					disconnect();
+					break;
+
+				case Message.IDKS:
+					System.out.println(receiverName + " reste béant : '" + reception + "'.");
+					wakeCommunicator();
+					break;
+				default:
+					unknownMessage();
+				}
+			}
+		}
+	}
+	
 	/** Client -> Server */
 	public class ServerCommunicator extends Communicator {
 		@Override
 		protected void setAttributes() {
-			receiverName = "Server";
+			receiverName = Server.NAME;
 			receiverIP = commonIP;
 			receiverPort = 5555;
 			identificationWords = new LinkedList<>();

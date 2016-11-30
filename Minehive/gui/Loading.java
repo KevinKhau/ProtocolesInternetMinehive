@@ -14,14 +14,12 @@ import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 import network.Client;
 
-public class Loading {
-	private Client client;
-	private StackPane layout;
+public class Loading extends StackPane {
+	private ClientModel client;
 
-	public Loading(Client client) {
-		this.client = client;
-		layout = new StackPane();
-		layout.setAlignment(Pos.CENTER);
+	public Loading(ClientModel client2) {
+		this.client = client2;
+		this.setAlignment(Pos.CENTER);
 
 		ProgressIndicator p = new ProgressIndicator();
 		p.setMaxWidth(100);
@@ -29,16 +27,12 @@ public class Loading {
 		
 		Label label = new Label("Loading");
 
-		layout.getChildren().add(p);
-		layout.getChildren().add(label);
+		this.getChildren().add(p);
+		this.getChildren().add(label);
 
 		Task<Void> task = new Task<Void>() {
 			@Override
 			protected Void call() throws Exception {
-				//while(true) {
-				// Wait for client to load everything
-				Thread.sleep(200);
-				//}
 				
 				Platform.runLater(new Runnable() {
 					@Override public void run() {
@@ -62,13 +56,13 @@ public class Loading {
 	}
 
 	public Parent getUI() {
-		return layout;
+		return this;
 	}
 
 	protected void startGame() {
-		Stage app = (Stage) layout.getScene().getWindow();
+		Stage app = (Stage) this.getScene().getWindow();
 	    Game game = new Game(client);
-	    Scene scene = new Scene(game.getUI());
+	    Scene scene = new Scene(game);
 	    app.setScene(scene);
 	    app.show();
 	}
@@ -76,9 +70,9 @@ public class Loading {
 	protected void error(String message) {
 		Dialog.error("Error", "An error occured", message);
 		
-		Stage app = (Stage) layout.getScene().getWindow();
+		Stage app = (Stage) this.getScene().getWindow();
 	    Login login = new Login(client);
-	    Scene scene = new Scene(login.getUI());
+	    Scene scene = new Scene(login);
 	    app.setScene(scene);
 	    app.show();
 	}
