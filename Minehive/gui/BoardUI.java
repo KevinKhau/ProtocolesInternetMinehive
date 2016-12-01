@@ -23,15 +23,15 @@ public class BoardUI extends Pane {
 	private GraphicsContext board_gc;
 	private GraphicsContext ui_gc;
 
-	private ClientModel client;
+	private ClientApp client;
 	private int tile_size;
 	private int gap;
 	private Color array[];
 	private Board game;
 	private Flags flags;
 
-	public BoardUI(ClientModel client2) {
-		this.client = client2;
+	public BoardUI(ClientApp clientApp) {
+		this.client = clientApp;
 		game = new Board();
 		game.reset();
 

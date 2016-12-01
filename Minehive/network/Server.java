@@ -281,8 +281,6 @@ public class Server extends Entity {
 			}
 			hostsDataHelper.put(hd.name, hd);
 			try {
-				// Runtime -> java [Host path] serverIP serverPort hd.getName()
-				// hd.getIP() hd.getPort() // ASAP Lancer programme externe
 				launchHost(hd);
 			} catch (Exception e) {
 				e.printStackTrace();

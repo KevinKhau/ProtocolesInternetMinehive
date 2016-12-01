@@ -19,13 +19,13 @@ import network.Client;
 import util.ColorUtils;
 
 public class Game extends BorderPane {
-	private ClientModel client;
+	private ClientApp app;
 	private ObservableList<Player> gameMembers;
 
-	public Game(ClientModel client2) {
-		this.client = client2;
+	public Game(ClientApp clientApp) {
+		this.app = clientApp;
 		
-		BoardUI canvaspane = new BoardUI(client2);
+		BoardUI canvaspane = new BoardUI(clientApp);
 		canvaspane.setPadding(new Insets(0, 5, 10, 10));
 		this.setCenter(canvaspane);
 		

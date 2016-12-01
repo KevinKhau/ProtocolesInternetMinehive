@@ -4,6 +4,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 
 import javafx.application.Platform;
+import javafx.concurrent.Task;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Label;
@@ -14,11 +15,18 @@ import javafx.stage.Stage;
 
 public class Dialog {
 	public static void error(String title, String header, String text) {
-		Alert alert = new Alert(AlertType.ERROR);
-		alert.setTitle(title);
-		alert.setHeaderText(header);
-		alert.setContentText(text);
-		alert.showAndWait();
+		Task<Void> task = new Task<Void>() {
+			@Override
+			protected Void call() throws Exception {
+				Alert alert = new Alert(AlertType.ERROR);
+				alert.setTitle(title);
+				alert.setHeaderText(header);
+				alert.setContentText(text);
+				alert.showAndWait();
+				return null;
+			}
+		};
+		new Thread(task).start();
 	}
 	
 	public static void warning(String title, String header, String text) {
@@ -29,12 +37,12 @@ public class Dialog {
 		alert.showAndWait();
 	}
 	
-	public static void exception(Exception e) {
+	public static void exception(Exception e, String message) {
 		Alert alert = new Alert(AlertType.ERROR);
-		alert.setTitle("Exception Error");
-		alert.setHeaderText("An exception occured");
+		alert.setTitle("Exception");
+		alert.setHeaderText(e.getClass().getCanonicalName());
 		
-		alert.setContentText(e.getMessage());
+		alert.setContentText(message);
 
 		StringWriter writer = new StringWriter();
 		PrintWriter printer = new PrintWriter(writer);

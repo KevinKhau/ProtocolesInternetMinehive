@@ -1,6 +1,5 @@
 package gui;
 
-import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
@@ -17,27 +16,25 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
-import network.Client;
-import util.TFSocket;
+import network.ClientController;
 
 public class Login extends GridPane {
-	private ClientModel client;
+	private ClientApp app;
+	private ClientController controller;
 	private String err;
 	private TextField username;
 	private PasswordField password;
 	private TextField inetAddress;
 	
-	private TFSocket socket;
-
-	public Login(ClientModel client) {
-		this.client = client;
-
+	public Login(ClientApp clientApp) {
+		this.app = clientApp;
+		
 		err = "";
 
 		this.setAlignment(Pos.CENTER);
 		this.setVgap(4);
 
-		Text title = new Text("Title");
+		Text title = new Text("Connection to Minehive Server");
 		title.setFont(Font.font(20));
 		this.add(title, 0, 0);
 		GridPane.setHalignment(title, HPos.CENTER);
@@ -64,68 +61,33 @@ public class Login extends GridPane {
 
 		inetAddress.setText("localhost"); // TEST
 		username.setText("Kevin");
-		password.setText("Khau");
+		password.setText("Khauf");
 
 		button.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent e) {
-				if (inetAddress.getText().trim().isEmpty()) {
-					Dialog.warning("IP address", "IP adress missing", "Please enter an IP address");
-					return;
-				}
-				if (username.getText().trim().isEmpty()) {
-					Dialog.warning("Username", "Username missing", "Please enter your name");
-					return;
-				}
-				if (password.getText().trim().isEmpty()) {
-					Dialog.warning("Password", "Password missing", "Please enter your password");
-					return;
-				}
-				if (isValidLogin() ) {
+				if (!emptyFields()) {
 					// Switch ClientApp scene to ServerApp
-					Stage app = (Stage) ((Node) e.getSource()).getScene().getWindow();
-					Loading loading = new Loading(client);
-					Scene scene = new Scene(loading.getUI());
-					app.setScene(scene);
-					app.show();
-				} else {
-					// Display error dialog
-					Dialog.error("Login Error", "Couldn't login properly.", err);
+					app.joinServer(inetAddress.getText(), 5555, username.getText(), password.getText());
 				}
 			}
 		});
 	}
-
-	protected boolean isValidLogin() {
-		// if (client.login(username.getText(), password.getText())) {
-		if (username.getText().trim().equals("Tomek") && password.getText().trim().equals("password")
-				&& inetAddress.getText().trim().equals("localhost")) {
-			return true;
-		} else {
-			if (!inetAddress.getText().trim().equals("localhost")) {
-				err = "Could not reach server.";
-			} else {
-				err = "Bad password";
-			}
-			return false;
-		}
-	}
-
-	private boolean connect() {
-		InetAddress IP = null;
-		try {
-			IP = InetAddress.getByName(inetAddress.getText());
-		} catch (UnknownHostException e) {
-			Dialog.error("Connection Error", "IP introuvable.", err);
-			return false;
-		}
-		try {
-			socket = new TFSocket(IP, 5555);
-		} catch (IOException e) {
-			Dialog.error("Connection Error", "Serveur injoignable.", err);
-			return false;
-		}
-		return true;
-	}
 	
+	private boolean emptyFields() {
+		if (inetAddress.getText().trim().isEmpty()) {
+			Dialog.warning("IP address", "IP adress missing", "Please enter an IP address");
+			return true;
+		}
+		if (username.getText().trim().isEmpty()) {
+			Dialog.warning("Username", "Username missing", "Please enter your name");
+			return true;
+		}
+		if (password.getText().trim().isEmpty()) {
+			Dialog.warning("Password", "Password missing", "Please enter your password");
+			return true;
+		}
+		return false;
+	}
+
 }

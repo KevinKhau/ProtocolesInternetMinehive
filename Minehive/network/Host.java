@@ -511,7 +511,7 @@ public class Host extends Entity {
 		}
 
 		@Override
-		protected void login() {
+		public void login() {
 			Message m = new Message(Message.LOGI, new String[] { name }, null);
 			waitingRequest = false;
 			waitingResponse = true;
