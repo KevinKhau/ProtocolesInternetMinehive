@@ -12,10 +12,10 @@ import java.net.UnknownHostException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
-import javax.print.attribute.standard.MediaSize.NA;
 
 import data.HostData;
 import data.Player;
@@ -30,7 +30,7 @@ import util.TFSocket;
 public class Server extends Entity {
 
 	public static final String NAME = "Server";
-	
+
 	InetAddress serverIP;
 	/** Port de réception pour les clients */
 	final int serverPort_Client = 5555;
@@ -47,7 +47,9 @@ public class Server extends Entity {
 	Map<HostData, SenderHandler> hosts = new ConcurrentHashMap<>();
 
 	Map<Player, HostData> inGame = new ConcurrentHashMap<>();
-
+	
+	Map<String, Player> kickedHelper = new ConcurrentHashMap<>();
+	
 	public static final int ACTIVE_DELAY = 300000;
 
 	public static void main(String[] args) {
@@ -65,7 +67,7 @@ public class Server extends Entity {
 		new Thread(new ClientListener(serverIP, serverPort_Client)).start();
 		new Thread(new HostListener(serverIP, serverPort_Host)).start();
 	}
-	
+
 	public class ClientListener extends Listener {
 		public ClientListener(InetAddress IP, int port) {
 			super(IP, port);
@@ -84,13 +86,14 @@ public class Server extends Entity {
 			new Thread(new HostHandler(serverSocket.accept())).start();
 		}
 	}
-	
-	public synchronized boolean addAvailable(Player player, ClientHandler handler) {
-		if (!isFull()) {
+
+	public boolean addAvailable(Player player, ClientHandler handler) {
+		if (!isFull() || available.containsKey(player)) {
 			ClientHandler h = available.get(player);
 			if (h != null) {
 				h.kick();
 			}
+			/* TODO Thread-safe. Risque de remove par SenderHandler#disconnect() après ce put */
 			available.put(player, handler);
 			return true;
 		}
@@ -113,7 +116,7 @@ public class Server extends Entity {
 	 */
 	public ClientHandler getHandler(String username) {
 		if (username == null) {
-			System.err.println("Message anormale reçu. Nom de joueur requis.");
+			System.err.println("Message anormal reçu. Nom de joueur requis.");
 			return null;
 		}
 		Player p = users.get(username);
@@ -279,6 +282,9 @@ public class Server extends Entity {
 			} catch (IOException e) {
 				socket.send(Message.NWNO, null, e.getMessage());
 			}
+			if (senderData.permission == false) {
+				socket.send(Message.NWNO, null, "Vous avez déjà créé une partie. Veuillez attendre qu'elle se termine.");
+			}
 			hostsDataHelper.put(hd.name, hd);
 			try {
 				launchHost(hd);
@@ -289,8 +295,8 @@ public class Server extends Entity {
 				return;
 			}
 			String[] sendArgs = new String[] { hd.getIP().toString(), String.valueOf(hd.getPort()) };
-			// FUTURE corriger après dev future
 			socket.send(Message.NWOK, sendArgs, "Votre partie a été créée.");
+			senderData.permission = false;
 
 			/* Aucun invité */
 			if (msg.getArgs() == null) {
@@ -315,7 +321,7 @@ public class Server extends Entity {
 				}
 			});
 		}
-		
+
 		/**
 		 * Lance un nouveau processus Hôte indépendant.
 		 * @param hostData
@@ -348,12 +354,15 @@ public class Server extends Entity {
 		public void kick() {
 			socket.send(Message.KICK);
 			disconnect();
+			kickedHelper.put(senderData.name, (Player) senderData);
 		}
 
 		@Override
 		protected void removeEntityData() {
 			if (senderData != null) {
-				available.remove(senderData);
+				if (kickedHelper.remove(senderData.name) == null) {
+					available.remove(senderData);
+				}
 			}
 		}
 
@@ -449,8 +458,6 @@ public class Server extends Entity {
 				PlayersManager.writePlayer(p2);
 				break;
 			case Message.ENDS:
-				hostsDataHelper.remove(senderData.name);
-				hosts.remove(senderData);
 				disconnect();
 				break;
 			case Message.IDKH:
@@ -491,6 +498,16 @@ public class Server extends Entity {
 		@Override
 		protected void unknownMessage() {
 			socket.send(Message.IDKS, null, "Commande inconnue ou pas encore implémentée");
+		}
+		
+		@Override
+		protected void disconnect() {
+			hostsDataHelper.remove(senderData.name);
+			hosts.remove(senderData);
+			senderData.permission = true;
+			running = false;
+			removeEntityData();
+			socket.close();
 		}
 
 	}

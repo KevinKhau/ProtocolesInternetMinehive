@@ -35,8 +35,7 @@ abstract class SenderHandler extends Thread {
 				try {
 					rcv = socket.receive();
 				} catch (IllegalArgumentException e) {
-					System.err.println(e.getMessage() + ", fin de la connexion");
-					disconnect();
+					System.err.println(e.getMessage() + ". Fin de la connexion.");
 					return;
 				}
 				System.out.println(rcv);
@@ -77,7 +76,7 @@ abstract class SenderHandler extends Thread {
 	 * Autorise la Thread à s'arrêter, enlève le Player correspondant de Thread
 	 * s'il existe. Ferme la socket et les streams associés.
 	 */
-	protected synchronized void disconnect() {
+	protected void disconnect() {
 		running = false;
 		removeEntityData();
 		socket.close();

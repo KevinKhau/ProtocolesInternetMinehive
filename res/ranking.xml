@@ -1,9 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <ranking>
-    <player username="Anas" password="Aarab">
-        <name>Joueur</name>
-        <points>0</points>
-    </player>
     <player username="Kevin" password="Khau">
         <name>Joueur</name>
         <points>40</points>
@@ -39,9 +35,5 @@
     <player username="Helmi" password="Zegaya">
         <name>Joueur</name>
         <points>100</points>
-    </player>
-    <player username="Kev" password="Kh">
-        <name>Joueur</name>
-        <points>0</points>
     </player>
 </ranking>

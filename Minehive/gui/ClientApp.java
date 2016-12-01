@@ -36,6 +36,7 @@ public class ClientApp extends Application {
 	Login login;
 	Loading loading;
 	ServerView serverView;
+	Game hostView;
 	
 	String username;
 	String password;
@@ -51,9 +52,7 @@ public class ClientApp extends Application {
 		primaryStage.setWidth(800);
 		primaryStage.setHeight(600);
 
-		login = new Login(this);
-		Scene scene = new Scene(login);
-		primaryStage.setScene(scene);
+		displayLogin();
 	}
 
 	@Override
@@ -84,6 +83,17 @@ public class ClientApp extends Application {
 			new Thread(serverHandler).start();
 			loginServer(username, password);
 		}
+	}
+	
+	public void displayLogin() {
+		login = new Login(this);
+		Scene scene = new Scene(login);
+		primaryStage.setScene(scene);
+	}
+	
+	public void delayedLogin() {
+		SceneSetter ss = new SceneSetter(primaryStage, new Login(this));
+		new Thread(ss).start();
 	}
 	
 	public boolean connectServer(String IPName, int port) {
@@ -135,6 +145,10 @@ public class ClientApp extends Application {
 		socket.send(Message.LSAV);
 	}
 	
+	public void createMatch() {
+		socket.send(Message.NWMA, new String[]{Server.ALL});
+	}
+	
 	class ServerHandler implements Runnable {
 		
 		String receiverName = Server.NAME;
@@ -146,8 +160,9 @@ public class ClientApp extends Application {
 					Message rcv = socket.receive();
 					System.out.println(rcv);
 					handleMessage(rcv);
-				} catch (IOException e) {
+				} catch (IOException | IllegalArgumentException e) {
 					disconnect();
+					System.err.println(e.getMessage() + " : " + "Connection with Server lost");
 					Dialog.delayedException(e, "Connection with Server lost");
 				}
 			}
@@ -166,7 +181,7 @@ public class ClientApp extends Application {
 				System.out.println("Identification échouée.");
 			case Message.IDIG:
 				loading.previous();
-				Dialog.error("Error", "An error occured", reception.getContent());
+				Dialog.error("Server response", "Already in-game", reception.getContent());
 				break;
 
 			/* LS?? */
@@ -190,12 +205,15 @@ public class ClientApp extends Application {
 
 			/* NWMA */
 			case Message.NWOK:
+				listMatches();
+				break;
 			case Message.FULL:
 			case Message.NWNO:
 				break;
 
 			case Message.KICK:
-				System.out.println("Éjecté par le serveur.");
+				/* FIXME pas d'effet */
+				Dialog.error("Kicked by server", "Kicked by server", reception.getContent());
 				disconnect();
 				break;
 
@@ -213,8 +231,22 @@ public class ClientApp extends Application {
 			if (socket != null) {
 				socket.close();
 			}
+			delayedLogin();
 		}
 		
+	}
+	
+	public void joinHost(String IP, int port) {
+		this.login = new Login(this);
+		this.hostView = new Game(this);
+		loading = new Loading(this, hostView, login);
+		primaryStage.setScene(new Scene(loading));
+		primaryStage.show();
+		if (connectHost(IP, port)) {
+			hostHandler = new HostHandler();
+			new Thread(hostHandler).start();
+			loginServer(username, password);
+		}
 	}
 	
 }

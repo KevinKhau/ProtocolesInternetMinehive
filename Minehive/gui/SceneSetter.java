@@ -8,25 +8,30 @@ import javafx.stage.Stage;
 
 public class SceneSetter extends Task<Void> {
 
-	Parent current;
+	Stage stage;
 	Parent next;
 
 	public SceneSetter(Parent current, Parent next) {
 		super();
-		this.current = current;
+		this.stage = (Stage) current.getScene().getWindow();
 		this.next = next;
 	}
-
+	
+	public SceneSetter(Stage stage, Parent next) {
+		super();
+		this.stage = stage;
+		this.next = next;
+	}
+	
 	@Override
 	protected Void call() throws Exception {
 
 		Platform.runLater(new Runnable() {
 			@Override
 			public void run() {
-				Stage app = (Stage) current.getScene().getWindow();
 				Scene scene = new Scene(next);
-				app.setScene(scene);
-				app.show();
+				stage.setScene(scene);
+				stage.show();
 			}
 		});
 

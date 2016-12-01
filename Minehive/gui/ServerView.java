@@ -3,8 +3,6 @@ package gui;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.sun.prism.paint.Color;
-
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
@@ -13,10 +11,11 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.input.MouseButton;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
-import util.ColorUtils;
 import util.Message;
 
 public class ServerView extends BorderPane {
@@ -29,8 +28,23 @@ public class ServerView extends BorderPane {
 	
 	public ServerView(ClientApp app) {
 		this.app = app;
+		initTopButtons();
 		initHosts();
 		initUsers();
+	}
+	
+	private void initTopButtons() {
+		final Button createMatch = new Button("New Match");
+		createMatch.setOnAction(e -> {
+			app.createMatch();
+		});
+		
+		final HBox buttons = new HBox();
+		buttons.setPadding(new Insets(0, 10, 10, 0));
+		
+		buttons.getChildren().addAll(createMatch);
+		
+		this.setTop(buttons);
 	}
 	
 	private void initHosts() {
@@ -46,7 +60,20 @@ public class ServerView extends BorderPane {
 		hosts.getColumns().add(nameColumn);
 		hosts.getColumns().add(completionColumn);
 		hosts.getColumns().add(playersColumn);
-
+		hosts.setRowFactory(row -> new TableRow<UIDetailedHostData>() {
+			@Override
+			public void updateItem(UIDetailedHostData item, boolean empty){
+				super.updateItem(item, empty);
+				if (!(item == null || empty)) {
+					setOnMousePressed(e -> {
+						if (e.getButton() == MouseButton.PRIMARY && e.getClickCount() == 2) {
+							System.out.println(item.IP + " " + item.port);
+						}
+					});
+				}
+			}
+		});
+		
 		Button refresh = new Button("Refresh matches");
 		refresh.setOnAction(e -> {
 			app.listMatches();
@@ -93,7 +120,7 @@ public class ServerView extends BorderPane {
 		
 		final VBox usersBox = new VBox();
 		usersBox.setAlignment(Pos.CENTER);
-		usersBox.setSpacing(5);
+		usersBox.setSpacing(2);
 		usersBox.setPadding(new Insets(10, 0, 0, 10));
 		usersBox.getChildren().addAll(label, users, refresh);
 		
