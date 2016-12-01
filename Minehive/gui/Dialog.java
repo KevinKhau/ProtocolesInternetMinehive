@@ -78,4 +78,15 @@ public class Dialog {
 		
 		alert.showAndWait();
 	}
+	
+	public static void delayedException(Exception e, String message) {
+		Task<Void> task = new Task<Void>() {
+			@Override
+			protected Void call() throws Exception {
+				Dialog.exception(e, "Connection with Server lost");
+				return null;
+			}
+		};
+		new Thread(task).start();
+	}
 }

@@ -8,6 +8,7 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 
 import javafx.application.Application;
+import javafx.concurrent.Task;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import network.Server;
@@ -29,11 +30,12 @@ public class ClientApp extends Application {
 	public volatile boolean waitingResponse = false;
 	public volatile boolean running = true;
 
-	// private BorderPane rootLayout;
 	public TFSocket socket;
+	ServerHandler serverHandler;
+
 	Login login;
 	Loading loading;
-	ServerHandler serverHandler;
+	ServerView serverView;
 	
 	String username;
 	String password;
@@ -72,7 +74,9 @@ public class ClientApp extends Application {
 	public void joinServer(String IP, int port, String username, String password) {
 		this.username = username;
 		this.password = password;
-		loading = new Loading(this, new Game(this), new Login(this));
+		this.login = new Login(this);
+		this.serverView = new ServerView(this);
+		loading = new Loading(this, serverView, login);
 		primaryStage.setScene(new Scene(loading));
 		primaryStage.show();
 		if (connectServer(IP, port)) {
@@ -119,6 +123,18 @@ public class ClientApp extends Application {
 		socket.send(Message.REGI, new String[] { username, password });
 	}
 	
+	public void listMatches() {
+		socket.send(Message.LSMA);
+	}
+	
+	public void listUsers() {
+		socket.send(Message.LSUS);
+	}
+	
+	public void listAvailable() {
+		socket.send(Message.LSAV);
+	}
+	
 	class ServerHandler implements Runnable {
 		
 		String receiverName = Server.NAME;
@@ -132,6 +148,7 @@ public class ClientApp extends Application {
 					handleMessage(rcv);
 				} catch (IOException e) {
 					disconnect();
+					Dialog.delayedException(e, "Connection with Server lost");
 				}
 			}
 		}
@@ -143,6 +160,7 @@ public class ClientApp extends Application {
 				System.out.println("Identification au serveur établie !");
 				serverState = ServerState.IN;
 				loading.next();
+				serverView.activate();
 				break;
 			case Message.IDNO:
 				System.out.println("Identification échouée.");
@@ -153,12 +171,21 @@ public class ClientApp extends Application {
 
 			/* LS?? */
 			case Message.LMNB:
+				serverView.clearHosts();
+				break;
 			case Message.LANB:
+				break;
 			case Message.LUNB:
+				serverView.clearUsers();
 				break;
 			case Message.MATC:
+				serverView.addHost(reception);
+				break;
 			case Message.AVAI:
+				serverView.addAvailable(reception);
+				break;
 			case Message.USER:
+				serverView.addUser(reception);
 				break;
 
 			/* NWMA */

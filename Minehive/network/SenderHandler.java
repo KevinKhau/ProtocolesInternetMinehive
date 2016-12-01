@@ -31,7 +31,14 @@ abstract class SenderHandler extends Thread {
 				addEntityData();
 			}
 			while (running) {
-				Message rcv = socket.receive();
+				Message rcv = null;
+				try {
+					rcv = socket.receive();
+				} catch (IllegalArgumentException e) {
+					System.err.println(e.getMessage() + ", fin de la connexion");
+					disconnect();
+					return;
+				}
 				System.out.println(rcv);
 				try {
 					handleMessage(rcv);

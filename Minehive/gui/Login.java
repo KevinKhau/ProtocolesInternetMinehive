@@ -61,7 +61,7 @@ public class Login extends GridPane {
 
 		inetAddress.setText("localhost"); // TEST
 		username.setText("Kevin");
-		password.setText("Khauf");
+		password.setText("Khau");
 
 		button.setOnAction(new EventHandler<ActionEvent>() {
 			@Override

@@ -484,6 +484,7 @@ public class Server extends Entity {
 		protected void removeEntityData() {
 			if (senderData != null) {
 				hosts.remove(senderData);
+				hostsDataHelper.remove(senderData.name);
 			}
 		}
 
