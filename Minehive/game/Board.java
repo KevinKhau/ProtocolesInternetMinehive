@@ -97,25 +97,6 @@ public class Board {
 	}
 
 	/**
-	 * Mettre à jour toute une ligne du tableau.
-	 * 
-	 * @param lineNumber
-	 * @param contents
-	 *            Les valeurs de chaque ordonnée de la ligne révélée. Si
-	 *            l'argument n'est pas un entier, alors la case n'est pas à
-	 *            révéler.
-	 */
-	public void updateLine(int lineNumber, String[] contents) {
-		for (int x = 0; x < contents.length; x++) {
-			try {
-				updateValueAt(x, lineNumber, Integer.parseInt(contents[x]));
-			} catch (NumberFormatException e) {
-				// THINK Alternative nécessaire ?
-			}
-		}
-	}
-	
-	/**
 	 * Mettre à jour une case du tableau. La case mise à jour est révélée 
 	 * Attention à bien affecter une case du tableau, et non une copie.
 	 * @param x
@@ -399,13 +380,13 @@ public class Board {
 		// Check for current square value
 		int value = valueFrom(board[position]);
 		
+		// ASAP Bug : cases == 0 non ajoutées
+		
 		if (value > 0) {
-			if (value == 0) {
-				list.add(x, y, value, Square.Points.EMPTY);
-			} else {
-				list.add(x, y, value, value);
-			}
+			list.add(x, y, value, value);
 			return;
+		} else if (value == 0) {
+			list.add(x, y, value, Square.Points.EMPTY);
 		}
 		
 		// Is empty, need to search adjacent squares
@@ -464,14 +445,14 @@ public class Board {
 		}
 	}
 	
-	public void draw(GraphicsContext gc, Color[] array, int tile, int gap) {
+	public void draw(GraphicsContext gc, Color[] colors, int tile, int gap) {
 		gc.setTextAlign(TextAlignment.CENTER);
 		gc.setTextBaseline(VPos.CENTER);
 		gc.setFont(new Font(tile));
 		
 		for (int i = 0; i < height; i++) {
 			for (int j = 0; j < width; j++) {
-				gc.setFill(array[j + i * width]);
+				gc.setFill(colors[j + i * width]);
 				gc.fillRect(j * (tile + gap), i * (tile + gap), tile, tile);
 				
 				if ((board[j + i * width] & HIDDEN_BIT) == 0) {

@@ -17,7 +17,8 @@ public class BoardUI extends Pane {
 	private static final Color HIDDEN = Color.GRAY;
 	private static final Color PRESSED = Color.rgb(0, 0, 0, 0.4);
 	private static final Color SELECTED = Color.rgb(255, 255, 255, 0.4);
-
+	private static final Color DEFAULT_REVEALED = Color.GHOSTWHITE;
+	
 	private final Canvas board;
 	private final Canvas ui;
 	private GraphicsContext board_gc;
@@ -26,7 +27,7 @@ public class BoardUI extends Pane {
 	private ClientApp app;
 	private int tile_size;
 	private int gap;
-	private Color array[];
+	private Color colors[];
 	private Board game;
 	private Flags flags;
 
@@ -49,8 +50,8 @@ public class BoardUI extends Pane {
 		tile_size = 0;
 		gap = 0;
 
-		array = new Color[game.height * game.width];
-		Arrays.fill(array, HIDDEN);
+		colors = new Color[game.height * game.width];
+		Arrays.fill(colors, HIDDEN);
 
 		initEvents();
 	}
@@ -63,26 +64,44 @@ public class BoardUI extends Pane {
 		ui_gc.clearRect(0, 0, ui.getWidth(), ui.getHeight());
 
 		if (!flags.exist(x, y)) {
-			if (array[x + y * game.width] == HIDDEN) {
-				ui_gc.setFill(PRESSED);
-				ui_gc.fillRect(x * (tile_size + gap), y * (tile_size + gap), tile_size, tile_size);
+			if (colors[x + y * game.width] == HIDDEN) {
+				tmpColor(x, y, PRESSED);
 			}
 		}
 	}
 
 	protected void selectAt(int x, int y) {
 		ui_gc.clearRect(0, 0, ui.getWidth(), ui.getHeight());
-		if (array[x + y * game.width] == HIDDEN) {
-			ui_gc.setFill(SELECTED);
-			ui_gc.fillRect(x * (tile_size + gap), y * (tile_size + gap), tile_size, tile_size);
+		if (colors[x + y * game.width] == HIDDEN) {
+			tmpColor(x, y, SELECTED);
 		}
+	}
+	
+	/**
+	 * Colorier temporairement une case
+	 * @param x
+	 * @param y
+	 * @param color
+	 */
+	private void tmpColor(int x, int y, Color color) {
+		ui_gc.setFill(color);
+		ui_gc.fillRect(x * (tile_size + gap), y * (tile_size + gap), tile_size, tile_size);
+	}
+	
+	/**
+	 * Rendre permanente la couleur d'une case
+	 * @param x
+	 * @param y
+	 * @param color
+	 */
+	private void permaColor(int x, int y, Color color) {
+		colors[x + y * Board.WIDTH] = color;
 	}
 
 	protected void clickAt(int x, int y) {
 		if (!flags.exist(x, y)) {
 			ui_gc.clearRect(0, 0, ui.getWidth(), ui.getHeight());
-			array[x + y * Board.WIDTH] = Color.RED;
-			redrawAt(x, y, Color.RED); // TODO ajuster color par celui qui a cliqué
+			permaColor(x, y, Color.RED); // TODO ajuster color par auteur
 			app.click(x, y);
 			drawBoard();
 		}
@@ -101,17 +120,12 @@ public class BoardUI extends Pane {
 	public void drawBoard() {
 		board_gc.clearRect(0, 0, board.getWidth(), board.getHeight());
 
-		game.draw(board_gc, array, tile_size, gap);
+		game.draw(board_gc, colors, tile_size, gap);
 		flags.draw(board_gc, tile_size, gap);
 	}
 
 	public void updateAt(int x, int y) {
 
-	}
-
-	private void redrawAt(int x, int y, Color color) {
-		board_gc.setFill(color);
-		board_gc.fillRect(x * (tile_size + gap), y * (tile_size + gap), tile_size, tile_size);
 	}
 
 	@Override
@@ -231,13 +245,28 @@ public class BoardUI extends Pane {
 	}
 	
 	public void revealSquare(int x, int y, int content) {
+		permaColor(x, y, DEFAULT_REVEALED);
 		game.updateValueAt(x, y, content);
-		// TODO set color discovered
 		drawBoard();
 	}
 	
+	/**
+	 * Mettre à jour toute une ligne du plateau.
+	 * 
+	 * @param lineNumber
+	 * @param contents
+	 *            Les valeurs de chaque ordonnée de la ligne révélée. Si
+	 *            l'argument n'est pas un entier, alors la case n'est pas à
+	 *            révéler.
+	 */
 	public void revealLine(int lineNumber, String[] contents) {
-		game.updateLine(lineNumber, contents);
+		for (int x = 0; x < contents.length; x++) {
+			try {
+				revealSquare(x, lineNumber, Integer.parseInt(contents[x]));
+			} catch (NumberFormatException e) {
+				// THINK Alternative nécessaire ?
+			}
+		}
 	}
 }
 

@@ -29,6 +29,7 @@ import util.TFSocket;
 /**
  * Hôte lancé par le serveur
  */
+// ASAP Client Handler sûrement non détaché de l'hôte après déconnexion, ce qui empêche reconnexion
 public class Host extends Entity {
 
 	public static final String JAR_NAME = "Host.jar";
