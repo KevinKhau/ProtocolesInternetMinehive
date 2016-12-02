@@ -44,8 +44,12 @@ public class Player extends EntityData {
 		this.totalPoints = points;
 	}
 	
-	public void setPoints(int points) {
+	public synchronized void setTotalPoints(int points) {
 		this.totalPoints = points;
+	}
+	
+	public synchronized void incTotalPoints(int supp) {
+		totalPoints += supp;
 	}
 	
 	public void setUsername(String username) {

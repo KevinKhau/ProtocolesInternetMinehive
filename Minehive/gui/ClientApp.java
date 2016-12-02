@@ -42,7 +42,7 @@ public class ClientApp extends Application {
 	Login login;
 	Loading loading;
 	ServerView serverView;
-	Game hostView;
+	HostView hostView;
 	
 	String username;
 	String password;
@@ -227,7 +227,7 @@ public class ClientApp extends Application {
 				break;
 
 			case Message.KICK:
-				/* FIXME pas d'effet */
+				/* FIXME Certaines pop-ups ne s'affichent pas, pas d'effet */
 				Dialog.error("Kicked by server", "Kicked by server", reception.getContent());
 				disconnect();
 				break;
@@ -255,7 +255,7 @@ public class ClientApp extends Application {
 	
 	public void joinHost(String IP, int port) {
 		this.login = new Login(this);
-		this.hostView = new Game(this);
+		this.hostView = new HostView(this);
 		loading = new Loading(this, hostView, login);
 		try {
 			primaryStage.setScene(new Scene(loading));

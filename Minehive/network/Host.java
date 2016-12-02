@@ -84,7 +84,7 @@ public class Host extends Entity {
 			return;
 		}
 		
-		launchLogger.log(Level.SEVERE, Arrays.toString(args));
+		launchLogger.log(Level.WARNING, Arrays.toString(args));
 		launchLogger.log(Level.CONFIG, "first");
 		System.out.println(String.join(" ", args));
 		if (args.length < 5) {
@@ -182,7 +182,7 @@ public class Host extends Entity {
 				active = true;
 				synchronized (Host.this) {
 					multiplicator++;
-				} 
+				}
 			}
 		}
 
@@ -193,6 +193,18 @@ public class Host extends Entity {
 					multiplicator--;
 				} 
 			}
+		}
+		
+		public synchronized void incFoundMines() {
+			foundMines++;
+		}
+		
+		public synchronized void incSafeSquares() {
+			safeSquares++;
+		}
+		
+		public synchronized void incIGPoints(int supp) {
+			inGamePoints += supp;
 		}
 
 	}
@@ -266,6 +278,7 @@ public class Host extends Entity {
 					}
 
 					inGamePlayer.setActive();
+					inGamePlayer.handler = this;
 					sendGameState(inGamePlayer);
 					break;
 				}
@@ -340,7 +353,16 @@ public class Host extends Entity {
 				}
 
 				for (String[] line : allArgs) {
-					line[3] = valueOf(Integer.parseInt(line[3]) * multiplicator);
+					int value = Integer.parseInt(line[2]);
+					if (value < 0) {
+						inGamePlayer.incFoundMines();
+					} else {
+						inGamePlayer.incSafeSquares();
+					}
+					int points = Integer.parseInt(line[3]) * multiplicator;
+					inGamePlayer.incIGPoints(points);
+					inGamePlayer.incTotalPoints(points);
+					line[3] = valueOf(points);
 					for (InGamePlayer igp : inGamePlayers.values()) {
 						igp.handler.socket.send(Message.SQRD, line);
 					}
@@ -364,10 +386,11 @@ public class Host extends Entity {
 				inGamePlayer.setInactive();
 				LOGGER.info(inGamePlayer + " désormais inactif.");
 				for (InGamePlayer igp : inGamePlayers.values()) {
-					if (igp != inGamePlayer) {
-						igp.handler.socket.send(Message.DECO, new String[]{ inGamePlayer.name });
+					if (igp != inGamePlayer && igp.active) {
+						igp.handler.socket.send(Message.DECO, new String[]{ inGamePlayer.username });
 					}
 				}
+				inGamePlayer.handler = null;
 			}
 		}
 
