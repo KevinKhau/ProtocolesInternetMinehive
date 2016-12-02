@@ -65,7 +65,7 @@ public class Host extends Entity {
 
 	public static void main(String[] args) {
 		try {
-			Path logPath = Paths.get(Params.DIR_BIN, Params.DIR_LOG, "HostLaunch" + "Log.xml");
+			Path logPath = Paths.get(Params.DIR_BIN.toString(), Params.DIR_LOG.toString(), "HostLaunch" + "Log.xml");
 			launchLogger.addHandler(new FileHandler(logPath.toString()));
 		} catch (SecurityException | IOException e) {
 			e.printStackTrace();
@@ -152,7 +152,7 @@ public class Host extends Entity {
 		}
 	}
 
-	class InGamePlayer extends Player { // THINK Classe externe ?
+	class InGamePlayer extends Player {
 
 		public static final String NAME = "Jouer Actif";
 

@@ -22,10 +22,10 @@ public abstract class Entity {
 		
 		this.LOGGER = Logger.getLogger(getClass().getSimpleName());
 		try {
-			Files.createDirectories(Paths.get(Params.DIR_BIN, Params.DIR_LOG));
+			Files.createDirectories(Paths.get(Params.DIR_BIN.toString(), Params.DIR_LOG.toString()));
 			DateFormat dateFormat = new SimpleDateFormat("yyyyMMdd-HHmmss");
 			Date date = new Date();
-			Path logPath = Paths.get(Params.DIR_BIN, Params.DIR_LOG, getClass().getSimpleName() + "Log" + dateFormat.format(date) + ".xml");
+			Path logPath = Paths.get(Params.DIR_BIN.toString(), Params.DIR_LOG.toString(), getClass().getSimpleName() + "Log" + dateFormat.format(date) + ".xml");
 			LOGGER.addHandler(new FileHandler(logPath.toString()));
 		} catch (SecurityException | IOException e) {
 			e.printStackTrace();

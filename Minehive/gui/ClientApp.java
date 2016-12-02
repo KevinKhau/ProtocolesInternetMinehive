@@ -319,6 +319,9 @@ public class ClientApp extends Application {
 					System.out.println(rcv);
 					handleMessage(rcv);
 				} catch (IOException | IllegalArgumentException e) {
+					if (e instanceof IllegalArgumentException && !e.getMessage().equals("Message vide reçu.")) {
+						continue;
+					}
 					disconnect();
 					System.err.println(e.getMessage() + " : " + "Connection with Host lost");
 					Dialog.delayedException(e, "Connection with Host lost");
@@ -355,6 +358,7 @@ public class ClientApp extends Application {
 			case Message.IGPL:
 				hostView.addPlayer(reception.getArg(0), reception.getArgAsInt(1), reception.getArgAsInt(2),
 						reception.getArgAsInt(3), reception.getArgAsInt(4));
+				
 				break;
 			case Message.CONN:
 				hostView.addPlayer(reception.getArg(0), reception.getArgAsInt(1), reception.getArgAsInt(2),
@@ -370,6 +374,7 @@ public class ClientApp extends Application {
 						reception.getArgAsInt(3), reception.getArg(4));
 				break;
 
+				// FUTURE distinction entre déconnecté et inactif
 			/* Fin de partie */
 			case Message.ENDC:
 			case Message.SCPC:

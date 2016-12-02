@@ -1,5 +1,10 @@
 package util;
 
+import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+
 // FUTURE Configurer à partir d'un fichier parameters.properties
 /** Paramètres de configuration développeur */
 public class Params {
@@ -16,8 +21,11 @@ public class Params {
 	/** Afficher les messages codés pour expédition */
 	public static boolean codedExpedition = output && true;
 	
-	public static final String DIR_BIN = "TempusFinis";
-	public static final String DIR_LOG = "logs";
+	public static final Path DIR_BIN = Paths.get("TempusFinis");
+	public static final Path DIR_LOG = Paths.get("logs");
+	
+	public static final Path RES = Paths.get("res");
+	public static final Path MINE_EXPLOSION = Paths.get(RES.toString(), "chocobosound.wav");
 	
 	public static boolean DEBUG_HOST = true;
 	

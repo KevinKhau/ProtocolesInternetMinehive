@@ -27,7 +27,6 @@ public class UIInGamePlayer {
 	}
 
 	private static Color randomColor() {
-		Random r = new Random();
 		double clarity = 0.2;
 		return new Color(sub(clarity), sub(clarity), sub(clarity), 1);
 	}
