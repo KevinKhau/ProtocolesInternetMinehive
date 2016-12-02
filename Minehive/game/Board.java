@@ -379,8 +379,6 @@ public class Board {
 		// Check for current square value
 		int value = valueFrom(board[position]);
 		
-		// ASAP Bug : cases == 0 non ajoutées
-		
 		if (value > 0) {
 			list.add(x, y, value, value);
 			return;

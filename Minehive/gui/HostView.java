@@ -52,6 +52,10 @@ public class HostView extends BorderPane {
 				setMouseTransparent(true);
 
 				if (!(item == null || empty)) {
+					if (item.active) {
+						// TODO démarquation si joueurs actifs/inactifs
+					} else {
+					}
 					if (item.getColor() != null) {
 						setStyle("-fx-background-color: " + ColorUtils.colorToCSS(item.getColor()));
 					} else {

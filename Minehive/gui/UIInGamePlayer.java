@@ -15,7 +15,7 @@ public class UIInGamePlayer {
 	private IntegerProperty totalPoints;
 	private IntegerProperty safeSquares;
 	private IntegerProperty foundMines;
-	boolean active = true; // TODO compléter interactions CONN/AFKP
+	boolean active = true;
 	
 	public UIInGamePlayer(String username, int inGamePoints, int totalPoints, int safeSquares, int foundMines) {
 		this.username = new SimpleStringProperty(username);
@@ -28,7 +28,20 @@ public class UIInGamePlayer {
 
 	private static Color randomColor() {
 		Random r = new Random();
-		return new Color(r.nextDouble(), r.nextDouble(), r.nextDouble(), 1);
+		double clarity = 0.2;
+		return new Color(sub(clarity), sub(clarity), sub(clarity), 1);
+	}
+	
+	/**
+	 * Getting a random double between 0 and 1
+	 * 
+	 * @param clarity
+	 *            Multiplication factor. The bigger the lighter. 0 : no
+	 *            influence, ordinary random. 1 : white.
+	 */
+	private static double sub(double clarity) {
+		Random r = new Random();
+		return clarity + ((1.0 - clarity) * r.nextDouble());
 	}
 
 	public void setUsername(String value) {
@@ -39,11 +52,15 @@ public class UIInGamePlayer {
 		return username.get();
 	}
 
-	public void incInGamePoints(int value) {
+	public IntegerProperty inGamePointsProperty() {
+		return inGamePoints;
+	}
+	
+	public synchronized void incInGamePoints(int value) {
 		setInGamePoints(getInGamePoints() + value);
 	}
 
-	public void setInGamePoints(int value) {
+	public synchronized void setInGamePoints(int value) {
 		inGamePoints.set(value);
 	}
 
@@ -51,11 +68,15 @@ public class UIInGamePlayer {
 		return inGamePoints.get();
 	}
 	
-	public void incTotalPoints(int value) {
+	public IntegerProperty totalPointsProperty() {
+		return totalPoints;
+	}
+	
+	public synchronized void incTotalPoints(int value) {
 		setTotalPoints(getTotalPoints() + value);
 	}
 	
-	public void setTotalPoints(int value) {
+	public synchronized void setTotalPoints(int value) {
 		totalPoints.set(value);
 	}
 
@@ -63,23 +84,31 @@ public class UIInGamePlayer {
 		return totalPoints.get();
 	}
 	
-	public void incSafeSquares(int value) {
+	public IntegerProperty safeSquaresProperty() {
+		return safeSquares;
+	}
+	
+	public synchronized void incSafeSquares(int value) {
 		setSafeSquares(getSafeSquares() + value);
 	}
 	
-	public void setSafeSquares(int value) {
+	public synchronized void setSafeSquares(int value) {
 		safeSquares.set(value);
 	}
 
 	public Integer getSafeSquares() {
-		return totalPoints.get();
+		return safeSquares.get();
 	}
 	
-	public void incFoundMines(int value) {
+	public IntegerProperty foundMinesProperty() {
+		return foundMines;
+	}
+	
+	public synchronized void incFoundMines(int value) {
 		setFoundMines(getFoundMines() + value);
 	}
 	
-	public void setFoundMines(int value) {
+	public synchronized void setFoundMines(int value) {
 		foundMines.set(value);
 	}
 
@@ -92,16 +121,20 @@ public class UIInGamePlayer {
 	}
 
 	public Color getColor() {
-		return color;
+		if (active) {
+			return color;
+		} else {
+			return Color.TRANSPARENT;
+		}
 	}
 	
 	public synchronized void setActive() {
+		this.color = color.darker();
 		this.active = true;
-		this.color = new Color(color.getRed(), color.getGreen(), color.getBlue(), 0.2);
 	}
 	
 	public synchronized void setInactive() {
+		this.color = color.brighter();
 		this.active = false;
-		this.color = new Color(color.getRed(), color.getGreen(), color.getBlue(), 1);
 	}
 }
