@@ -213,7 +213,7 @@ public class Server extends Entity {
 			if (hd != null) {
 				socket.send(Message.IDIG, new String[] { hd.getIP(), String.valueOf(hd.getPort()) },
 						"Finissez votre partie en cours !");
-				identification();
+				kick();
 				return;
 			}
 			/* Connexion classique */

@@ -5,6 +5,16 @@
         <permission>true</permission>
         <points>40</points>
     </player>
+    <player username="DE" password="DE">
+        <name>Joueur</name>
+        <permission>true</permission>
+        <points>0</points>
+    </player>
+    <player username="A" password="A">
+        <name>Joueur</name>
+        <permission>true</permission>
+        <points>0</points>
+    </player>
     <player username="AlHassane" password="Megninta">
         <name>Joueur</name>
         <permission>true</permission>

@@ -2,6 +2,7 @@ package gui;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -24,7 +25,7 @@ public class ServerView extends BorderPane {
 
 	TableView<UIDetailedHostData> hosts = new TableView<>();
 	TableView<UIUser> users = new TableView<>();
-	Map<String, UIUser> usersHelper = new HashMap<>();
+	Map<String, UIUser> usersHelper = new ConcurrentHashMap<>();
 	
 	public ServerView(ClientApp app) {
 		this.app = app;
@@ -107,6 +108,7 @@ public class ServerView extends BorderPane {
 			@Override
 			public void updateItem(UIUser item, boolean empty){
 				super.updateItem(item, empty);
+				setEditable(false);
 				if (!(item == null || empty)) {
 					if (item.isOnline()) {
 						setStyle("-fx-background-color:lightcoral");

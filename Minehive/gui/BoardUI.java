@@ -101,7 +101,6 @@ public class BoardUI extends Pane {
 	protected void clickAt(int x, int y) {
 		if (!flags.exist(x, y)) {
 			ui_gc.clearRect(0, 0, ui.getWidth(), ui.getHeight());
-			permaColor(x, y, Color.RED); // TODO ajuster color par auteur
 			app.click(x, y);
 			drawBoard();
 		}
@@ -244,8 +243,12 @@ public class BoardUI extends Pane {
 		});
 	}
 	
-	public void revealSquare(int x, int y, int content) {
-		permaColor(x, y, DEFAULT_REVEALED);
+	public void revealSquare(int x, int y, int content, Color color) {
+		if (color == null) {
+			permaColor(x, y, DEFAULT_REVEALED);
+		} else {
+			permaColor(x, y, color);
+		}
 		game.updateValueAt(x, y, content);
 		drawBoard();
 	}
@@ -262,7 +265,7 @@ public class BoardUI extends Pane {
 	public void revealLine(int lineNumber, String[] contents) {
 		for (int x = 0; x < contents.length; x++) {
 			try {
-				revealSquare(x, lineNumber, Integer.parseInt(contents[x]));
+				revealSquare(x, lineNumber, Integer.parseInt(contents[x]), null);
 			} catch (NumberFormatException e) {
 				// THINK Alternative nécessaire ?
 			}

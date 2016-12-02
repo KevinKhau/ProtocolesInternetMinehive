@@ -15,6 +15,7 @@ public class UIInGamePlayer {
 	private IntegerProperty totalPoints;
 	private IntegerProperty safeSquares;
 	private IntegerProperty foundMines;
+	boolean active = true; // TODO compléter interactions CONN/AFKP
 	
 	public UIInGamePlayer(String username, int inGamePoints, int totalPoints, int safeSquares, int foundMines) {
 		this.username = new SimpleStringProperty(username);
@@ -92,5 +93,15 @@ public class UIInGamePlayer {
 
 	public Color getColor() {
 		return color;
+	}
+	
+	public synchronized void setActive() {
+		this.active = true;
+		this.color = new Color(color.getRed(), color.getGreen(), color.getBlue(), 0.2);
+	}
+	
+	public synchronized void setInactive() {
+		this.active = false;
+		this.color = new Color(color.getRed(), color.getGreen(), color.getBlue(), 1);
 	}
 }

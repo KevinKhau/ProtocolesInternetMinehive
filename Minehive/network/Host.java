@@ -231,11 +231,7 @@ public class Host extends Entity {
 					Message rcv = null;
 					rcv = socket.receive();
 					LOGGER.finest(rcv.toString());
-					try {
-						handleMessage(rcv);
-					} catch (NullPointerException e) {
-						LOGGER.warning(e.getMessage() + " : Mauvais nombre d'arguments reçu.");
-					}
+					handleMessage(rcv);
 				}
 			} catch (IOException | IllegalArgumentException e) {
 				LOGGER.info("Déconnexion : " + e.getMessage());
@@ -264,19 +260,21 @@ public class Host extends Entity {
 
 				/* Reconnexion */
 				if (senderData != null) {
-					inGamePlayer = (InGamePlayer) senderData;
-					LOGGER.fine("Tentative de reconnexion de " + inGamePlayer);
-					if (!inGamePlayer.checkPassword(password)) {
-						socket.send(Message.JNNO, null, "Mot de passe incorrect.");
-						continue;
+					synchronized (this) {
+						inGamePlayer = (InGamePlayer) senderData;
+						LOGGER.fine("Tentative de reconnexion de " + inGamePlayer);
+						if (!inGamePlayer.checkPassword(password)) {
+							socket.send(Message.JNNO, null, "Mot de passe incorrect.");
+							inGamePlayer = null;
+							continue;
+						}
+						if (inGamePlayer.active) {
+							socket.send(Message.JNNO, null, "Vous semblez déjà en train de jouer.");
+							inGamePlayer = null;
+							continue;
+							// THINK kick() ?
+						}
 					}
-
-					if (inGamePlayer.active) {
-						socket.send(Message.JNNO, null, "Vous semblez déjà en train de jouer.");
-						continue;
-						// THINK kick() ?
-					}
-
 					inGamePlayer.setActive();
 					inGamePlayer.handler = this;
 					sendGameState(inGamePlayer);
@@ -363,9 +361,8 @@ public class Host extends Entity {
 					inGamePlayer.incIGPoints(points);
 					inGamePlayer.incTotalPoints(points);
 					line[3] = valueOf(points);
-					for (InGamePlayer igp : inGamePlayers.values()) {
-						igp.handler.socket.send(Message.SQRD, line);
-					}
+					inGamePlayers.values().stream().filter(igp -> igp.handler != null)
+							.forEach(igp -> igp.handler.socket.send(Message.SQRD, line));
 				}
 				// TODO Fin de partie ?
 				break;
@@ -504,8 +501,8 @@ public class Host extends Entity {
 						playerNotFound(waitingPlayer);
 						return;
 					}
-					waitingPlayer.totalPoints = reception.getArgAsInt(1);
 					InGamePlayer igp = new InGamePlayer(waitingPlayer, ph);
+					igp.totalPoints = reception.getArgAsInt(1);
 					inGamePlayers.put(igp.username, igp);
 					ph.inGamePlayer = igp;
 					synchronized (ph) {

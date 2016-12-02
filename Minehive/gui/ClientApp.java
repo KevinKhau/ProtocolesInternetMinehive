@@ -220,7 +220,6 @@ public class ClientApp extends Application {
 
 			/* NWMA */
 			case Message.NWOK:
-				listMatches();
 				break;
 			case Message.FULL:
 			case Message.NWNO:
@@ -332,6 +331,8 @@ public class ClientApp extends Application {
 			/* Connection and activity */
 			case Message.DECO:
 			case Message.AFKP:
+				hostView.setInactive(reception.getArg(0));
+				break;
 			case Message.BACK:
 				break;
 
@@ -352,8 +353,12 @@ public class ClientApp extends Application {
 				hostView.board.revealLine(reception.getArgAsInt(0), contents);
 				break;
 			case Message.IGPL:
+				hostView.addPlayer(reception.getArg(0), reception.getArgAsInt(1), reception.getArgAsInt(2),
+						reception.getArgAsInt(3), reception.getArgAsInt(4));
 				break;
 			case Message.CONN:
+				hostView.addPlayer(reception.getArg(0), reception.getArgAsInt(1), reception.getArgAsInt(2),
+						reception.getArgAsInt(3), reception.getArgAsInt(4));
 				break;
 
 			/* CLIC */
@@ -361,7 +366,8 @@ public class ClientApp extends Application {
 			case Message.OORG:
 				break;
 			case Message.SQRD:
-				hostView.revealSquare(reception.getArgAsInt(0), reception.getArgAsInt(1), reception.getArgAsInt(2), reception.getArgAsInt(3));
+				hostView.revealSquare(reception.getArgAsInt(0), reception.getArgAsInt(1), reception.getArgAsInt(2),
+						reception.getArgAsInt(3), reception.getArg(4));
 				break;
 
 			/* Fin de partie */

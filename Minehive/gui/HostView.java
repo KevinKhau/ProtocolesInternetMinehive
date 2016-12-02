@@ -1,6 +1,8 @@
 package gui;
 
 import java.util.ArrayList;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -12,12 +14,15 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
-import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import util.ColorUtils;
 
 public class HostView extends BorderPane {
 	private ClientApp app;
+	
+	TableView<UIInGamePlayer> players = new TableView<>();
+	Map<String, UIInGamePlayer> playersHelper = new ConcurrentHashMap<>();
+	
 	private ObservableList<UIInGamePlayer> gameMembers;
 
 	BoardUI board;
@@ -39,8 +44,8 @@ public class HostView extends BorderPane {
 	    hbox.getChildren().addAll(points_text, points);
 		this.setTop(hbox);
 
-		TableView<UIInGamePlayer> table = new TableView<UIInGamePlayer>();
-		table.setRowFactory(row -> new TableRow<UIInGamePlayer>(){
+		players = new TableView<UIInGamePlayer>();
+		players.setRowFactory(row -> new TableRow<UIInGamePlayer>(){
 			@Override
 			public void updateItem(UIInGamePlayer item, boolean empty){
 				super.updateItem(item, empty);
@@ -67,34 +72,55 @@ public class HostView extends BorderPane {
 		safeCol.setCellValueFactory(new PropertyValueFactory<>("safeSquares"));
 		minesCol.setCellValueFactory(new PropertyValueFactory<>("foundMines"));
 
-		table.getColumns().add(nameCol);
-		table.getColumns().add(IGPointsCol);
-		table.getColumns().add(totalPointsCol);
-		table.getColumns().add(safeCol);
-		table.getColumns().add(minesCol);
+		players.getColumns().add(nameCol);
+		players.getColumns().add(IGPointsCol);
+		players.getColumns().add(totalPointsCol);
+		players.getColumns().add(safeCol);
+		players.getColumns().add(minesCol);
 		
-		table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-		table.resizeColumn(IGPointsCol, TableView.USE_COMPUTED_SIZE);
+		players.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+		players.resizeColumn(IGPointsCol, TableView.USE_COMPUTED_SIZE);
 		
-		gameMembers = getGameMembers(); //TEST delete
-		table.setItems(gameMembers);
-
-		this.setRight(table);
+		this.setRight(players);
 	}
 
-	private ObservableList<UIInGamePlayer> getGameMembers() { // TODO
-		ArrayList<UIInGamePlayer> l = new ArrayList<UIInGamePlayer>();
-		l.add(new UIInGamePlayer("Tomek", 2, 20, 0, 0));
-		l.add(new UIInGamePlayer("Kevin", 2, 20, 0, 0));
-		l.add(new UIInGamePlayer("Machin", 2, 20, 0, 0));
-		l.add(new UIInGamePlayer("Truc", 2, 20, 0, 0));
-		ObservableList<UIInGamePlayer> list = FXCollections.observableList(l);
-		return list;
+	/**
+	 * Ajoute un nouveau joueur si première connexion, ou remet à actif si
+	 * reconnexion.
+	 */
+	public void addPlayer(String username, int inGamePoints, int totalPoints, int safeSquares, int foundMines) {
+		UIInGamePlayer p = playersHelper.get(username);
+		if (p == null) {
+			UIInGamePlayer igp = new UIInGamePlayer(username, inGamePoints, totalPoints, safeSquares, foundMines);
+			players.getItems().add(igp);
+			playersHelper.put(igp.getUsername(), igp);
+		} else {
+			p.setActive();
+		}
 	}
-
-	public void revealSquare(int x, int y, int content, int points) {
-		board.revealSquare(x, y, content);
-		// TODO update scores
+	
+	public void setInactive(String username) {
+		UIInGamePlayer p = playersHelper.get(username);
+		if (p != null) {
+			p.setInactive();
+		}
+	}
+	
+	public void revealSquare(int x, int y, int content, int points, String username) {
+		UIInGamePlayer p = playersHelper.get(username);
+		if (p == null) {
+			System.err.println("Joueur " + username + " introuvable.");
+			board.revealSquare(x, y, content, null);
+			return;
+		}
+		p.incInGamePoints(points);
+		p.incTotalPoints(points);
+		if (content < 0) {
+			p.incFoundMines(1);
+		} else {
+			p.incSafeSquares(1);
+		}
+		board.revealSquare(x, y, content, p.getColor());
 	}
 	
 }

@@ -15,7 +15,6 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.TextAlignment;
-import util.StringUtil;
 
 public class Board {
 	public static final int WIDTH = 30;
