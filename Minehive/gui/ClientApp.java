@@ -93,6 +93,8 @@ public class ClientApp extends Application {
 			serverHandler = new ServerHandler();
 			new Thread(serverHandler).start();
 			loginServer(username, password);
+		} else  {
+			loading.previous();
 		}
 	}
 	

@@ -4,7 +4,6 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 
 import javafx.application.Platform;
-import javafx.concurrent.Task;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Label;
@@ -15,33 +14,29 @@ import javafx.stage.Stage;
 
 public class Dialog {
 	public static void error(String title, String header, String text) {
-		Task<Void> task = new Task<Void>() {
-			@Override
-			protected Void call() throws Exception {
-				Alert alert = new Alert(AlertType.ERROR);
-				alert.setTitle(title);
-				alert.setHeaderText(header);
-				alert.setContentText(text);
-				alert.showAndWait();
-				return null;
-			}
-		};
-		new Thread(task).start();
+		System.out.println("Error: " + text);
+		Alert alert = new Alert(AlertType.ERROR);
+		alert.setTitle(title);
+		alert.setHeaderText(header);
+		alert.setContentText(text);
+		alert.showAndWait();
 	}
-	
+
 	public static void warning(String title, String header, String text) {
+		System.out.println("Warning: " + text);
 		Alert alert = new Alert(AlertType.WARNING);
 		alert.setTitle(title);
 		alert.setHeaderText(header);
 		alert.setContentText(text);
 		alert.showAndWait();
 	}
-	
+
 	public static void exception(Exception e, String message) {
+		System.out.println("Exception: " + message);
 		Alert alert = new Alert(AlertType.ERROR);
 		alert.setTitle("Exception");
 		alert.setHeaderText(e.getClass().getCanonicalName());
-		
+
 		alert.setContentText(message);
 
 		StringWriter writer = new StringWriter();
@@ -67,26 +62,39 @@ public class Dialog {
 		expContent.add(textArea, 0, 1);
 
 		alert.getDialogPane().setExpandableContent(expContent);
-		
+
 		alert.getDialogPane().expandedProperty().addListener((l) -> {
-		    Platform.runLater(() -> {
-		        alert.getDialogPane().requestLayout();
-		        Stage stage = (Stage)alert.getDialogPane().getScene().getWindow();
-		        stage.sizeToScene();
-		    });
+			Platform.runLater(() -> {
+				alert.getDialogPane().requestLayout();
+				Stage stage = (Stage)alert.getDialogPane().getScene().getWindow();
+				stage.sizeToScene();
+			});
 		});
-		
+
 		alert.showAndWait();
+	}
+
+	public static void delayedError(String title, String header, String text) {
+		Platform.runLater(new Runnable() {
+			@Override public void run() {
+				Dialog.error(title, header, text);   
+			}
+		});
+	}
+	
+	public static void delayedWarning(String title, String header, String text) {
+		Platform.runLater(new Runnable() {
+			@Override public void run() {
+				Dialog.warning(title, header, text);   
+			}
+		});
 	}
 	
 	public static void delayedException(Exception e, String message) {
-		Task<Void> task = new Task<Void>() {
-			@Override
-			protected Void call() throws Exception {
-				Dialog.exception(e, "Connection with Server lost");
-				return null;
+		Platform.runLater(new Runnable() {
+			@Override public void run() {
+				Dialog.exception(e, "Connection with Server lost");   
 			}
-		};
-		new Thread(task).start();
+		});
 	}
 }
