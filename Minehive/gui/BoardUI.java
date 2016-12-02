@@ -16,14 +16,13 @@ public class BoardUI extends Pane {
 	private static final Color HIDDEN = Color.GRAY;
 	private static final Color PRESSED = Color.rgb(0, 0, 0, 0.4);
 	private static final Color SELECTED = Color.rgb(255, 255, 255, 0.4);
-	private static final Color TEST = Color.WHITE;
 
 	private final Canvas board;
 	private final Canvas ui;
 	private GraphicsContext board_gc;
 	private GraphicsContext ui_gc;
 
-	private ClientApp client;
+	private ClientApp app;
 	private int tile_size;
 	private int gap;
 	private Color array[];
@@ -31,9 +30,9 @@ public class BoardUI extends Pane {
 	private Flags flags;
 
 	public BoardUI(ClientApp clientApp) {
-		this.client = clientApp;
+		this.app = clientApp;
 		game = new Board();
-		game.reset();
+		game.empty();
 
 		board = new Canvas(10, 10);
 		ui = new Canvas(10, 10);
@@ -78,12 +77,12 @@ public class BoardUI extends Pane {
 		}
 	}
 
-	protected void revealAt(int x, int y) {
+	protected void clickAt(int x, int y) {
 		if (!flags.exist(x, y)) {
 			ui_gc.clearRect(0, 0, ui.getWidth(), ui.getHeight());
-			//array[x + y * Board.WIDTH] = test;
-			//redrawAt(x, y, test);
-			//game.clickAt(x, y); // TODO envoyer au client
+			array[x + y * Board.WIDTH] = Color.RED;
+			redrawAt(x, y, Color.RED); // TODO ajuster color par celui qui a cliqué
+			app.click(x, y);
 			drawBoard();
 		}
 	}
@@ -195,7 +194,7 @@ public class BoardUI extends Pane {
 				switch (t.getButton()) {
 				case PRIMARY:
 					if (tx >= 0 && tx < game.width && ty >= 0 && ty < game.height) {
-						revealAt(tx, ty);
+						clickAt(tx, ty);
 					} else {
 						clearSelection();
 					}
@@ -228,6 +227,11 @@ public class BoardUI extends Pane {
 				}
 			}
 		});
+	}
+	
+	public void revealSquare(int x, int y, int content) {
+		game.updateValueAt(x, y, content);
+		drawBoard();
 	}
 }
 

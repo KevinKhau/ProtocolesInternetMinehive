@@ -96,7 +96,8 @@ public class Board {
 	}
 
 	/**
-	 * Mettre à jour une case du tableau. Attention à bien affecter une case du tableau, et non une copie.
+	 * Mettre à jour une case du tableau. La case mise à jour est révélée 
+	 * Attention à bien affecter une case du tableau, et non une copie.
 	 * @param x
 	 * @param y
 	 * @param content
@@ -146,10 +147,14 @@ public class Board {
 		return res;
 	}
 	
-	public void reset() {
-		// Reset board
+	public void empty() {
 		Arrays.fill(board, HIDDEN_BIT);
 		nbRevealed = 0;
+	}
+	
+	public void reset() {
+		// Reset board
+		empty();
 		
 		// Place new bombs
 		initBombs();

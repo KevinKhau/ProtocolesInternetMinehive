@@ -176,7 +176,7 @@ public class Host extends Entity {
 					valueOf(foundMines) };
 		}
 
-		private void setActive() {
+		private synchronized void setActive() {
 			if (!active) {
 				active = true;
 				synchronized (Host.this) {
@@ -185,7 +185,7 @@ public class Host extends Entity {
 			}
 		}
 
-		private void setInactive() {
+		private synchronized void setInactive() {
 			if (active) {
 				active = false;
 				synchronized (Host.this) {
@@ -225,7 +225,7 @@ public class Host extends Entity {
 					}
 				}
 			} catch (IOException | IllegalArgumentException e) {
-				LOGGER.fine("Déconnexion " + e.getMessage());
+				LOGGER.info("Déconnexion : " + e.getMessage());
 				disconnect();
 			}
 		}
@@ -361,7 +361,12 @@ public class Host extends Entity {
 		protected void removeEntityData() {
 			if (inGamePlayer != null) {
 				inGamePlayer.setInactive();
-				LOGGER.fine(inGamePlayer + " désormais inactif.");
+				LOGGER.info(inGamePlayer + " désormais inactif.");
+				for (InGamePlayer igp : inGamePlayers.values()) {
+					if (igp != inGamePlayer) {
+						igp.handler.socket.send(Message.DECO, new String[]{ inGamePlayer.name });
+					}
+				}
 			}
 		}
 
@@ -410,7 +415,7 @@ public class Host extends Entity {
 					wakeCommunicator();
 					break;
 				case Message.RQDT:
-					LOGGER.severe("Received RQDT");
+					LOGGER.severe("Received RQDT"); //TEST
 					String username = getUsername(reception);
 					if (username == null) {
 						return;

@@ -8,6 +8,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.TextAlignment;
 
+/* FUTURE Temps constant */
 public class Flags {
 	private ArrayList<Coordinates> list;
 

@@ -67,10 +67,11 @@ public class ServerView extends BorderPane {
 				if (!(item == null || empty)) {
 					setOnMousePressed(e -> {
 						if (e.getButton() == MouseButton.PRIMARY) {
-							//TODO Description panel central
-							System.out.println(item.getName() + " : " + item.getIP() + "/" + item.getPort());
 							if (e.getClickCount() == 2) {
 								app.joinHost(item.getIP(), item.getPort());
+							} else {
+								//TODO Description dans panel central
+								System.out.println(item.getName() + " : " + item.getIP() + "/" + item.getPort());
 							}
 						}
 					});

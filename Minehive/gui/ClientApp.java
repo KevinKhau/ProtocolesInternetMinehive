@@ -77,6 +77,7 @@ public class ClientApp extends Application {
 		if (hostHandler != null) {
 			hostHandler.disconnect();
 		}
+		System.exit(0);
 	}
 	
 	public void joinServer(String IP, int port, String username, String password) {
@@ -265,6 +266,8 @@ public class ClientApp extends Application {
 			this.hostHandler = new HostHandler();
 			new Thread(hostHandler).start();
 			loginHost(username, password);
+		} else {
+			System.err.println("Failed to connect to Host");
 		}
 	}
 	
@@ -351,7 +354,9 @@ public class ClientApp extends Application {
 			/* CLIC */
 			case Message.LATE:
 			case Message.OORG:
+				break;
 			case Message.SQRD:
+				hostView.revealSquare(reception);
 				break;
 
 			/* Fin de partie */
@@ -379,6 +384,10 @@ public class ClientApp extends Application {
 	
 	public void loginHost(String username, String password) {
 		hostSocket.send(Message.JOIN, new String[]{ username, password });
+	}
+	
+	public void click(int x, int y) {
+		hostSocket.send(Message.CLIC, new String[]{ String.valueOf(x), String.valueOf(y) });
 	}
 	
 }

@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
-import javafx.scene.Parent;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
@@ -15,19 +14,21 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
-import network.Client;
 import util.ColorUtils;
+import util.Message;
 
 public class Game extends BorderPane {
 	private ClientApp app;
 	private ObservableList<Player> gameMembers;
 
+	BoardUI board;
+	
 	public Game(ClientApp clientApp) {
 		this.app = clientApp;
 		
-		BoardUI canvaspane = new BoardUI(clientApp);
-		canvaspane.setPadding(new Insets(0, 5, 10, 10));
-		this.setCenter(canvaspane);
+		board = new BoardUI(clientApp);
+		board.setPadding(new Insets(0, 5, 10, 10));
+		this.setCenter(board);
 		
 		HBox hbox = new HBox();
 		hbox.setPadding(new Insets(15, 12, 15, 12));
@@ -78,6 +79,14 @@ public class Game extends BorderPane {
 		l.add(new Player("Truc", Color.TURQUOISE));
 		ObservableList<Player> list = FXCollections.observableList(l);
 		return list;
+	}
+
+	public void revealSquare(Message reception) {
+		if (!reception.getType().equals(Message.SQRD)) {
+			throw new IllegalArgumentException("Type de message '" + Message.SQRD + "' attendu.");
+		}
+		board.revealSquare(reception.getArgAsInt(0), reception.getArgAsInt(1), reception.getArgAsInt(2));
+		// TODO update scores
 	}
 
 }

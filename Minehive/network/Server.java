@@ -279,7 +279,7 @@ public class Server extends Entity {
 			}
 			HostData hd = null;
 			try {
-				hd = new HostData();
+				hd = new HostData(player.name);
 			} catch (IOException e) {
 				socket.send(Message.NWNO, null, e.getMessage());
 			}
@@ -397,7 +397,7 @@ public class Server extends Entity {
 			}
 			String matchName = message.getArg(0);
 			senderData = hostsDataHelper.get(matchName);
-			if (senderData == null && !Params.DEBUG_HOST) {
+			if (senderData == null || !Params.DEBUG_HOST) {
 				socket.send(Message.IDNO, null, "Nom de partie inconnu.");
 				disconnect();
 				return;
@@ -505,9 +505,16 @@ public class Server extends Entity {
 		
 		@Override
 		protected void disconnect() {
-			hostsDataHelper.remove(senderData.name);
-			hosts.remove(senderData);
-			senderData.permission = true;
+			if (senderData != null) {
+				hostsDataHelper.remove(senderData.name);
+				hosts.remove(senderData);
+				String playerCreator = ((HostData) senderData).creator; 
+				Player creator = users.get(playerCreator);
+				if (creator != null) {
+					creator.permission = true;
+				}
+				
+			}
 			running = false;
 			removeEntityData();
 			socket.close();

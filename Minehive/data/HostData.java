@@ -14,6 +14,8 @@ public class HostData extends EntityData {
 	
 	private static int count = 1;
 
+	public final String creator;
+	
 	/** Dépendant du compteur global {@link HostData#count} */
 //	name;
 	/** Addresse IP locale, non modifiable */
@@ -26,23 +28,13 @@ public class HostData extends EntityData {
 	 * temporairement une ServerSocket.
 	 * @throws IOException
 	 */
-	public HostData() throws IOException {
+	public HostData(String creator) throws IOException {
 		super("Partie_" + String.valueOf(count));
+		this.creator = creator;
 		count++;
 		try (ServerSocket ss = new ServerSocket(0)) {
 			IP = InetAddress.getLocalHost();
 			port = ss.getLocalPort();
-		} catch (IOException e) {
-			throw new IOException("Aucun port libre trouvé.");
-		}
-	}
-
-	public HostData(int port) throws IOException {
-		super("Partie_" + String.valueOf(count));
-		count++;
-		try (ServerSocket ss = new ServerSocket(port)) {
-			this.IP = ss.getInetAddress();
-			this.port = ss.getLocalPort();
 		} catch (IOException e) {
 			throw new IOException("Aucun port libre trouvé.");
 		}
