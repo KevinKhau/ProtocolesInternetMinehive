@@ -12,6 +12,7 @@ import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import network.Client;
 
+/* FUTURE Temps constants... */
 public class BoardUI extends Pane {
 	private static final Color HIDDEN = Color.GRAY;
 	private static final Color PRESSED = Color.rgb(0, 0, 0, 0.4);
@@ -231,7 +232,12 @@ public class BoardUI extends Pane {
 	
 	public void revealSquare(int x, int y, int content) {
 		game.updateValueAt(x, y, content);
+		// TODO set color discovered
 		drawBoard();
+	}
+	
+	public void revealLine(int lineNumber, String[] contents) {
+		game.updateLine(lineNumber, contents);
 	}
 }
 

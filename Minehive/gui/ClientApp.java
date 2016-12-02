@@ -6,6 +6,7 @@ import java.net.ConnectException;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.Arrays;
 
 import javafx.application.Application;
 import javafx.scene.Scene;
@@ -334,7 +335,7 @@ public class ClientApp extends Application {
 			case Message.BACK:
 				break;
 
-			/* JOIN */
+			/* JOIN */ // TODO all messages
 			case Message.JNNO:
 				System.out.println("Identification à l'hôte échouée.");
 				loading.previous();
@@ -346,6 +347,10 @@ public class ClientApp extends Application {
 			case Message.IGNB:
 				break;
 			case Message.BDIT:
+				String[] args = reception.getArgs();
+				String[] contents = Arrays.copyOfRange(args, 1, args.length);
+				hostView.board.revealLine(reception.getArgAsInt(0), contents);
+				break;
 			case Message.IGPL:
 				break;
 			case Message.CONN:
@@ -356,7 +361,7 @@ public class ClientApp extends Application {
 			case Message.OORG:
 				break;
 			case Message.SQRD:
-				hostView.revealSquare(reception);
+				hostView.revealSquare(reception.getArgAsInt(0), reception.getArgAsInt(1), reception.getArgAsInt(2), reception.getArgAsInt(3));
 				break;
 
 			/* Fin de partie */

@@ -15,6 +15,7 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.TextAlignment;
+import util.StringUtil;
 
 public class Board {
 	public static final int WIDTH = 30;
@@ -95,6 +96,25 @@ public class Board {
 		return numberFrom(square);
 	}
 
+	/**
+	 * Mettre à jour toute une ligne du tableau.
+	 * 
+	 * @param lineNumber
+	 * @param contents
+	 *            Les valeurs de chaque ordonnée de la ligne révélée. Si
+	 *            l'argument n'est pas un entier, alors la case n'est pas à
+	 *            révéler.
+	 */
+	public void updateLine(int lineNumber, String[] contents) {
+		for (int x = 0; x < contents.length; x++) {
+			try {
+				updateValueAt(x, lineNumber, Integer.parseInt(contents[x]));
+			} catch (NumberFormatException e) {
+				// THINK Alternative nécessaire ?
+			}
+		}
+	}
+	
 	/**
 	 * Mettre à jour une case du tableau. La case mise à jour est révélée 
 	 * Attention à bien affecter une case du tableau, et non une copie.
@@ -638,4 +658,5 @@ public class Board {
 			return list;
 		}
 	}
+
 }

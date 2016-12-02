@@ -15,7 +15,6 @@ import javafx.scene.layout.HBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import util.ColorUtils;
-import util.Message;
 
 public class Game extends BorderPane {
 	private ClientApp app;
@@ -81,12 +80,9 @@ public class Game extends BorderPane {
 		return list;
 	}
 
-	public void revealSquare(Message reception) {
-		if (!reception.getType().equals(Message.SQRD)) {
-			throw new IllegalArgumentException("Type de message '" + Message.SQRD + "' attendu.");
-		}
-		board.revealSquare(reception.getArgAsInt(0), reception.getArgAsInt(1), reception.getArgAsInt(2));
+	public void revealSquare(int x, int y, int content, int points) {
+		board.revealSquare(x, y, content);
 		// TODO update scores
 	}
-
+	
 }
