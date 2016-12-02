@@ -19,4 +19,6 @@ public class Params {
 	public static final String DIR_BIN = "TempusFinis";
 	public static final String DIR_LOG = "logs";
 	
+	public static boolean DEBUG_HOST = true;
+	
 }

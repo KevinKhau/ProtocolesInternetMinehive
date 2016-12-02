@@ -240,16 +240,6 @@ public abstract class Communicator implements Runnable {
 		@Override
 		protected abstract void handleMessage(Message reception);
 		
-		protected String getUsername(Message reception) {
-			String username = reception.getArg(0);
-			if (username == null) {
-				System.err.println("Anomalie : Pas de nom d'utilisateur donné par le serveur pour " + Message.RQDT + ".");
-				return null;
-			} else {
-				return username;
-			}
-		}
-		
 		@Override
 		protected void unknownMessage() {
 			communicatorSocket.send(Message.IDKH, null, "Commande inconnue ou pas encore implémentée");

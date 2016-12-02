@@ -27,8 +27,7 @@ import util.TFServerSocket;
 import util.TFSocket;
 
 /**
- * Hôte lancé par le serveur //FUTURE Programmer lancement par serveur au lieu
- * de manuel une fois dév achevée
+ * Hôte lancé par le serveur
  */
 public class Host extends Entity {
 
@@ -71,16 +70,18 @@ public class Host extends Entity {
 		} catch (SecurityException | IOException e) {
 			e.printStackTrace();
 		}
-//		try { // TEST
-//			if (args.length < 1) {
-//				System.err.println("Paramètre port de connexion pour les clients attendu.");
-//				System.exit(1);
-//			}
-//			new Host(InetAddress.getLocalHost(), 7777, "Partie_1", InetAddress.getLocalHost(), Integer.parseInt(args[0])); // TEST
-//			//			new Host(null, 7777, "HostTest", InetAddress.getLocalHost(), 3333);
-//		} catch (UnknownHostException e1) {
-//			e1.printStackTrace();
-//		}
+		if (Params.DEBUG_HOST) {
+			try { // TEST
+				if (args.length < 1) {
+					System.err.println("Paramètre port de connexion pour les clients attendu.");
+					System.exit(1);
+				}
+				new Host(InetAddress.getLocalHost(), 7777, "Partie_1", InetAddress.getLocalHost(), Integer.parseInt(args[0])); // TEST
+			} catch (UnknownHostException e1) {
+				e1.printStackTrace();
+			}
+			return;
+		}
 		
 		launchLogger.log(Level.SEVERE, Arrays.toString(args));
 		launchLogger.log(Level.CONFIG, "first");
@@ -162,16 +163,10 @@ public class Host extends Entity {
 		volatile int safeSquares = 0;
 		volatile int foundMines = 0;
 
-		/** Reconnexion */
-		private InGamePlayer(String username, String password, PlayerHandler handler) {
-			super(username, password);
-			this.handler = handler;
-			setActive();
-		}
-
 		/** Nouveau joueur */
 		private InGamePlayer(Player player, PlayerHandler handler) {
 			super(player.username, player.password);
+			LOGGER.warning("Nouveau joueur connecté " + player);
 			this.handler = handler;
 			setActive();
 		}
@@ -182,13 +177,21 @@ public class Host extends Entity {
 		}
 
 		private void setActive() {
-			active = true;
-			multiplicator++;
+			if (!active) {
+				active = true;
+				synchronized (Host.this) {
+					multiplicator++;
+				} 
+			}
 		}
 
 		private void setInactive() {
-			active = false;
-			multiplicator--;
+			if (active) {
+				active = false;
+				synchronized (Host.this) {
+					multiplicator--;
+				} 
+			}
 		}
 
 	}
@@ -204,6 +207,29 @@ public class Host extends Entity {
 			super(socket, InGamePlayer.NAME);
 		}
 
+		@Override
+		public void run() {
+			try {
+				identification();
+				if (running) {
+					addEntityData();
+				}
+				while (running) {
+					Message rcv = null;
+					rcv = socket.receive();
+					LOGGER.finest(rcv.toString());
+					try {
+						handleMessage(rcv);
+					} catch (NullPointerException e) {
+						LOGGER.warning(e.getMessage() + " : Mauvais nombre d'arguments reçu.");
+					}
+				}
+			} catch (IOException | IllegalArgumentException e) {
+				LOGGER.fine("Déconnexion " + e.getMessage());
+				disconnect();
+			}
+		}
+		
 		@Override
 		public void identification() throws IOException {
 			while (running) {
@@ -226,6 +252,7 @@ public class Host extends Entity {
 				/* Reconnexion */
 				if (senderData != null) {
 					inGamePlayer = (InGamePlayer) senderData;
+					LOGGER.fine("Tentative de reconnexion de " + inGamePlayer);
 					if (!inGamePlayer.checkPassword(password)) {
 						socket.send(Message.JNNO, null, "Mot de passe incorrect.");
 						continue;
@@ -333,7 +360,8 @@ public class Host extends Entity {
 		@Override
 		protected void removeEntityData() {
 			if (inGamePlayer != null) {
-				inGamePlayer.active = false;
+				inGamePlayer.setInactive();
+				LOGGER.fine(inGamePlayer + " désormais inactif.");
 			}
 		}
 
@@ -382,6 +410,7 @@ public class Host extends Entity {
 					wakeCommunicator();
 					break;
 				case Message.RQDT:
+					LOGGER.severe("Received RQDT");
 					String username = getUsername(reception);
 					if (username == null) {
 						return;
@@ -446,6 +475,7 @@ public class Host extends Entity {
 						playerNotFound(waitingPlayer);
 						return;
 					}
+					waitingPlayer.totalPoints = reception.getArgAsInt(1);
 					InGamePlayer igp = new InGamePlayer(waitingPlayer, ph);
 					inGamePlayers.put(igp.username, igp);
 					ph.inGamePlayer = igp;
@@ -459,6 +489,17 @@ public class Host extends Entity {
 				}
 			}
 
+			protected String getUsername(Message reception) {
+				String username = reception.getArg(0);
+				if (username == null) {
+					LOGGER.warning("Anomalie : Pas de nom d'utilisateur donné par le serveur pour " + Message.RQDT + ".");
+					System.err.println("Anomalie : Pas de nom d'utilisateur donné par le serveur pour " + Message.RQDT + ".");
+					return null;
+				} else {
+					return username;
+				}
+			}
+			
 			@Override
 			protected synchronized void wakeCommunicator() {
 				if (waitingResponse) {

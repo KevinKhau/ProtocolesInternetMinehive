@@ -8,9 +8,9 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 
 import javafx.application.Application;
-import javafx.concurrent.Task;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import network.Host;
 import network.Server;
 import util.Message;
 import util.TFSocket;
@@ -18,20 +18,25 @@ import util.TFSocket;
 public class ClientApp extends Application {
 	enum ServerState {
 		OFFLINE, CONNECTED, IN
-	};
-
+	}
+	enum HostState {
+		OFFLINE, CONNECTED, IN
+	}
 	public volatile Stage primaryStage;
 
 	InetAddress receiverIP;
 	int receiverPort = 5555;
 
 	ServerState serverState = ServerState.OFFLINE;
+	HostState hostState = HostState.OFFLINE;
 
 	public volatile boolean waitingResponse = false;
 	public volatile boolean running = true;
 
 	public TFSocket socket;
 	ServerHandler serverHandler;
+	public TFSocket hostSocket;
+	HostHandler hostHandler;
 
 	Login login;
 	Loading loading;
@@ -40,6 +45,7 @@ public class ClientApp extends Application {
 	
 	String username;
 	String password;
+
 
 	public static void main(String[] args) {
 		launch(args);
@@ -67,6 +73,9 @@ public class ClientApp extends Application {
 		super.stop();
 		if (serverHandler != null) {
 			serverHandler.disconnect();
+		}
+		if (hostHandler != null) {
+			hostHandler.disconnect();
 		}
 	}
 	
@@ -179,9 +188,13 @@ public class ClientApp extends Application {
 				break;
 			case Message.IDNO:
 				System.out.println("Identification échouée.");
-			case Message.IDIG:
 				loading.previous();
+				Dialog.error("Server response", "Identification failed", reception.getContent());
+				break;
+			case Message.IDIG:
 				Dialog.error("Server response", "Already in-game", reception.getContent());
+				disconnect();
+				joinHost(reception.getArg(0), reception.getArgAsInt(1));
 				break;
 
 			/* LS?? */
@@ -231,7 +244,9 @@ public class ClientApp extends Application {
 			if (socket != null) {
 				socket.close();
 			}
-			delayedLogin();
+			if (hostSocket == null || hostSocket.isClosed()) {
+				delayedLogin();
+			}
 		}
 		
 	}
@@ -240,13 +255,130 @@ public class ClientApp extends Application {
 		this.login = new Login(this);
 		this.hostView = new Game(this);
 		loading = new Loading(this, hostView, login);
-		primaryStage.setScene(new Scene(loading));
-		primaryStage.show();
-		if (connectHost(IP, port)) {
-			hostHandler = new HostHandler();
-			new Thread(hostHandler).start();
-			loginServer(username, password);
+		try {
+			primaryStage.setScene(new Scene(loading));
+			primaryStage.show();
+		} catch (IllegalStateException e) {
+			SceneSetter.delayedScene(primaryStage, new Loading(this, hostView, login));
 		}
+		if (connectHost(IP, port)) {
+			this.hostHandler = new HostHandler();
+			new Thread(hostHandler).start();
+			loginHost(username, password);
+		}
+	}
+	
+	public boolean connectHost(String IPName, int port) {
+		String receiverName = Server.NAME;
+		InetAddress IP = null;
+		try {
+			IP = InetAddress.getByName(IPName);
+		} catch (UnknownHostException e) {
+			Dialog.error("Connection Error", "Connection Error", "Could not find IP.");
+			return false;
+		}
+		try {
+			hostSocket = new TFSocket(IP, port);
+		} catch (BindException e) {
+			loading.previous();
+			Dialog.exception(e, "IP ou port de connexion de " + receiverName + " défini invalide.");
+			return false;
+		} catch (ConnectException e) {
+			loading.previous();
+			try {
+				Dialog.exception(e, receiverName + " ne semble pas lancé.");
+			} catch (IllegalStateException e1) {
+				Dialog.delayedException(e, receiverName + " ne semble pas lancé.");
+			}
+			return false;
+		} catch (SocketException e) {
+			loading.previous();
+			Dialog.exception(e, "Connexion interrompue avec " + receiverName + ".");
+			return false;
+		} catch (IOException e) {
+			loading.previous();
+			Dialog.exception(e, "Communication impossible " + e.getMessage() + ".");
+			return false;
+		}
+		hostState = HostState.CONNECTED;
+		return true;
+	}
+	
+	class HostHandler implements Runnable {
+
+		String receiverName = Host.NAME;
+		
+		@Override
+		public void run() {
+			while (running && hostState != HostState.OFFLINE) {
+				try {
+					Message rcv = hostSocket.receive();
+					System.out.println(rcv);
+					handleMessage(rcv);
+				} catch (IOException | IllegalArgumentException e) {
+					disconnect();
+					System.err.println(e.getMessage() + " : " + "Connection with Host lost");
+					Dialog.delayedException(e, "Connection with Host lost");
+				}
+			}
+		}
+		
+		protected void handleMessage(Message reception) {
+			switch (reception.getType()) {
+			/* Connection and activity */
+			case Message.DECO:
+			case Message.AFKP:
+			case Message.BACK:
+				break;
+
+			/* JOIN */
+			case Message.JNNO:
+				System.out.println("Identification à l'hôte échouée.");
+				loading.previous();
+				break;
+			case Message.JNOK:
+				System.out.println("Identification à l'hôte établie !");
+				hostState = HostState.IN;
+				loading.next();
+			case Message.IGNB:
+				break;
+			case Message.BDIT:
+			case Message.IGPL:
+				break;
+			case Message.CONN:
+				break;
+
+			/* CLIC */
+			case Message.LATE:
+			case Message.OORG:
+			case Message.SQRD:
+				break;
+
+			/* Fin de partie */
+			case Message.ENDC:
+			case Message.SCPC:
+				break;
+
+			case Message.IDKH:
+				System.out.println(receiverName + " reste béant : '" + reception + "'.");
+				break;
+			default:
+				Dialog.error("Unknown message", "Unknown message from " + receiverName, reception.getContent());
+				hostSocket.send(Message.IDKC);
+			}
+		}
+		
+		public synchronized void disconnect() {
+			hostState = HostState.OFFLINE;
+			if (hostSocket != null) {
+				hostSocket.close();
+			}
+			delayedLogin();
+		}
+	}
+	
+	public void loginHost(String username, String password) {
+		hostSocket.send(Message.JOIN, new String[]{ username, password });
 	}
 	
 }

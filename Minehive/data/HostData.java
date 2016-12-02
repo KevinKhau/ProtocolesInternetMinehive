@@ -52,8 +52,8 @@ public class HostData extends EntityData {
 		return name;
 	}
 
-	public InetAddress getIP() {
-		return IP;
+	public String getIP() {
+		return IP.getHostAddress();
 	}
 
 	public int getPort() {

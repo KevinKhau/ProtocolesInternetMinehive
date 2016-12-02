@@ -11,12 +11,6 @@ public class SceneSetter extends Task<Void> {
 	Stage stage;
 	Parent next;
 
-	public SceneSetter(Parent current, Parent next) {
-		super();
-		this.stage = (Stage) current.getScene().getWindow();
-		this.next = next;
-	}
-	
 	public SceneSetter(Stage stage, Parent next) {
 		super();
 		this.stage = stage;
@@ -25,7 +19,6 @@ public class SceneSetter extends Task<Void> {
 	
 	@Override
 	protected Void call() throws Exception {
-
 		Platform.runLater(new Runnable() {
 			@Override
 			public void run() {
@@ -34,7 +27,6 @@ public class SceneSetter extends Task<Void> {
 				stage.show();
 			}
 		});
-
 		return null;
 	}
 
@@ -45,6 +37,25 @@ public class SceneSetter extends Task<Void> {
 				Dialog.error("Error", "An error occured", "Attempt to set scene failed");
 			}
 		});
+	}
+	
+	public static void delayedScene(Stage stage, Parent next) {
+		Task<Void> task = new Task<Void>() {
+			@Override
+			protected Void call() throws Exception {
+				Platform.runLater(new Runnable() {
+					@Override
+					public void run() {
+						Scene scene = new Scene(next);
+						stage.setScene(scene);
+						stage.show();
+					}
+				});
+				return null;
+			}
+		};
+		new Thread(task).start();
+		
 	}
 
 }

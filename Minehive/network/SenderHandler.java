@@ -32,12 +32,7 @@ abstract class SenderHandler extends Thread {
 			}
 			while (running) {
 				Message rcv = null;
-				try {
-					rcv = socket.receive();
-				} catch (IllegalArgumentException e) {
-					System.err.println(e.getMessage() + ". Fin de la connexion.");
-					return;
-				}
+				rcv = socket.receive();
 				System.out.println(rcv);
 				try {
 					handleMessage(rcv);
@@ -45,7 +40,8 @@ abstract class SenderHandler extends Thread {
 					System.err.println("Mauvais nombre d'arguments reçu.");
 				}
 			}
-		} catch (IOException e) {
+		} catch (IOException | IllegalArgumentException e) {
+			System.err.println("Déconnexion " + senderName);
 			disconnect();
 		}
 	}

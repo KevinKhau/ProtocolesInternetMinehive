@@ -33,7 +33,7 @@ public class Loading extends StackPane {
 	}
 
 	public void next() {
-		SceneSetter task = new SceneSetter(this, onSuccess);
+		SceneSetter task = new SceneSetter(app.primaryStage, onSuccess);
 		new Thread(task).start();
 	}
 	
@@ -43,7 +43,7 @@ public class Loading extends StackPane {
 	}
 	
 	public void previous() {
-	    SceneSetter task = new SceneSetter(this, onFailure);
+	    SceneSetter task = new SceneSetter(app.primaryStage, onFailure);
 		new Thread(task).start();
 	}
 }

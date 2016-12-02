@@ -34,7 +34,7 @@ public class Player extends EntityData {
 
 	@Override
 	public String toString() {
-		return "Player [username=" + username + ", password=" + password + ", points=" + totalPoints + "]";
+		return "Player [username=" + username + ", password=" + password + ", totalPoints=" + totalPoints + "]";
 	}
 
 	public Player(String username, String password, int points) {

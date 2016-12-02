@@ -20,6 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import data.HostData;
 import data.Player;
 import util.Message;
+import util.Params;
 import util.PlayersManager;
 import util.TFServerSocket;
 import util.TFSocket;
@@ -210,7 +211,7 @@ public class Server extends Entity {
 			/* Déjà en partie */
 			HostData hd = inGame.get(player);
 			if (hd != null) {
-				socket.send(Message.IDIG, new String[] { hd.getIP().toString(), String.valueOf(hd.getPort()) },
+				socket.send(Message.IDIG, new String[] { hd.getIP(), String.valueOf(hd.getPort()) },
 						"Finissez votre partie en cours !");
 				identification();
 				return;
@@ -282,19 +283,21 @@ public class Server extends Entity {
 			} catch (IOException e) {
 				socket.send(Message.NWNO, null, e.getMessage());
 			}
-			if (senderData.permission == false) {
+			if (!senderData.permission) {
 				socket.send(Message.NWNO, null, "Vous avez déjà créé une partie. Veuillez attendre qu'elle se termine.");
 			}
 			hostsDataHelper.put(hd.name, hd);
 			try {
-				launchHost(hd);
+				if (!Params.DEBUG_HOST) {
+					launchHost(hd);
+				}
 			} catch (Exception e) {
 				e.printStackTrace();
-				socket.send(Message.NWNO, null, "Problème technique : Le serveur n'a pas pu lancer un Host");
+				socket.send(Message.NWNO, null, "Problème technique : Le serveur n'a pas pu lancer un hôte de partie");
 				hostsDataHelper.remove(hd.name);
 				return;
 			}
-			String[] sendArgs = new String[] { hd.getIP().toString(), String.valueOf(hd.getPort()) };
+			String[] sendArgs = new String[] { hd.getIP(), String.valueOf(hd.getPort()) };
 			socket.send(Message.NWOK, sendArgs, "Votre partie a été créée.");
 			senderData.permission = false;
 
@@ -394,7 +397,7 @@ public class Server extends Entity {
 			}
 			String matchName = message.getArg(0);
 			senderData = hostsDataHelper.get(matchName);
-			if (senderData == null) {
+			if (senderData == null && !Params.DEBUG_HOST) {
 				socket.send(Message.IDNO, null, "Nom de partie inconnu.");
 				disconnect();
 				return;
