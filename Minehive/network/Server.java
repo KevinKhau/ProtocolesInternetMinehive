@@ -450,7 +450,7 @@ public class Server extends Entity {
 				inGame.put(p, (HostData) senderData);
 				ch = available.remove(p);
 				if (ch != null) {
-					ch.disconnect();
+					ch.kick();
 				}
 				break;
 			case Message.SCPS:
