@@ -12,8 +12,6 @@ import java.net.UnknownHostException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -92,7 +90,7 @@ public class Server extends Entity {
 		if (!isFull() || available.containsKey(player)) {
 			ClientHandler h = available.get(player);
 			if (h != null) {
-				h.kick();
+				h.kick("You logged in from another client!");
 			}
 			available.put(player, handler);
 			return true;
@@ -212,7 +210,7 @@ public class Server extends Entity {
 			if (hd != null) {
 				socket.send(Message.IDIG, new String[] { hd.getIP(), String.valueOf(hd.getPort()) },
 						"Finissez votre partie en cours !");
-				kick();
+				kick("Finish your on-going match!");
 				return;
 			}
 			/* Connexion classique */
@@ -267,8 +265,13 @@ public class Server extends Entity {
 
 		private synchronized void sendUsers(Message msg) {
 			socket.send(Message.LUNB, new String[] { String.valueOf(users.size()) });
-			users.values().forEach(
-					p -> socket.send(Message.USER, new String[] { p.username, String.valueOf(p.totalPoints) }));
+			users.values().forEach(p -> {
+				String comment = null;
+				if (!p.permission) {
+					comment = "Created a still on-going match.";
+				}
+				socket.send(Message.USER, new String[] { p.username, String.valueOf(p.totalPoints) }, comment);
+			});
 		}
 
 		private void createMatch(Message msg) {
@@ -281,9 +284,11 @@ public class Server extends Entity {
 				hd = new HostData(player.name);
 			} catch (IOException e) {
 				socket.send(Message.NWNO, null, e.getMessage());
+				return;
 			}
-			if (!senderData.permission) {
-				socket.send(Message.NWNO, null, "Vous avez déjà créé une partie. Veuillez attendre qu'elle se termine.");
+			if (!player.permission) {
+				socket.send(Message.NWNO, null, "Vous avez déjà créé une partie. Veuillez la terminer.");
+				return;
 			}
 			hostsDataHelper.put(hd.name, hd);
 			try {
@@ -292,13 +297,13 @@ public class Server extends Entity {
 				}
 			} catch (Exception e) {
 				e.printStackTrace();
-				socket.send(Message.NWNO, null, "Problème technique : Le serveur n'a pas pu lancer un hôte de partie");
+				socket.send(Message.NWNO, null, "Problème technique : Le serveur n'a pas pu lancer un hôte de partie. " + e.getMessage());
 				hostsDataHelper.remove(hd.name);
 				return;
 			}
 			String[] sendArgs = new String[] { hd.getIP(), String.valueOf(hd.getPort()) };
 			socket.send(Message.NWOK, sendArgs, "Votre partie a été créée.");
-			senderData.permission = false;
+			player.permission = false;
 
 			/* Aucun invité */
 			if (msg.getArgs() == null) {
@@ -353,8 +358,8 @@ public class Server extends Entity {
 		 * Le serveur interrompt la connexion avec ce client. Player ne doit pas
 		 * être null, et donc la connexion doit déjà avoir été établie.
 		 */
-		public void kick() {
-			socket.send(Message.KICK);
+		public void kick(String comment) {
+			socket.send(Message.KICK, null, comment);
 			disconnect();
 			kickedHelper.put(senderData.name, (Player) senderData);
 		}
@@ -450,14 +455,16 @@ public class Server extends Entity {
 				inGame.put(p, (HostData) senderData);
 				ch = available.remove(p);
 				if (ch != null) {
-					ch.kick();
+					ch.kick("Have fun playing Minehive. Come back later if you still want to play!");
 				}
 				break;
 			case Message.SCPS:
 				Player p2 = getPlayer(reception.getArg(0));
-				inGame.remove(p2);
-				p2.totalPoints = reception.getArgAsInt(1);
-				PlayersManager.writePlayer(p2);
+				if (p2 != null) {
+					inGame.remove(p2);
+					p2.totalPoints = reception.getArgAsInt(1);
+					PlayersManager.writePlayer(p2);
+				}
 				break;
 			case Message.ENDS:
 				disconnect();
@@ -492,8 +499,13 @@ public class Server extends Entity {
 		@Override
 		protected void removeEntityData() {
 			if (senderData != null) {
-				hosts.remove(senderData);
 				hostsDataHelper.remove(senderData.name);
+				hosts.remove(senderData);
+				String playerCreator = ((HostData) senderData).creator; 
+				Player creator = users.get(playerCreator);
+				if (creator != null) {
+					creator.permission = true;
+				}
 			}
 		}
 
@@ -502,23 +514,6 @@ public class Server extends Entity {
 			socket.send(Message.IDKS, null, "Commande inconnue ou pas encore implémentée");
 		}
 		
-		@Override
-		protected void disconnect() {
-			if (senderData != null) {
-				hostsDataHelper.remove(senderData.name);
-				hosts.remove(senderData);
-				String playerCreator = ((HostData) senderData).creator; 
-				Player creator = users.get(playerCreator);
-				if (creator != null) {
-					creator.permission = true;
-				}
-				
-			}
-			running = false;
-			removeEntityData();
-			socket.close();
-		}
-
 	}
 
 }

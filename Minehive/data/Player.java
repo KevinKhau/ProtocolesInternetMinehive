@@ -21,6 +21,9 @@ public class Player extends EntityData {
 	@XmlElement (name = "points")
 	public volatile int totalPoints;
 	
+	/** Allowed to create a match. */
+	public boolean permission = true;
+	
 	// Necessary for JAXB
 	public Player() {
 		super(NAME);

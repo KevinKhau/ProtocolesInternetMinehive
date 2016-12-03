@@ -253,13 +253,15 @@ public class ClientApp extends Application {
 
 			/* NWMA */
 			case Message.NWOK:
+				listMatches();
 				break;
 			case Message.FULL:
 			case Message.NWNO:
+				Dialog.error("Match creation", "Failed to create match", reception.getContent());
 				break;
 
 			case Message.KICK:
-				Dialog.error("Kicked by server", "Kicked by server", reception.getContent());
+				Dialog.warning("Kicked by server", "Kicked by server", reception.getContent());
 				disconnect();
 				break;
 
@@ -286,6 +288,10 @@ public class ClientApp extends Application {
 	}
 	
 	public void joinHost(String IP, int port) {
+		if (serverHandler != null && serverState != ServerState.OFFLINE) {
+			serverHandler.disconnect();
+		}
+		
 		this.login = new Login(this);
 		this.hostView = new HostView(this);
 		loading = new Loading(this, hostView, login);
@@ -401,8 +407,10 @@ public class ClientApp extends Application {
 
 				// FUTURE distinction entre déconnecté et inactif
 			/* Fin de partie */
-			case Message.ENDC:
 			case Message.SCPC:
+				break;
+			case Message.ENDC:
+				disconnect();
 				break;
 
 			case Message.IDKH:

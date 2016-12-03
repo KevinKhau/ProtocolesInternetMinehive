@@ -35,7 +35,9 @@ public class Host extends Entity {
 	public static final String NAME = "Hôte";
 	
 	public static final int MAX_PLAYERS = 10;
-
+	public static final int BEST_BOUNTY = 50;
+	public static final int WORST_BOUNTY = -50;
+	
 	public static final int ACTIVE_DELAY = 30000;
 	public static final int CONNECTED_DELAY = 10000;
 
@@ -151,17 +153,52 @@ public class Host extends Entity {
 			e.printStackTrace();
 		}
 	}
+	
+	public void endMatch() {
+		/* Bonus */
+		InGamePlayer best = inGamePlayers.values().stream()
+				.max((p1, p2) -> Integer.compare(p1.safeSquares, p2.safeSquares)).get();
+		best.incPoints(BEST_BOUNTY);
+		InGamePlayer worst = inGamePlayers.values().stream()
+				.max((p1, p2) -> Integer.compare(p1.foundMines, p2.foundMines)).get();
+		worst.incPoints(WORST_BOUNTY);
+		String comment = best.username + " is the best minesweeper: +" + BEST_BOUNTY + " ! " + worst.username
+				+ " has digged up the most mines: " + WORST_BOUNTY + "...";
+
+		/* Envois SCP? */
+		inGamePlayers.values().forEach(igp -> {
+			if (serverCommunicator != null && serverCommunicator.running) {
+				serverCommunicator.communicatorSocket.send(Message.SCPS, new String[]{ igp.username, valueOf(igp.totalPoints) });
+			}
+			if (igp.handler.running) {
+				igp.handler.socket.send(Message.SCPC, igp.publicData(), comment);
+			}
+		});
+		
+		/* Conclusion END? */
+		if (serverCommunicator != null && serverCommunicator.running) {
+			serverCommunicator.communicatorSocket.send(Message.ENDS, new String[] { name }, "End of the match!");
+			serverCommunicator.disconnect(); // TEST no problem ?
+		}
+		inGamePlayers.values().stream().filter(igp -> igp.handler.running).forEach(igp -> {
+			igp.handler.socket.send(Message.ENDC, new String[] { valueOf(inGamePlayers.size()) }, "End of the match!");
+			igp.handler.disconnect();
+		});
+		
+		System.exit(0);
+		
+	}
 
 	class InGamePlayer extends Player {
 
 		public static final String NAME = "Jouer Actif";
 
 		PlayerHandler handler;
-		volatile boolean active;
-		volatile int inGamePoints = 0;
+		private volatile boolean active;
+		private volatile int inGamePoints = 0;
 
-		volatile int safeSquares = 0;
-		volatile int foundMines = 0;
+		private volatile int safeSquares = 0;
+		private volatile int foundMines = 0;
 
 		/** Nouveau joueur */
 		private InGamePlayer(Player player, PlayerHandler handler) {
@@ -202,8 +239,9 @@ public class Host extends Entity {
 			safeSquares++;
 		}
 		
-		public synchronized void incIGPoints(int supp) {
-			inGamePoints += supp;
+		public synchronized void incPoints(int add) {
+			inGamePoints += add;
+			incTotalPoints(add);
 		}
 
 	}
@@ -338,12 +376,13 @@ public class Host extends Entity {
 				int abscissa = reception.getArgAsInt(0);
 				int ordinate = reception.getArgAsInt(1);
 
-				if (!board.validAbscissa(abscissa) || !board.validOrdinate(ordinate)) {
-					socket.send(Message.OORG, new String[]{valueOf(abscissa), valueOf(ordinate)}, "Coordonnées invalides ! ");
+				List<String[]> allArgs;
+				try {
+					allArgs = board.clickAt(abscissa, ordinate, inGamePlayer.username);
+				} catch (ArrayIndexOutOfBoundsException e) {
+					socket.send(Message.OORG, new String[]{valueOf(abscissa), valueOf(ordinate)}, e.getMessage());
 					break;
 				}
-
-				List<String[]> allArgs = board.clickAt(abscissa, ordinate, inGamePlayer.username);
 				if (allArgs == null) {
 					socket.send(Message.LATE, null, "Case déjà déminée.");
 					break;
@@ -357,13 +396,16 @@ public class Host extends Entity {
 						inGamePlayer.incSafeSquares();
 					}
 					int points = Integer.parseInt(line[3]) * multiplicator;
-					inGamePlayer.incIGPoints(points);
-					inGamePlayer.incTotalPoints(points);
+					inGamePlayer.incPoints(points);
 					line[3] = valueOf(points);
-					inGamePlayers.values().stream().filter(igp -> igp.handler != null)
+					inGamePlayers.values().stream().filter(igp -> igp.handler.running)
 							.forEach(igp -> igp.handler.socket.send(Message.SQRD, line));
 				}
-				// TODO Fin de partie ?
+				
+				/* Fin de partie */
+				if (board.isFinished()) { // TODO Tester
+					endMatch();
+				}
 				break;
 			default:
 				unknownMessage();
@@ -386,7 +428,6 @@ public class Host extends Entity {
 						igp.handler.socket.send(Message.DECO, new String[]{ inGamePlayer.username });
 					}
 				}
-				inGamePlayer.handler = null;
 			}
 		}
 

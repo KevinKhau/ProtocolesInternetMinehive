@@ -183,6 +183,11 @@ public class Message {
 		return content;
 	}
 
+	/**
+	 * Encode un message prêt à l'envoi selon les conditions du protocole
+	 * @param message
+	 * @return
+	 */
 	public static String encode(Message message) {
 		StringBuilder sb = new StringBuilder(message.type);
 		if (message.args != null) {
@@ -191,9 +196,8 @@ public class Message {
 				System.err.println("~Encodage, '" + message.toString() + ": Mauvais nombre d'arguments, " + expected
 						+ " attendus");
 			}
-			for (String s : message.args) {
-				sb.append(SEPARATOR).append(s);
-			}
+			sb.append(SEPARATOR);
+			sb.append(String.join(SEPARATOR, message.args));
 		}
 		if (message.content != null) {
 			sb.append(SEPARATOR).append(message.content);

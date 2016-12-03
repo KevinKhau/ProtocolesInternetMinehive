@@ -9,6 +9,9 @@ import util.TFSocket;
 /** Gère la connexion et les messages d'une autre entité expéditrice */
 abstract class SenderHandler extends Thread {
 	// TODO gérer inactivité de l'expéditeur
+	
+	/* FUTURE Rendre socket private et implémenter méthodes SenderHandler#send() qui vérifient d'abord que running == true 
+	 * Pareil pour les Communicator. Interface avec méthodes default ? */
 	TFSocket socket;
 	protected volatile boolean running = true;
 

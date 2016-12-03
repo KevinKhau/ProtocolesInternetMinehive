@@ -72,6 +72,10 @@ public final class PlayersManager {
 		return getPlayersFromXML().get(username);
 	}
 
+	/*
+	 * FUTURE Ne modifier qu'un seul noeud du fichier. Voir si on peut éviter de
+	 * charger tous les noeuds
+	 */
 	/**
 	 * Ajoute un joueur à la liste de ceux existants, puis écrit le tout dans le
 	 * fichier XML.

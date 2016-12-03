@@ -199,6 +199,7 @@ public class Client extends Entity {
 				/* Fin de partie */
 				case Message.ENDC:
 				case Message.SCPC:
+					disconnect();
 					break;
 
 				case Message.IDKH:
