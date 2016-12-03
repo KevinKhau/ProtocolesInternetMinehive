@@ -10,7 +10,6 @@ import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.UnsupportedAudioFileException;
 
 import javafx.application.Platform;
-import javafx.beans.binding.Bindings;
 import javafx.geometry.Insets;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
@@ -36,13 +35,6 @@ public class HostView extends BorderPane {
 
 	public HostView(ClientApp clientApp) {
 		this.app = clientApp;
-		try {
-			clip = AudioSystem.getClip();
-			clip.open(AudioSystem.getAudioInputStream(Params.MINE_EXPLOSION.toFile()));
-			clip.setFramePosition(clip.getFrameLength());
-		} catch (LineUnavailableException | IOException | UnsupportedAudioFileException e) {
-			Dialog.exception(e, e.getMessage());
-		}
 		board = new BoardUI(clientApp);
 		board.setPadding(new Insets(0, 5, 10, 10));
 		this.setCenter(board);
@@ -55,7 +47,7 @@ public class HostView extends BorderPane {
 		hbox.setPadding(new Insets(15, 12, 15, 12));
 		hbox.setSpacing(10);
 		this.setTop(hbox);
-
+		
 		players = new TableView<UIInGamePlayer>();
 		players.setRowFactory(row -> new TableRow<UIInGamePlayer>(){
 			@Override
@@ -98,6 +90,21 @@ public class HostView extends BorderPane {
 		players.resizeColumn(IGPointsCol, TableView.USE_COMPUTED_SIZE);
 
 		this.setRight(players);
+	}
+	
+	/**
+	 * Only after connection activation, in order to avoid loading resources and
+	 * risking unnecessary dialog exceptions (if connection failed)
+	 */
+	public void activate() {
+		try {
+			clip = AudioSystem.getClip();
+			clip.open(AudioSystem.getAudioInputStream(Params.MINE_EXPLOSION.toFile()));
+			clip.setFramePosition(clip.getFrameLength());
+		} catch (LineUnavailableException | IOException | UnsupportedAudioFileException e) {
+			Dialog.exception(e, "Could not set awesome custom mine explosion sound!");
+		}
+		
 	}
 	
 	/** Met à jour la valeur du label, puisqu'associer le StringProperty provoque l'exception

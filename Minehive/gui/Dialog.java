@@ -14,9 +14,9 @@ import javafx.stage.Stage;
 
 public class Dialog {
 	public static void error(String title, String header, String text) {
-		System.err.println("Error: " + text);
 		try {
 			Alert alert = new Alert(AlertType.ERROR);
+			System.err.println("Error: " + text);
 			alert.setTitle(title);
 			alert.setHeaderText(header);
 			alert.setContentText(text);
@@ -28,8 +28,8 @@ public class Dialog {
 
 	public static void warning(String title, String header, String text) {
 		try {
-			System.out.println("Warning: " + text);
 			Alert alert = new Alert(AlertType.WARNING);
+			System.out.println("Warning: " + text);
 			alert.setTitle(title);
 			alert.setHeaderText(header);
 			alert.setContentText(text);
@@ -40,13 +40,13 @@ public class Dialog {
 	}
 
 	public static void exception(Exception e, String message) {
-		System.err.println("Exception: " + message);
 		if (message == null) {
 			message = e.getMessage();
 		}
 		Alert alert;
 		try {
 			alert = new Alert(AlertType.ERROR);
+			System.err.println("Exception: " + message);
 			alert.setGraphic(ClientApp.getLogo());
 			alert.setTitle("Exception");
 			alert.setHeaderText(e.getClass().getCanonicalName());
@@ -111,7 +111,7 @@ public class Dialog {
 	private static void delayedException(Exception e, String message) {
 		Platform.runLater(new Runnable() {
 			@Override public void run() {
-				Dialog.exception(e, "Connection with Server lost");   
+				Dialog.exception(e, message);   
 			}
 		});
 	}

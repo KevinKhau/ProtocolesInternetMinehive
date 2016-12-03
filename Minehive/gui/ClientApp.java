@@ -206,7 +206,6 @@ public class ClientApp extends Application {
 					handleMessage(rcv);
 				} catch (IOException | IllegalArgumentException e) {
 					disconnect();
-					System.err.println(e.getMessage() + " : " + "Connection with Server lost");
 					Dialog.exception(e, "Connection with Server lost");
 				}
 			}
@@ -222,7 +221,6 @@ public class ClientApp extends Application {
 				serverView.activate();
 				break;
 			case Message.IDNO:
-				System.out.println("Identification échouée.");
 				loading.previous();
 				Dialog.error("Server response", "Identification failed", reception.getContent());
 				break;
@@ -275,6 +273,7 @@ public class ClientApp extends Application {
 		public synchronized void disconnect() {
 			serverState = ServerState.OFFLINE;
 			if (socket != null) {
+				socket.send(Message.LEAV);
 				socket.close();
 			}
 			if (hostSocket == null || hostSocket.isClosed()) {
@@ -363,12 +362,13 @@ public class ClientApp extends Application {
 
 			/* JOIN */ // TODO all messages
 			case Message.JNNO:
-				System.out.println("Identification à l'hôte échouée.");
+				Dialog.error("Host response", "Identification failed", reception.getContent());
 				loading.previous();
 				break;
 			case Message.JNOK:
 				System.out.println("Identification à l'hôte établie !");
 				hostState = HostState.IN;
+				hostView.activate();
 				loading.next();
 			case Message.IGNB:
 				break;
