@@ -18,6 +18,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import util.Message;
+import util.StringUtil;
 
 public class ServerView extends BorderPane {
 
@@ -149,7 +150,8 @@ public class ServerView extends BorderPane {
 		for (int i = 4; i < msg.getArgs().length; i += 2) {
 			p.put(msg.getArg(i), msg.getArgAsInt(i + 1));
 		}
-		UIDetailedHostData dhd = new UIDetailedHostData(msg.getArg(2), msg.getArg(0), msg.getArgAsInt(1), msg.getArgAsInt(3), p);
+		String IP = StringUtil.truncateAddress(msg.getArg(0));
+		UIDetailedHostData dhd = new UIDetailedHostData(msg.getArg(2), IP, msg.getArgAsInt(1), msg.getArgAsInt(3), p);
 		hosts.getItems().add(dhd);
 	}
 	

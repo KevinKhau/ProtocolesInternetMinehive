@@ -22,6 +22,7 @@ import network.Host;
 import network.Server;
 import util.Message;
 import util.Params;
+import util.StringUtil;
 import util.TFSocket;
 
 public class ClientApp extends Application {
@@ -293,6 +294,7 @@ public class ClientApp extends Application {
 		} catch (IllegalStateException e) {
 			SceneSetter.delayedScene(primaryStage, new Loading(this, hostView, login));
 		}
+		IP = StringUtil.truncateAddress(IP);
 		if (connectHost(IP, port)) {
 			this.hostHandler = new HostHandler();
 			new Thread(hostHandler).start();

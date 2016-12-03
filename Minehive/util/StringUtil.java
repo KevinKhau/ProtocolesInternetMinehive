@@ -1,5 +1,7 @@
 package util;
 
+import java.net.InetAddress;
+
 public class StringUtil {
 
 	/**
@@ -32,6 +34,22 @@ public class StringUtil {
 	        }
 	    }
 	    return true;
+	}
+
+	/**
+	 * Obtenir seulement la partie adresse d'une InetAddress.
+	 * Exemple : "Agito/192.168.0.7" -> "192.168.0.7" 
+	 */
+	public static String truncateAddress(String IP) {
+		if (IP.contains("/")) {
+			String[] slices = IP.split("/");
+			if (slices.length >= 2) {
+				IP = slices[1];
+			} else {
+				IP = slices[0];
+			}
+		}
+		return IP;
 	}
 	
 }
