@@ -3,7 +3,6 @@ package gui;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.stage.Stage;
 
 public class SceneSetter extends Task<Void> {

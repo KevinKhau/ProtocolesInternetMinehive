@@ -14,7 +14,7 @@ import javafx.stage.Stage;
 
 public class Dialog {
 	public static void error(String title, String header, String text) {
-		System.out.println("Error: " + text);
+		System.err.println("Error: " + text);
 		try {
 			Alert alert = new Alert(AlertType.ERROR);
 			alert.setTitle(title);
@@ -40,13 +40,14 @@ public class Dialog {
 	}
 
 	public static void exception(Exception e, String message) {
-		System.out.println("Exception: " + message);
+		System.err.println("Exception: " + message);
 		if (message == null) {
 			message = e.getMessage();
 		}
 		Alert alert;
 		try {
 			alert = new Alert(AlertType.ERROR);
+			alert.setGraphic(ClientApp.getLogo());
 			alert.setTitle("Exception");
 			alert.setHeaderText(e.getClass().getCanonicalName());
 			

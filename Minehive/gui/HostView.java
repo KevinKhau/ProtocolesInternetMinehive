@@ -9,6 +9,8 @@ import javax.sound.sampled.Clip;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.UnsupportedAudioFileException;
 
+import javafx.application.Platform;
+import javafx.beans.binding.Bindings;
 import javafx.geometry.Insets;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
@@ -29,6 +31,8 @@ public class HostView extends BorderPane {
 
 	BoardUI board;
 	Clip clip;
+	
+	Label pointsLabel;
 
 	public HostView(ClientApp clientApp) {
 		this.app = clientApp;
@@ -43,14 +47,13 @@ public class HostView extends BorderPane {
 		board.setPadding(new Insets(0, 5, 10, 10));
 		this.setCenter(board);
 
-		HBox hbox = new HBox();
-		hbox.setPadding(new Insets(15, 12, 15, 12));
-		hbox.setSpacing(10);
 		Label points_text = new Label("Points: ");
 		points_text.setFont(new Font(20));
-		Label points = new Label("0");
-		points.setFont(new Font(20));
-		hbox.getChildren().addAll(points_text, points);
+		pointsLabel = new Label("0");
+		pointsLabel.setFont(new Font(20));
+		HBox hbox = new HBox(ClientApp.getLogo(), points_text, pointsLabel);
+		hbox.setPadding(new Insets(15, 12, 15, 12));
+		hbox.setSpacing(10);
 		this.setTop(hbox);
 
 		players = new TableView<UIInGamePlayer>();
@@ -96,6 +99,18 @@ public class HostView extends BorderPane {
 
 		this.setRight(players);
 	}
+	
+	/** Met à jour la valeur du label, puisqu'associer le StringProperty provoque l'exception
+	 *  java.lang.IllegalStateException: Not on FX application thread; currentThread = Thread-X
+	 * @param points
+	 */
+	public void setPoints(int points) {
+		Platform.runLater(new Runnable() {
+			@Override public void run() {
+				pointsLabel.setText(String.valueOf(points));
+			}
+		});
+	}
 
 	/**
 	 * Ajoute un nouveau joueur si première connexion, ou remet à actif si
@@ -107,6 +122,9 @@ public class HostView extends BorderPane {
 			UIInGamePlayer igp = new UIInGamePlayer(username, inGamePoints, totalPoints, safeSquares, foundMines);
 			players.getItems().add(igp);
 			playersHelper.put(igp.getUsername(), igp);
+			if (igp.getUsername().equals(app.username)) {
+				setPoints(igp.getInGamePoints());
+			}
 		} else {
 			p.setActive();
 		}
@@ -128,14 +146,18 @@ public class HostView extends BorderPane {
 		}
 		p.incInGamePoints(points);
 		p.incTotalPoints(points);
-		if (content < 0) {
-			p.incFoundMines(1);
-			if (username.equals(app.username)) {
+		if (username.equals(app.username)) {
+			setPoints(p.getInGamePoints());
+			if (content < 0) {
 				clip.loop(1);
 			}
+		}
+		if (content < 0) {
+			p.incFoundMines(1);
 		} else {
 			p.incSafeSquares(1);
 		}
+		
 		board.revealSquare(x, y, content, p.getColor());
 	}
 

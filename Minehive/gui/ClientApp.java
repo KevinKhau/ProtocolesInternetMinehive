@@ -14,6 +14,8 @@ import javafx.scene.ImageCursor;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.HBox;
 import javafx.stage.Stage;
 import network.Host;
 import network.Server;
@@ -30,6 +32,7 @@ public class ClientApp extends Application {
 	}
 	public volatile Stage primaryStage;
 	private static Cursor cursor = Cursor.DEFAULT;
+	public static Image logo;  
 	
 	InetAddress receiverIP;
 	int receiverPort = 5555;
@@ -67,10 +70,16 @@ public class ClientApp extends Application {
 
 		if(Params.CUSTOM_CURSOR){
 			try {
-				cursor = new ImageCursor(new Image(Params.CURSOR_PATH.toString(), 0, 50, true, true), 4.6, 12.5);
+				cursor = new ImageCursor(new Image(Params.CURSOR.toString(), 0, 50, true, true), 4.6, 12.5);
 			} catch (Exception e) {
 				Dialog.exception(e, "Failed to set awesome custom cursor!");
 			}
+		}
+		try {
+			logo = new Image(Params.LOGO.toString());
+			primaryStage.getIcons().add(logo);
+		} catch (Exception e) {
+			Dialog.exception(e, "Failed to set awesome logo!");
 		}
 		
 		displayLogin();
@@ -101,6 +110,12 @@ public class ClientApp extends Application {
 		stage.setScene(scene);
 		scene.setCursor(cursor);
 		stage.show();
+	}
+	
+	/** Obtenir le logo affichable, à ajouter parmi les Children */
+	public static Parent getLogo() {
+		ImageView iv = new ImageView(logo);
+		return new HBox(iv);
 	}
 	
 	public void joinServer(String IP, int port, String username, String password) {
@@ -135,7 +150,7 @@ public class ClientApp extends Application {
 		try {
 			IP = InetAddress.getByName(IPName);
 		} catch (UnknownHostException e) {
-			Dialog.error("Connection Error", "Connection Error", "Could not find IP.");
+			Dialog.exception(e, "Could not resolve IP address.");
 			return false;
 		}
 		try {
@@ -244,7 +259,6 @@ public class ClientApp extends Application {
 				break;
 
 			case Message.KICK:
-				/* FIXME Certaines pop-ups ne s'affichent pas, pas d'effet */
 				Dialog.error("Kicked by server", "Kicked by server", reception.getContent());
 				disconnect();
 				break;
@@ -294,7 +308,7 @@ public class ClientApp extends Application {
 		try {
 			IP = InetAddress.getByName(IPName);
 		} catch (UnknownHostException e) {
-			Dialog.error("Connection Error", "Connection Error", "Could not find IP.");
+			Dialog.exception(e, "Could not resolve IP.");
 			return false;
 		}
 		try {

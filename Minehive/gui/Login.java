@@ -10,11 +10,9 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.GridPane;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
-import network.ClientController;
 
 public class Login extends GridPane {
 	private ClientApp app;
-	private ClientController controller;
 	private String err;
 	private TextField username;
 	private PasswordField password;
