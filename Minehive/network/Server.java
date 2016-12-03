@@ -94,7 +94,6 @@ public class Server extends Entity {
 			if (h != null) {
 				h.kick();
 			}
-			/* TODO Thread-safe. Risque de remove par SenderHandler#disconnect() après ce put */
 			available.put(player, handler);
 			return true;
 		}

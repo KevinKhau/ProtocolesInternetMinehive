@@ -1,6 +1,5 @@
 package gui;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -10,7 +9,6 @@ import javax.sound.sampled.Clip;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.UnsupportedAudioFileException;
 
-import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
@@ -19,8 +17,6 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
-import javafx.scene.media.Media;
-import javafx.scene.media.MediaPlayer;
 import javafx.scene.text.Font;
 import util.ColorUtils;
 import util.Params;
@@ -41,7 +37,7 @@ public class HostView extends BorderPane {
 			clip.open(AudioSystem.getAudioInputStream(Params.MINE_EXPLOSION.toFile()));
 			clip.setFramePosition(clip.getFrameLength());
 		} catch (LineUnavailableException | IOException | UnsupportedAudioFileException e) {
-			e.printStackTrace();
+			Dialog.exception(e, e.getMessage());
 		}
 		board = new BoardUI(clientApp);
 		board.setPadding(new Insets(0, 5, 10, 10));

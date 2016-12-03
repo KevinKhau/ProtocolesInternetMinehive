@@ -9,11 +9,16 @@ import java.net.UnknownHostException;
 import java.util.Arrays;
 
 import javafx.application.Application;
+import javafx.scene.Cursor;
+import javafx.scene.ImageCursor;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
 import javafx.stage.Stage;
 import network.Host;
 import network.Server;
 import util.Message;
+import util.Params;
 import util.TFSocket;
 
 public class ClientApp extends Application {
@@ -24,7 +29,8 @@ public class ClientApp extends Application {
 		OFFLINE, CONNECTED, IN
 	}
 	public volatile Stage primaryStage;
-
+	private static Cursor cursor = Cursor.DEFAULT;
+	
 	InetAddress receiverIP;
 	int receiverPort = 5555;
 
@@ -59,6 +65,14 @@ public class ClientApp extends Application {
 		primaryStage.setWidth(800);
 		primaryStage.setHeight(600);
 
+		if(Params.CUSTOM_CURSOR){
+			try {
+				cursor = new ImageCursor(new Image(Params.CURSOR_PATH.toString(), 0, 50, true, true), 4.6, 12.5);
+			} catch (Exception e) {
+				Dialog.exception(e, "Failed to set awesome custom cursor!");
+			}
+		}
+		
 		displayLogin();
 	}
 
@@ -81,27 +95,33 @@ public class ClientApp extends Application {
 		System.exit(0);
 	}
 	
+	/** Set a scene with the custom cursor */
+	public static void setScene(Stage stage, Parent parent) {
+		Scene scene = new Scene(parent);
+		stage.setScene(scene);
+		scene.setCursor(cursor);
+		stage.show();
+	}
+	
 	public void joinServer(String IP, int port, String username, String password) {
 		this.username = username;
 		this.password = password;
 		this.login = new Login(this);
 		this.serverView = new ServerView(this);
 		loading = new Loading(this, serverView, login);
-		primaryStage.setScene(new Scene(loading));
-		primaryStage.show();
+		setScene(primaryStage, loading);
 		if (connectServer(IP, port)) {
 			serverHandler = new ServerHandler();
 			new Thread(serverHandler).start();
 			loginServer(username, password);
-		} else  {
+		} else {
 			loading.previous();
 		}
 	}
 	
 	public void displayLogin() {
 		login = new Login(this);
-		Scene scene = new Scene(login);
-		primaryStage.setScene(scene);
+		setScene(primaryStage, login);
 	}
 	
 	public void delayedLogin() {
@@ -121,19 +141,15 @@ public class ClientApp extends Application {
 		try {
 			socket = new TFSocket(IP, port);
 		} catch (BindException e) {
-			loading.previous();
 			Dialog.exception(e, "IP ou port de connexion de " + receiverName + " défini invalide.");
 			return false;
 		} catch (ConnectException e) {
-			loading.previous();
 			Dialog.exception(e, receiverName + " ne semble pas lancé.");
 			return false;
 		} catch (SocketException e) {
-			loading.previous();
 			Dialog.exception(e, "Connexion interrompue avec " + receiverName + ".");
 			return false;
 		} catch (IOException e) {
-			loading.previous();
 			Dialog.exception(e, "Communication impossible " + e.getMessage() + ".");
 			return false;
 		}
@@ -176,7 +192,7 @@ public class ClientApp extends Application {
 				} catch (IOException | IllegalArgumentException e) {
 					disconnect();
 					System.err.println(e.getMessage() + " : " + "Connection with Server lost");
-					Dialog.delayedException(e, "Connection with Server lost");
+					Dialog.exception(e, "Connection with Server lost");
 				}
 			}
 		}
@@ -259,8 +275,7 @@ public class ClientApp extends Application {
 		this.hostView = new HostView(this);
 		loading = new Loading(this, hostView, login);
 		try {
-			primaryStage.setScene(new Scene(loading));
-			primaryStage.show();
+			setScene(primaryStage, loading);
 		} catch (IllegalStateException e) {
 			SceneSetter.delayedScene(primaryStage, new Loading(this, hostView, login));
 		}
@@ -269,7 +284,7 @@ public class ClientApp extends Application {
 			new Thread(hostHandler).start();
 			loginHost(username, password);
 		} else {
-			System.err.println("Failed to connect to Host");
+			loading.previous();
 		}
 	}
 	
@@ -285,23 +300,15 @@ public class ClientApp extends Application {
 		try {
 			hostSocket = new TFSocket(IP, port);
 		} catch (BindException e) {
-			loading.previous();
 			Dialog.exception(e, "IP ou port de connexion de " + receiverName + " défini invalide.");
 			return false;
 		} catch (ConnectException e) {
-			loading.previous();
-			try {
-				Dialog.exception(e, receiverName + " ne semble pas lancé.");
-			} catch (IllegalStateException e1) {
-				Dialog.delayedException(e, receiverName + " ne semble pas lancé.");
-			}
+			Dialog.exception(e, receiverName + " ne semble pas lancé.");
 			return false;
 		} catch (SocketException e) {
-			loading.previous();
 			Dialog.exception(e, "Connexion interrompue avec " + receiverName + ".");
 			return false;
 		} catch (IOException e) {
-			loading.previous();
 			Dialog.exception(e, "Communication impossible " + e.getMessage() + ".");
 			return false;
 		}
@@ -325,8 +332,7 @@ public class ClientApp extends Application {
 						continue;
 					}
 					disconnect();
-					System.err.println(e.getMessage() + " : " + "Connection with Host lost");
-					Dialog.delayedException(e, "Connection with Host lost");
+					Dialog.exception(e, "Connection with Host lost");
 				}
 			}
 		}

@@ -40,9 +40,10 @@ public class Board {
 	private static final byte DEFUSE_BOMB = (byte) 0b10111111;
 	
 	private boolean first;
-	private int nbRevealed; // Count revealed squares that are not bombs
 	
-	/** FUTURE Rendre volatile chaque élément de board */
+	/** Count revealed squares that are not mines */
+	private int nbRevealed;
+	
 	private byte board[];
 	
 	public Board() {

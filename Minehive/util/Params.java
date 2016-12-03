@@ -1,6 +1,5 @@
 package util;
 
-import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -26,6 +25,8 @@ public class Params {
 	
 	public static final Path RES = Paths.get("res");
 	public static final Path MINE_EXPLOSION = Paths.get(RES.toString(), "chocobosound.wav");
+	public static final boolean CUSTOM_CURSOR = true;
+	public static final Path CURSOR_PATH = Paths.get(RES.toString(), "chocobo.gif");
 	
 	public static boolean DEBUG_HOST = true;
 	

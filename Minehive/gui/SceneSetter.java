@@ -22,9 +22,7 @@ public class SceneSetter extends Task<Void> {
 		Platform.runLater(new Runnable() {
 			@Override
 			public void run() {
-				Scene scene = new Scene(next);
-				stage.setScene(scene);
-				stage.show();
+				ClientApp.setScene(stage, next);
 			}
 		});
 		return null;
@@ -46,16 +44,13 @@ public class SceneSetter extends Task<Void> {
 				Platform.runLater(new Runnable() {
 					@Override
 					public void run() {
-						Scene scene = new Scene(next);
-						stage.setScene(scene);
-						stage.show();
+						ClientApp.setScene(stage, next);
 					}
 				});
 				return null;
 			}
 		};
 		new Thread(task).start();
-		
 	}
 
 }
