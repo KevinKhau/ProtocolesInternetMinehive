@@ -11,6 +11,7 @@ import javax.sound.sampled.UnsupportedAudioFileException;
 
 import javafx.application.Platform;
 import javafx.geometry.Insets;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
@@ -79,17 +80,21 @@ public class HostView extends BorderPane {
 		totalPointsCol.setCellValueFactory(new PropertyValueFactory<>("totalPoints"));
 		safeCol.setCellValueFactory(new PropertyValueFactory<>("safeSquares"));
 		minesCol.setCellValueFactory(new PropertyValueFactory<>("foundMines"));
-
 		players.getColumns().add(nameCol);
 		players.getColumns().add(IGPointsCol);
 		players.getColumns().add(totalPointsCol);
 		players.getColumns().add(safeCol);
 		players.getColumns().add(minesCol);
-
 		players.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
 		players.resizeColumn(IGPointsCol, TableView.USE_COMPUTED_SIZE);
-
 		this.setRight(players);
+		
+		Button end = new Button("END");
+		end.setOnAction(e -> {
+			app.spam();
+		});
+		HBox utilities = new HBox(end);
+		this.setBottom(utilities);
 	}
 	
 	/**

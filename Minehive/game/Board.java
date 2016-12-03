@@ -18,7 +18,7 @@ import javafx.scene.text.TextAlignment;
 
 public class Board {
 	public static final int WIDTH = 30;
-	private static final int HEIGHT = 16;
+	public static final int HEIGHT = 16;
 	private static final int NB_BOMBS = 99;
 	
 	/* En cas d'implémentation future où ces données peuvent varier */

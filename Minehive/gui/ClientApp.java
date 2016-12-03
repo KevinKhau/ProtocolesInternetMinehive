@@ -8,6 +8,7 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 
+import game.Board;
 import javafx.application.Application;
 import javafx.scene.Cursor;
 import javafx.scene.ImageCursor;
@@ -425,7 +426,19 @@ public class ClientApp extends Application {
 	}
 	
 	public void click(int x, int y) {
-		hostSocket.send(Message.CLIC, new String[]{ String.valueOf(x), String.valueOf(y) });
+		if (!hostSocket.isClosed() && hostSocket.isBound() && hostSocket.isConnected()) {
+			hostSocket.send(Message.CLIC, new String[] { String.valueOf(x), String.valueOf(y) });
+		}
+	}
+
+	/** FUTURE Présume que les dimensions du plateau sont 30*16. Pas future-proof !! */
+	public void spam() {
+		for (int y = 0; y < Board.HEIGHT; y++) {
+			for (int x = 0; x < Board.WIDTH; x++) {
+				click(x, y);
+			}
+		}
+		
 	}
 	
 }
