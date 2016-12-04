@@ -8,7 +8,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
 import java.util.Date;
 
 import util.Params;
@@ -21,6 +20,8 @@ public class HostData extends EntityData {
 
 	public static final String NAME = "Hôte";
 
+	public String password = "Chocobo";
+	
 	private static int count = 1;
 
 	public final String creator;
@@ -41,9 +42,10 @@ public class HostData extends EntityData {
 	 * @param creator Player who issued the creation of the match
 	 * @throws IOException
 	 */
-	public HostData(String creator) throws IOException {
-		super("Partie_" + String.valueOf(count));
+	public HostData(String creator, String password) throws IOException {
+		super("TempusFinis" + String.valueOf(count));
 		this.creator = creator;
+		this.password = password;
 		createLogFiles();
 		count++;
 		try (ServerSocket ss = new ServerSocket(0)) {
@@ -87,7 +89,8 @@ public class HostData extends EntityData {
 
 	@Override
 	public String toString() {
-		return "HostData [creator=" + creator + ", IP=" + IP + ", port=" + port + ", name=" + name + "]";
+		return "HostData [password=" + password + ", creator=" + creator + ", IP=" + IP + ", port=" + port + ", inLog="
+				+ inLog + ", outLog=" + outLog + ", errorLog=" + errorLog + "]";
 	}
 
 }

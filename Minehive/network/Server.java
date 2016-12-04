@@ -21,6 +21,7 @@ import data.Player;
 import util.Message;
 import util.Params;
 import util.PlayersManager;
+import util.StringUtil;
 import util.TFServerSocket;
 import util.TFSocket;
 
@@ -284,7 +285,7 @@ public class Server extends Entity {
 			}
 			HostData hd = null;
 			try {
-				hd = new HostData(player.username);
+				hd = new HostData(player.username, StringUtil.randomPassword());
 			} catch (IOException e) {
 				socket.send(Message.NWNO, null, e.getMessage());
 				return;
@@ -293,6 +294,7 @@ public class Server extends Entity {
 				socket.send(Message.NWNO, null, "Vous avez déjà créé une partie. Veuillez la terminer.");
 				return;
 			}
+			System.out.println(hd);
 			hostsDataHelper.put(hd.name, hd);
 			try {
 				launchHost(hd);
@@ -349,10 +351,9 @@ public class Server extends Entity {
 				throw new FileNotFoundException("Unresolved Host path : " + hostJarPath);
 			}
 			String args = String.join(" ", serverIP.getHostAddress(), String.valueOf(serverPort_Host),
-					hostData.name, hostData.IP.getHostAddress(), String.valueOf(hostData.port));
+					hostData.name, hostData.IP.getHostAddress(), String.valueOf(hostData.port), hostData.password);
 			String cmd = "java -jar " + hostJarPath.toString() + " " + args;
 			if (!Params.DEBUG_HOST) {
-				System.out.println(cmd);
 				ProcessBuilder pb = new ProcessBuilder(cmd.split(" "));
 				pb.redirectInput(hostData.inLog.toFile());
 				pb.redirectOutput(hostData.outLog.toFile());
@@ -415,11 +416,21 @@ public class Server extends Entity {
 			String matchName = message.getArg(0);
 			senderData = hostsDataHelper.get(matchName);
 			if (senderData == null) {
-				socket.send(Message.IDNO, null, "Nom de partie inconnu.");
+				socket.send(Message.IDNO, null, "Unresolved host name.");
 				disconnect();
 				return;
 			} else {
-				socket.send(Message.IDOK, null, "C'est parti, " + senderData.name + " !");
+				String password = message.getArg(1);
+				if (password == null) {
+					socket.send(Message.IDOK, null,
+							"No password provided. You are so LUCKY I am merciful enough to let your obsolete host pass through!");
+					/* FUTURE Refuse connections which do not provide password */
+//					socket.send(Message.IDNO, null, "No password provided.");
+				} else if (!password.equals(((HostData) senderData).password)) {
+					socket.send(Message.IDNO, null, "Wrong password");
+				} else {
+					socket.send(Message.IDOK, null, "C'est parti, " + senderData.name + " !");
+				}
 				return;
 			}
 		}

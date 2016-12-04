@@ -113,7 +113,7 @@ public class Message {
 		map.put(SCPC, 5);
 		map.put(AFKP, 1);
 		map.put(BACK, 1);
-		map.put(LOGI, 1);
+		map.put(LOGI, 2);
 		map.put(SDDT, null);
 		map.put(PLIN, 3);
 		map.put(SCPS, 2);
@@ -156,7 +156,7 @@ public class Message {
 	/**
 	 * Obtenir l'argument du message à l'indice indiquée
 	 * 
-	 * @return argument, ou chaîne vide si non existant
+	 * @return argument, ou null si non existant
 	 */
 	public String getArg(int index) {
 		if (args.length > index) {

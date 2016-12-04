@@ -1,5 +1,8 @@
 package util;
 
+import java.math.BigInteger;
+import java.security.SecureRandom;
+
 public final class StringUtil {
 
 	private StringUtil(){}
@@ -50,6 +53,17 @@ public final class StringUtil {
 			}
 		}
 		return IP;
+	}
+
+	public static String randomPassword() {
+		SecureRandom random = new SecureRandom();
+		return new BigInteger(130, random).toString(32);
+	}
+	
+	public static void main(String[] args) {
+		for (int i = 0; i < 30; i++) {
+			System.out.println(randomPassword());
+		}
 	}
 	
 }

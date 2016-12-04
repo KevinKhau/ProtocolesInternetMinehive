@@ -207,7 +207,9 @@ public class ClientApp extends Application {
 					handleMessage(rcv);
 				} catch (IOException | IllegalArgumentException e) {
 					disconnect();
-					Dialog.exception(e, "Connection with Server lost : " + e.getMessage());
+					if (serverState != ServerState.OFFLINE) {
+						Dialog.exception(e, "Connection with Server lost : " + e.getMessage());
+					}
 				}
 			}
 		}
@@ -314,7 +316,7 @@ public class ClientApp extends Application {
 		try {
 			IP = InetAddress.getByName(IPName);
 		} catch (UnknownHostException e) {
-			Dialog.exception(e, "Could not resolve IP.");
+			Dialog.exception(e, "Could not resolve IP address '" + IPName + "'.");
 			return false;
 		}
 		try {
@@ -336,6 +338,10 @@ public class ClientApp extends Application {
 		return true;
 	}
 	
+	public void loginHost(String username, String password) {
+		hostSocket.send(Message.JOIN, new String[]{ username, password });
+	}
+	
 	class HostHandler implements Runnable {
 
 		String receiverName = Host.NAME;
@@ -352,7 +358,9 @@ public class ClientApp extends Application {
 						continue;
 					}
 					disconnect();
-					Dialog.exception(e, "Connection with Host lost");
+					if (hostState != HostState.OFFLINE) {
+						Dialog.exception(e, "Connection with Host lost");
+					}
 				}
 			}
 		}
@@ -427,10 +435,6 @@ public class ClientApp extends Application {
 			}
 			delayedLogin();
 		}
-	}
-	
-	public void loginHost(String username, String password) {
-		hostSocket.send(Message.JOIN, new String[]{ username, password });
 	}
 	
 	public void click(int x, int y) {

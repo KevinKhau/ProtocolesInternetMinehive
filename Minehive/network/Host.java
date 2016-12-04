@@ -62,14 +62,14 @@ public class Host extends Entity {
 	private static void deny(String message) {
 		System.err.println(message);
 		System.err.println("Attendu : java Host serverIP serverPort hostName hostIP hostPort [hostPassword]");
-		launchLogger.info(message);
+		launchLogger.warning(message);
 		System.exit(1);
 	}
 
 	public static void main(String[] args) {
 		try {
-			Path logPath = Paths.get(Params.BIN.toString(), Params.LOG.toString(), "HostLaunch" + "Log.xml");
-			launchLogger.addHandler(new FileHandler(logPath.toString()));
+			Path launchLogPath = Paths.get(Params.LOG.toString(), "HostLaunch" + "Log.xml");
+			launchLogger.addHandler(new FileHandler(launchLogPath.toString()));
 		} catch (SecurityException | IOException e) {
 			e.printStackTrace();
 		}
@@ -87,8 +87,8 @@ public class Host extends Entity {
 			return;
 		}
 
-		launchLogger.info(Arrays.toString(args));
-		System.out.println("Arguments : " + String.join(" ", args));
+		launchLogger.info("Arguments : " + Arrays.toString(args));
+		System.out.println("Arguments : " + Arrays.toString(args));
 		if (args.length < 5) {
 			deny("Mauvais nombre d'arguments.");
 		}
@@ -637,7 +637,7 @@ public class Host extends Entity {
 
 		@Override
 		public void login() {
-			Message m = new Message(Message.LOGI, new String[] { name }, null);
+			Message m = new Message(Message.LOGI, new String[] { name, password }, null);
 			waitingRequest = false;
 			waitingResponse = true;
 			communicatorSocket.send(m);
