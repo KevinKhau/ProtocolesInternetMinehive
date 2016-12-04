@@ -359,15 +359,15 @@ public class Server extends Entity {
 				}
 			} catch (InvalidPathException e) {
 				File f = new File(Params.BIN.toString() + "/" + Host.JAR_NAME);
-				hJPString = f.getAbsolutePath();
+				hJPString = f.getPath();
 				if (!f.exists()) {
 					throw new FileNotFoundException("Unresolved Host path : " + hJPString);
 				}
 			}
+			hJPString = "\"" + hJPString + "\"";
 			String args = String.join(" ", serverIP.getHostAddress(), String.valueOf(serverPort_Host),
 					hostData.name, hostData.IP.getHostAddress(), String.valueOf(hostData.port), hostData.password);
 			String cmd = "java -jar " + hJPString + " " + args;
-			System.out.println(cmd);
 			if (!Params.DEBUG_HOST) {
 				ProcessBuilder pb = new ProcessBuilder(cmd.split(" "));
 				pb.redirectInput(hostData.inLog.toFile());

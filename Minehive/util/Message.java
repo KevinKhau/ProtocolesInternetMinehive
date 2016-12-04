@@ -193,8 +193,8 @@ public class Message {
 		if (message.args != null) {
 			Integer expected = getExpectedArgsLength(message.type);
 			if (expected != null && expected != message.args.length) {
-				System.err.println("~Encodage, '" + message.toString() + ": Mauvais nombre d'arguments, " + expected
-						+ " attendus");
+				System.err.println("~Encoding, '" + message.toString() + ": [Warning] Weird number of arguments, "
+						+ expected + " expected");
 			}
 			sb.append(SEPARATOR);
 			sb.append(String.join(SEPARATOR, message.args));
@@ -242,7 +242,8 @@ public class Message {
 				args[i] = slices[i + 1];
 			}
 		} catch (ArrayIndexOutOfBoundsException e) {
-			System.err.println("~Décodage, '" + receive + "' : Mauvais nombre d'arguments, " + expected + " attendus.");
+			System.err.println("~Decoding, '" + receive + "' : [Non fatal warning] Weird number of arguments, "
+					+ expected + " expected.");
 		}
 		if (slices.length > expected + 1) {
 			content = slices[expected + 1];
