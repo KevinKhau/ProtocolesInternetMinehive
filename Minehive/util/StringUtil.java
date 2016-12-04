@@ -1,9 +1,9 @@
 package util;
 
-import java.net.InetAddress;
+public final class StringUtil {
 
-public class StringUtil {
-
+	private StringUtil(){}
+	
 	/**
 	 * @param size
 	 * @return String de taille {@code size} avec seulement des espaces

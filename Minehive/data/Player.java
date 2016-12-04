@@ -1,10 +1,6 @@
 package data;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.*;
 
 @XmlAccessorType(XmlAccessType.FIELD)
 @XmlRootElement(name = "player")
@@ -22,6 +18,7 @@ public class Player extends EntityData {
 	public volatile int totalPoints;
 	
 	/** Allowed to create a match. */
+	@XmlTransient
 	public boolean permission = true;
 	
 	// Necessary for JAXB

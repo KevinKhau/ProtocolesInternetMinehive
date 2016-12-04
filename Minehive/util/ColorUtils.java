@@ -1,8 +1,13 @@
 package util;
 
+import java.util.Random;
+
 import javafx.scene.paint.Color;
 
-public class ColorUtils {
+public final class ColorUtils {
+	
+	private ColorUtils() {}
+	
 	public static String colorToCSS(Color color) {
 	    /*String hex1;
 	    String hex2;
@@ -38,5 +43,17 @@ public class ColorUtils {
 		int b = (int) (color.getBlue() * 255.0);
 		
 		return String.format("#%02X%02X%02X", r, g, b);
+	}
+
+	/**
+	 * Getting a random double between 0 and 1
+	 * 
+	 * @param clarity
+	 *            Multiplication factor. The bigger the lighter. 0 : no
+	 *            influence in the subcolor generation. 1 : white.
+	 */
+	public static double sub(double clarity) {
+		Random r = new Random();
+		return clarity + ((1.0 - clarity) * r.nextDouble());
 	}
 }

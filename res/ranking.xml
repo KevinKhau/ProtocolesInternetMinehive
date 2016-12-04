@@ -1,63 +1,33 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <ranking>
     <player username="Kevin" password="Khau">
-        <name>Joueur</name>
-        <points>-1027</points>
-        <permission>false</permission>
-    </player>
-    <player username="DE" password="DE">
-        <name>Joueur</name>
-        <points>0</points>
-        <permission>true</permission>
-    </player>
-    <player username="A" password="A">
-        <name>Joueur</name>
-        <points>0</points>
-        <permission>true</permission>
+        <points>40</points>
     </player>
     <player username="AlHassane" password="Megninta">
-        <name>Joueur</name>
         <points>80</points>
-        <permission>true</permission>
-    </player>
-    <player username="Guilhem" password="Jaber">
-        <name>Joueur</name>
-        <points>0</points>
-        <permission>true</permission>
     </player>
     <player username="Aylin" password="Kocoglu">
-        <name>Joueur</name>
         <points>90</points>
-        <permission>true</permission>
     </player>
     <player username="Christophe" password="Lam">
-        <name>Joueur</name>
         <points>20</points>
-        <permission>true</permission>
     </player>
     <player username="Adil" password="Champion">
-        <name>Joueur</name>
         <points>10</points>
-        <permission>true</permission>
     </player>
     <player username="Somaya" password="Benkhemis">
-        <name>Joueur</name>
         <points>70</points>
-        <permission>true</permission>
     </player>
     <player username="Valloris" password="Cylly">
-        <name>Joueur</name>
         <points>30</points>
-        <permission>true</permission>
     </player>
     <player username="Tomek" password="Lecocq">
-        <name>Joueur</name>
-        <points>126</points>
-        <permission>true</permission>
+        <points>80</points>
     </player>
     <player username="Helmi" password="Zegaya">
-        <name>Joueur</name>
         <points>100</points>
-        <permission>true</permission>
+    </player>
+    <player username="Guilhem" password="Jaber">
+        <points>100</points>
     </player>
 </ranking>
