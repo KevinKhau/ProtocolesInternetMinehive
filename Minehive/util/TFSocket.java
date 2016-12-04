@@ -18,24 +18,28 @@ import java.net.SocketTimeoutException;
 
 public class TFSocket extends Socket {
 
-	private static final int CONNECTED_DELAY = 10000;
+	private static final int TIMEOUT_DELAY = 10000;
 	private PrintWriter out;
 	private BufferedReader in;
 
 	volatile boolean running = true;
 	
+	/** Used by senders to connect to a receiver (Client -> Host, Client -> Server, Host -> Server) */
 	public TFSocket(InetAddress address, int port) throws IOException {
 		super(address, port);
 		init();
 	}
 
-	public TFSocket() {
+	/** Necessary for {@linkplain TFServerSocket}. Used by all receivers when detecting an incoming connection 
+	 * @throws SocketException */
+	public TFSocket() throws SocketException {
+		/* We do want to ensure of the senders' activitiy */
+		setSoTimeout(TIMEOUT_DELAY);
 	}
 
-	public void init() throws IOException {
+	void init() throws IOException {
 		this.out = new PrintWriter(new OutputStreamWriter(getOutputStream()), true);
 		this.in = new BufferedReader(new InputStreamReader(getInputStream()));
-		setSoTimeout(CONNECTED_DELAY);
 	}
 
 	public void send(String type, String[] args, String content) {
@@ -80,7 +84,7 @@ public class TFSocket extends Socket {
 		try {
 			raw = in.readLine();
 		} catch (SocketTimeoutException e) {
-			System.err.println("No response from sender since " + CONNECTED_DELAY + "ms. Considered disconnected.");
+			System.err.println("No response from sender since " + TIMEOUT_DELAY + "ms. Considered disconnected.");
 			throw e;
 		} catch (IllegalArgumentException e) {
 			System.err.println(e.getMessage());
@@ -159,13 +163,19 @@ public class TFSocket extends Socket {
 		
 		@Override
 		public void run() {
-			while (running) {
-				send(Message.RUOK);
-				try {
-					Thread.sleep(FREQUENCY);
-				} catch (InterruptedException e) {
-					System.err.println("Interruption du Thread Ping pendant sleep()");
+			try {
+				if (TFSocket.this.getSoTimeout() != 0) {
+					while (running) {
+						send(Message.RUOK);
+						try {
+							Thread.sleep(FREQUENCY);
+						} catch (InterruptedException e) {
+							System.err.println("Interruption du Thread Ping pendant sleep()");
+						}
+					} 
 				}
+			} catch (SocketException e) {
+				e.printStackTrace();
 			}
 		}
 		

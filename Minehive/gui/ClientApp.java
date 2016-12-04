@@ -328,6 +328,7 @@ public class ClientApp extends Application {
 		}
 		try {
 			hostSocket = new TFSocket(IP, port);
+			hostSocket.setSoTimeout(0); // TEST Hack
 		} catch (BindException e) {
 			Dialog.exception(e, "IP ou port de connexion de " + receiverName + " défini invalide.");
 			return false;
