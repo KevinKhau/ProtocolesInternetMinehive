@@ -227,7 +227,7 @@ public class ClientApp extends Application {
 				Dialog.error("Server response", "Identification failed", reception.getContent());
 				break;
 			case Message.IDIG:
-				Dialog.error("Server response", "Already in-game", reception.getContent());
+				Dialog.error("Server response", "Already registered in game", reception.getContent());
 				disconnect();
 				joinHost(reception.getArg(0), reception.getArgAsInt(1));
 				break;

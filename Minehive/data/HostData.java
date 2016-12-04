@@ -11,21 +11,23 @@ import java.net.ServerSocket;
 public class HostData extends EntityData {
 
 	public static final String NAME = "Hôte";
-	
+
 	private static int count = 1;
 
 	public final String creator;
-	
+
 	/** Dépendant du compteur global {@link HostData#count} */
-//	name;
+	// name;
 	/** Addresse IP locale, non modifiable */
 	public InetAddress IP;
+
 	/** Doit être un port libre */
 	public int port;
 
 	/**
 	 * Crée un HostData et vérifie que le port est libre en ouvrant
 	 * temporairement une ServerSocket.
+	 * 
 	 * @throws IOException
 	 */
 	public HostData(String creator) throws IOException {
@@ -50,6 +52,11 @@ public class HostData extends EntityData {
 
 	public int getPort() {
 		return port;
+	}
+
+	@Override
+	public String toString() {
+		return "HostData [creator=" + creator + ", IP=" + IP + ", port=" + port + ", name=" + name + "]";
 	}
 
 }

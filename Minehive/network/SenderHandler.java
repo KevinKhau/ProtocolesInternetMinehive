@@ -44,7 +44,6 @@ abstract class SenderHandler extends Thread {
 				}
 			}
 		} catch (IOException | IllegalArgumentException e) {
-			System.err.println("Déconnexion " + senderName);
 			disconnect();
 		}
 	}
@@ -76,6 +75,7 @@ abstract class SenderHandler extends Thread {
 	 * s'il existe. Ferme la socket et les streams associés.
 	 */
 	protected void disconnect() {
+		System.err.println("Déconnexion " + senderName);
 		running = false;
 		removeEntityData();
 		socket.close();

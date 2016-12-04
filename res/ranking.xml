@@ -1,10 +1,13 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <ranking>
     <player username="Kevin" password="Khau">
-        <points>40</points>
+        <points>97</points>
     </player>
     <player username="AlHassane" password="Megninta">
         <points>80</points>
+    </player>
+    <player username="Guilhem" password="Jaber">
+        <points>100</points>
     </player>
     <player username="Aylin" password="Kocoglu">
         <points>90</points>
@@ -22,12 +25,9 @@
         <points>30</points>
     </player>
     <player username="Tomek" password="Lecocq">
-        <points>80</points>
+        <points>-694</points>
     </player>
     <player username="Helmi" password="Zegaya">
-        <points>100</points>
-    </player>
-    <player username="Guilhem" password="Jaber">
         <points>100</points>
     </player>
 </ranking>

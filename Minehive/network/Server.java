@@ -189,6 +189,7 @@ public class Server extends Entity {
 				player = new Player(username, password, Player.INITIAL_POINTS);
 				users.put(username, player);
 				writePlayer(player);
+				senderName = username;
 				socket.send(Message.IDOK, null, "Bienvenue " + username + " !");
 				return;
 			}
@@ -214,6 +215,7 @@ public class Server extends Entity {
 				return;
 			}
 			/* Connexion classique */
+			senderName = username;
 			socket.send(Message.IDOK, null, "Bonjour " + username + " !");
 			return;
 		}
@@ -281,7 +283,7 @@ public class Server extends Entity {
 			}
 			HostData hd = null;
 			try {
-				hd = new HostData(player.name);
+				hd = new HostData(player.username);
 			} catch (IOException e) {
 				socket.send(Message.NWNO, null, e.getMessage());
 				return;
