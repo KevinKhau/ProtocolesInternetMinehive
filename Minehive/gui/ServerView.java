@@ -30,24 +30,24 @@ public class ServerView extends BorderPane {
 	TableView<UIDetailedHostData> hosts = new TableView<>();
 	TableView<UIUser> users = new TableView<>();
 	Map<String, UIUser> usersHelper = new ConcurrentHashMap<>();
-	
+
 	private HBox hbox;
 	private Button join;
-	
+
 	public ServerView(ClientApp app) {
 		this.app = app;
-		
+
 		hbox = new HBox();
 		hbox.setSpacing(10);
 		hbox.setPadding(new Insets(10, 10, 10, 10));
-		
+
 		initHosts();
 		initUsers();
-		
+
 		this.setCenter(hbox);
 		GridPane.setFillWidth(hbox, true);
 	}
-	
+
 	private void initHosts() {
 		final Label label = new Label("On-going matches");
 		label.setFont(new Font("Arial", 20));
@@ -79,56 +79,57 @@ public class ServerView extends BorderPane {
 				}
 			}
 		});
-		
+
 		hosts.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-		
+
 		//hosts.setPrefSize( Double.MAX_VALUE, Double.MAX_VALUE );
 		//hosts.setPrefWidth(Double.MAX_VALUE);
-		
+
 		final HBox buttons = new HBox();
 		//buttons.setPadding(new Insets(0, 10, 0, 0));
-		
+
 		final Button createMatch = new Button("New Match");
 		createMatch.setOnAction(e -> {
 			app.createMatch();
 		});
-		
+
 		Region spacer = new Region();
-	    HBox.setHgrow(spacer, Priority.ALWAYS);
-		
+		HBox.setHgrow(spacer, Priority.ALWAYS);
+
 		Button refresh = new Button("Refresh matches");
 		refresh.setOnAction(e -> {
 			app.listMatches();
 		});
-		
+
 		join = new Button("Join");
 		join.setPrefSize(70, USE_PREF_SIZE);
 		join.setOnAction(e -> {
-			//app.listMatches();
-			//TODO
-			System.out.println("TODO");
-			//get selected in users
-			//app.joinHost(item.getIP(), item.getPort());
+			UIDetailedHostData h = hosts.getSelectionModel().getSelectedItem();
+			if (h != null) {
+				app.joinHost(h.getIP(), h.getPort());
+			} else {
+				Dialog.warning("No match selected", "Cannot join match...", "Please select a match");
+			}
 		});
-		
+
 		buttons.getChildren().addAll(createMatch, refresh, spacer, join);
 		buttons.setSpacing(5);
-		
+
 		final VBox hostsBox = new VBox();
 		hostsBox.setAlignment(Pos.CENTER);
 		hostsBox.setSpacing(5);
 		hostsBox.getChildren().addAll(label, hosts, buttons);
 		hostsBox.setFillWidth(true);
 		VBox.setVgrow(hosts, Priority.ALWAYS);
-		
+
 		hbox.getChildren().addAll(hostsBox);
 		HBox.setHgrow(hostsBox, Priority.ALWAYS);
 	}
-	
+
 	private void initUsers() {
 		final Label label = new Label("Users");
 		label.setFont(new Font("Arial", 20));
-		
+
 		TableColumn<UIUser, String> nameColumn = new TableColumn<>("Name");
 		TableColumn<UIUser, Integer> pointsColumn = new TableColumn<>("Points");
 		nameColumn.setCellValueFactory(new PropertyValueFactory<>("Name"));
@@ -149,36 +150,36 @@ public class ServerView extends BorderPane {
 				}
 			}
 		});
-		
+
 		users.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-		
+
 		Button refresh = new Button("Refresh users");
 		refresh.setOnAction(e -> {
 			app.listUsers();
 			app.listAvailable();
 		});
-		
+
 		final VBox usersBox = new VBox();
 		usersBox.setAlignment(Pos.CENTER);
 		usersBox.setSpacing(5);
 		usersBox.getChildren().addAll(label, users, refresh);
 		usersBox.setFillWidth(true);
 		VBox.setVgrow(users, Priority.ALWAYS);
-		
+
 		hbox.getChildren().addAll(usersBox);
 		HBox.setHgrow(usersBox, Priority.ALWAYS);
 	}
-	
+
 	public void activate() {
 		app.listMatches();
 		app.listUsers();
 		app.listAvailable();
 	}
-	
+
 	public void clearHosts() {
 		hosts.getItems().clear();
 	}
-	
+
 	public void addHost(Message msg) {
 		Map<String, Integer> p = new HashMap<>();
 		for (int i = 4; i < msg.getArgs().length; i += 2) {
@@ -188,17 +189,17 @@ public class ServerView extends BorderPane {
 		UIDetailedHostData dhd = new UIDetailedHostData(msg.getArg(2), IP, msg.getArgAsInt(1), msg.getArgAsInt(3), p);
 		hosts.getItems().add(dhd);
 	}
-	
+
 	public void clearUsers() {
 		users.getItems().clear();
 	}
-	
+
 	public void addUser(Message msg) {
 		UIUser uu = new UIUser(msg.getArg(0), msg.getArgAsInt(1));
 		users.getItems().add(uu);
 		usersHelper.put(uu.getName(), uu);
 	}
-	
+
 	public void addAvailable(Message msg) {
 		UIUser uu = usersHelper.get(msg.getArg(0));
 		if (uu == null) {

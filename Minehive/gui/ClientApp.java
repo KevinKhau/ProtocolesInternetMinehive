@@ -66,7 +66,7 @@ public class ClientApp extends Application {
 		primaryStage.setTitle("Minehive");
 		primaryStage.setMinWidth(700);
 		primaryStage.setMinHeight(350);
-		primaryStage.setWidth(800);
+		primaryStage.setWidth(850);
 		primaryStage.setHeight(600);
 
 		if(Params.CUSTOM_CURSOR){
@@ -423,8 +423,11 @@ public class ClientApp extends Application {
 			/* Fin de partie */
 			/* TODO Pop-up stylée de fin de partie */
 			case Message.SCPC:
+				// TODO recuperer nombre de points
 				break;
 			case Message.ENDC:
+				// TODO revenir à ServerView au lieu de Login
+				Dialog.info("End of game", "The match is over", "Going back to login screen");
 				disconnect();
 				break;
 

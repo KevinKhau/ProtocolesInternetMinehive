@@ -14,6 +14,20 @@ import javafx.scene.layout.Region;
 import javafx.stage.Stage;
 
 public class Dialog {
+	public static void info(String title, String header, String text) {
+		try {
+			Alert alert = new Alert(AlertType.INFORMATION);
+			System.err.println("Info: " + text);
+			alert.setTitle(title);
+			alert.setHeaderText(header);
+			alert.setContentText(text);
+			alert.getDialogPane().getChildren().stream().filter(node -> node instanceof Label).forEach(node -> ((Label)node).setMinHeight(Region.USE_PREF_SIZE));
+			alert.showAndWait();
+		} catch (IllegalStateException e) {
+			delayedInfo(title, header, text);
+		}
+	}
+	
 	public static void error(String title, String header, String text) {
 		try {
 			Alert alert = new Alert(AlertType.ERROR);
@@ -95,6 +109,14 @@ public class Dialog {
 	}
 
 	/** CHECK possibilités de boucles infinies ? */
+	private static void delayedInfo(String title, String header, String text) {
+		Platform.runLater(new Runnable() {
+			@Override public void run() {
+				Dialog.info(title, header, text);   
+			}
+		});
+	}
+	
 	private static void delayedError(String title, String header, String text) {
 		Platform.runLater(new Runnable() {
 			@Override public void run() {

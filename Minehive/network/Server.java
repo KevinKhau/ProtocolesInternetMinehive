@@ -54,13 +54,22 @@ public class Server extends Entity {
 	Map<String, Player> kickedHelper = new ConcurrentHashMap<>();
 	
 	public static final int ACTIVE_DELAY = 300000;
+	
+	private String hostPath;
 
 	public static void main(String[] args) {
-		new Server();
+		new Server(args);
 	}
 
-	public Server() {
+	public Server(String[] args) {
 		super(NAME);
+		if (args.length == 1) {
+			System.out.println("Host path: " + args[0]);
+			hostPath = args[0];
+		} else {
+			hostPath = null;
+		}
+		
 		try {
 			serverIP = InetAddress.getLocalHost();
 		} catch (UnknownHostException e) {
@@ -351,11 +360,15 @@ public class Server extends Entity {
 			}
 			
 			Path hostJarPath;
-			System.out.println("bla bla bla" + dirPath);
 			String hJPString = null;
 			try {
 				hostJarPath = Paths.get(dirPath, Host.JAR_NAME);
-				hJPString = hostJarPath.toString();
+				if (hostPath != null) {
+					hJPString = hostPath;
+					hostJarPath = Paths.get(hostPath);
+				} else {
+					hJPString = hostJarPath.toString();
+				}
 				if (!hostJarPath.toFile().exists()) {
 					throw new FileNotFoundException("Unresolved Host path : " + hJPString); 
 				}
@@ -369,7 +382,13 @@ public class Server extends Entity {
 			hJPString = "\"" + hJPString + "\"";
 			String args = String.join(" ", serverIP.getHostAddress(), String.valueOf(serverPort_Host),
 					hostData.name, hostData.IP.getHostAddress(), String.valueOf(hostData.port), hostData.password);
+			
 			String cmd = "java -jar " + hJPString + " " + args;
+			
+			if (hostPath != null) {
+				cmd = "java -jar " + hostPath + " " + args;
+			}
+			
 			if (!Params.DEBUG_HOST) {
 				ProcessBuilder pb = new ProcessBuilder(cmd.split(" "));
 				pb.redirectInput(hostData.inLog.toFile());
