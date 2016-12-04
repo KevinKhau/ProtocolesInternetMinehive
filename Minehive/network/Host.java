@@ -67,11 +67,17 @@ public class Host extends Entity {
 	}
 
 	public static void main(String[] args) {
+		System.out.println("Hello world!");
+		Path launchLogPath = null;
 		try {
-			Path launchLogPath = Paths.get(Params.LOG.toString(), "HostLaunch" + "Log.xml");
+			launchLogPath = Paths.get(Params.LOG.toString(), "HostLaunch" + "Log.xml");
 			launchLogger.addHandler(new FileHandler(launchLogPath.toString()));
-		} catch (SecurityException | IOException e) {
-			e.printStackTrace();
+		} catch (Exception e) {
+			try {
+				launchLogger.addHandler(new FileHandler(Params.BIN.toString() + "/" + "HostLaunch" + "Log.xml"));
+			} catch (SecurityException | IOException e1) {
+				e1.printStackTrace();
+			}
 		}
 		if (Params.DEBUG_HOST) {
 			try {

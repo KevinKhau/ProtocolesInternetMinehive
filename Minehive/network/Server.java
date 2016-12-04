@@ -4,12 +4,14 @@ import static util.Message.validArguments;
 import static util.PlayersManager.getPlayersFromXML;
 import static util.PlayersManager.writePlayer;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.UnknownHostException;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -304,6 +306,7 @@ public class Server extends Entity {
 				hostsDataHelper.remove(hd.name);
 				return;
 			}
+			/* TODO Envoyer NWOK seulement après identification de l'hôte */
 			String[] sendArgs = new String[] { hd.getIP(), String.valueOf(hd.getPort()) };
 			socket.send(Message.NWOK, sendArgs, "Votre partie a été créée.");
 			player.permission = false;
@@ -346,13 +349,25 @@ public class Server extends Entity {
 				dirPath = dirPaths[0].getPath();
 				dirPath = dirPath.substring(1, dirPath.length());
 			}
-			Path hostJarPath = Paths.get(dirPath, Host.JAR_NAME);
-			if (!hostJarPath.toFile().exists()) {
-				throw new FileNotFoundException("Unresolved Host path : " + hostJarPath);
+			Path hostJarPath;
+			String hJPString = null;
+			try {
+				hostJarPath = Paths.get(dirPath, Host.JAR_NAME);
+				hJPString = hostJarPath.toString();
+				if (!hostJarPath.toFile().exists()) {
+					throw new FileNotFoundException("Unresolved Host path : " + hJPString); 
+				}
+			} catch (InvalidPathException e) {
+				File f = new File(Params.BIN.toString() + "/" + Host.JAR_NAME);
+				hJPString = f.getAbsolutePath();
+				if (!f.exists()) {
+					throw new FileNotFoundException("Unresolved Host path : " + hJPString);
+				}
 			}
 			String args = String.join(" ", serverIP.getHostAddress(), String.valueOf(serverPort_Host),
 					hostData.name, hostData.IP.getHostAddress(), String.valueOf(hostData.port), hostData.password);
-			String cmd = "java -jar " + hostJarPath.toString() + " " + args;
+			String cmd = "java -jar " + hJPString + " " + args;
+			System.out.println(cmd);
 			if (!Params.DEBUG_HOST) {
 				ProcessBuilder pb = new ProcessBuilder(cmd.split(" "));
 				pb.redirectInput(hostData.inLog.toFile());
@@ -360,7 +375,7 @@ public class Server extends Entity {
 				pb.redirectError(hostData.errorLog.toFile());
 				pb.start();
 			} else {
-				System.out.println(hostJarPath.toString());
+				System.out.println(hJPString);
 				System.out.println(args);
 				System.out.println(cmd);
 				System.out.println("DEBUG HOST MODE. Please launch the host manually with the above information.");

@@ -80,7 +80,7 @@ public class TFSocket extends Socket {
 		try {
 			raw = in.readLine();
 		} catch (SocketTimeoutException e) {
-			System.err.println("Pas de réponse du client depuis " + CONNECTED_DELAY + ". Considéré déconnecté.");
+			System.err.println("No response from sender since " + CONNECTED_DELAY + "ms. Considered disconnected.");
 			throw e;
 		} catch (IllegalArgumentException e) {
 			System.err.println(e.getMessage());
