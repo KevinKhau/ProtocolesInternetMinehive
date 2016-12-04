@@ -160,7 +160,7 @@ public class ClientApp extends Application {
 			Dialog.exception(e, "IP ou port de connexion de " + receiverName + " défini invalide.");
 			return false;
 		} catch (ConnectException e) {
-			Dialog.exception(e, receiverName + " ne semble pas lancé.");
+			Dialog.exception(e, receiverName + " semble ne pas être pas lancé.");
 			return false;
 		} catch (SocketException e) {
 			Dialog.exception(e, "Connexion interrompue avec " + receiverName + ".");
@@ -308,6 +308,13 @@ public class ClientApp extends Application {
 		} else {
 			loading.previous();
 		}
+	}
+	
+	public void joinHost(String IP, int port, String username, String password) {
+		this.username = username;
+		this.password = password;
+		
+		joinHost(IP, port);
 	}
 	
 	public boolean connectHost(String IPName, int port) {

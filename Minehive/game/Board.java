@@ -490,6 +490,14 @@ public class Board {
 
 		for (int i = 0; i < height; i++) {
 			for (int j = 0; j < width; j++) {
+				if (j + i * width >= colors.length) {
+					System.out.println("j:" + j + "  i:" + i + "  width:" + width + "  postion:" + (j + i * width) + "  colors.length:" + colors.length);
+				}
+				
+				if (j + i * width >= board.length) {
+					System.out.println("j:" + j + "  i:" + i + "  width:" + width + "  postion:" + (j + i * width) + "  board.length:" + board.length);
+				}
+				
 				gc.setFill(colors[j + i * width]);
 				gc.fillRect(j * (tile + gap), i * (tile + gap), tile, tile);
 

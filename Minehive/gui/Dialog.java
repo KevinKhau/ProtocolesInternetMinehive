@@ -10,6 +10,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.stage.Stage;
 
 public class Dialog {
@@ -20,6 +21,7 @@ public class Dialog {
 			alert.setTitle(title);
 			alert.setHeaderText(header);
 			alert.setContentText(text);
+			alert.getDialogPane().getChildren().stream().filter(node -> node instanceof Label).forEach(node -> ((Label)node).setMinHeight(Region.USE_PREF_SIZE));
 			alert.showAndWait();
 		} catch (IllegalStateException e) {
 			delayedError(title, header, text);
@@ -33,6 +35,7 @@ public class Dialog {
 			alert.setTitle(title);
 			alert.setHeaderText(header);
 			alert.setContentText(text);
+			alert.getDialogPane().getChildren().stream().filter(node -> node instanceof Label).forEach(node -> ((Label)node).setMinHeight(Region.USE_PREF_SIZE));
 			alert.showAndWait();
 		} catch (IllegalStateException e) {
 			delayedWarning(title, header, text);

@@ -25,7 +25,6 @@ public class Loading extends StackPane {
 		
 		Label label = new Label("Loading");
 		this.getChildren().add(label);
-		
 	}
 
 	public void next() {

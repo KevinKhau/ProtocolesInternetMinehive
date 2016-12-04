@@ -3,6 +3,7 @@ package gui;
 import java.util.Arrays;
 
 import game.Board;
+import javafx.application.Platform;
 import javafx.event.EventHandler;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -16,7 +17,7 @@ public class BoardUI extends Pane {
 	private static final Color PRESSED = Color.rgb(0, 0, 0, 0.4);
 	private static final Color SELECTED = Color.rgb(255, 255, 255, 0.4);
 	private static final Color DEFAULT_REVEALED = Color.GHOSTWHITE;
-	
+
 	private final Canvas board;
 	private final Canvas ui;
 	private GraphicsContext board_gc;
@@ -55,26 +56,41 @@ public class BoardUI extends Pane {
 	}
 
 	protected void clearSelection() {
-		ui_gc.clearRect(0, 0, ui.getWidth(), ui.getHeight());
+		Platform.runLater(new Runnable() {
+			@Override
+			public void run() {
+				ui_gc.clearRect(0, 0, ui.getWidth(), ui.getHeight());
+			}
+		});
 	}
 
 	protected void pressAt(int x, int y) {
-		ui_gc.clearRect(0, 0, ui.getWidth(), ui.getHeight());
+		Platform.runLater(new Runnable() {
+			@Override
+			public void run() {
+				ui_gc.clearRect(0, 0, ui.getWidth(), ui.getHeight());
 
-		if (!flags.exist(x, y)) {
-			if (colors[x + y * game.width] == HIDDEN) {
-				tmpColor(x, y, PRESSED);
+				if (!flags.exist(x, y)) {
+					if (colors[x + y * game.width] == HIDDEN) {
+						tmpColor(x, y, PRESSED);
+					}
+				}			
 			}
-		}
+		});
 	}
 
 	protected void selectAt(int x, int y) {
-		ui_gc.clearRect(0, 0, ui.getWidth(), ui.getHeight());
-		if (colors[x + y * game.width] == HIDDEN) {
-			tmpColor(x, y, SELECTED);
-		}
+		Platform.runLater(new Runnable() {
+			@Override
+			public void run() {
+				ui_gc.clearRect(0, 0, ui.getWidth(), ui.getHeight());
+				if (colors[x + y * game.width] == HIDDEN) {
+					tmpColor(x, y, SELECTED);
+				}
+			}
+		});
 	}
-	
+
 	/**
 	 * Colorier temporairement une case
 	 * @param x
@@ -85,7 +101,7 @@ public class BoardUI extends Pane {
 		ui_gc.setFill(color);
 		ui_gc.fillRect(x * (tile_size + gap), y * (tile_size + gap), tile_size, tile_size);
 	}
-	
+
 	/**
 	 * Rendre permanente la couleur d'une case
 	 * @param x
@@ -98,9 +114,11 @@ public class BoardUI extends Pane {
 
 	protected void clickAt(int x, int y) {
 		if (!flags.exist(x, y)) {
-			ui_gc.clearRect(0, 0, ui.getWidth(), ui.getHeight());
-			app.click(x, y);
-			drawBoard();
+			if (game.isHiddenAt(x, y)) {
+				ui_gc.clearRect(0, 0, ui.getWidth(), ui.getHeight());
+				app.click(x, y);
+				drawBoard();
+			}
 		}
 	}
 
@@ -108,21 +126,24 @@ public class BoardUI extends Pane {
 		if (flags.exist(x, y)) {
 			flags.remove(x, y);
 		} else {
-			flags.add(x, y);
+			if (game.isHiddenAt(x, y)) {
+				flags.add(x, y);
+			}
 		}
 
 		drawBoard();
 	}
 
 	public void drawBoard() {
-		board_gc.clearRect(0, 0, board.getWidth(), board.getHeight());
+		Platform.runLater(new Runnable() {
+			@Override
+			public void run() {
+				board_gc.clearRect(0, 0, board.getWidth(), board.getHeight());
 
-		game.draw(board_gc, colors, tile_size, gap);
-		flags.draw(board_gc, tile_size, gap);
-	}
-
-	public void updateAt(int x, int y) {
-
+				game.draw(board_gc, colors, tile_size, gap);
+				flags.draw(board_gc, tile_size, gap);
+			}
+		});
 	}
 
 	@Override
@@ -240,7 +261,7 @@ public class BoardUI extends Pane {
 			}
 		});
 	}
-	
+
 	public void revealSquare(int x, int y, int content, Color color) {
 		if (color == null) {
 			permaColor(x, y, DEFAULT_REVEALED);
@@ -250,7 +271,7 @@ public class BoardUI extends Pane {
 		game.updateValueAt(x, y, content);
 		drawBoard();
 	}
-	
+
 	/**
 	 * Mettre à jour toute une ligne du plateau.
 	 * 

@@ -14,7 +14,10 @@ import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import util.Message;
@@ -28,25 +31,21 @@ public class ServerView extends BorderPane {
 	TableView<UIUser> users = new TableView<>();
 	Map<String, UIUser> usersHelper = new ConcurrentHashMap<>();
 	
+	private HBox hbox;
+	private Button join;
+	
 	public ServerView(ClientApp app) {
 		this.app = app;
-		initTopButtons();
+		
+		hbox = new HBox();
+		hbox.setSpacing(10);
+		hbox.setPadding(new Insets(10, 10, 10, 10));
+		
 		initHosts();
 		initUsers();
-	}
-	
-	private void initTopButtons() {
-		final Button createMatch = new Button("New Match");
-		createMatch.setOnAction(e -> {
-			app.createMatch();
-		});
 		
-		final HBox buttons = new HBox();
-		buttons.setPadding(new Insets(0, 10, 10, 0));
-		
-		buttons.getChildren().addAll(createMatch);
-		
-		this.setTop(buttons);
+		this.setCenter(hbox);
+		GridPane.setFillWidth(hbox, true);
 	}
 	
 	private void initHosts() {
@@ -81,18 +80,49 @@ public class ServerView extends BorderPane {
 			}
 		});
 		
+		hosts.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+		
+		//hosts.setPrefSize( Double.MAX_VALUE, Double.MAX_VALUE );
+		//hosts.setPrefWidth(Double.MAX_VALUE);
+		
+		final HBox buttons = new HBox();
+		//buttons.setPadding(new Insets(0, 10, 0, 0));
+		
+		final Button createMatch = new Button("New Match");
+		createMatch.setOnAction(e -> {
+			app.createMatch();
+		});
+		
+		Region spacer = new Region();
+	    HBox.setHgrow(spacer, Priority.ALWAYS);
+		
 		Button refresh = new Button("Refresh matches");
 		refresh.setOnAction(e -> {
 			app.listMatches();
 		});
 		
+		join = new Button("Join");
+		join.setPrefSize(70, USE_PREF_SIZE);
+		join.setOnAction(e -> {
+			//app.listMatches();
+			//TODO
+			System.out.println("TODO");
+			//get selected in users
+			//app.joinHost(item.getIP(), item.getPort());
+		});
+		
+		buttons.getChildren().addAll(createMatch, refresh, spacer, join);
+		buttons.setSpacing(5);
+		
 		final VBox hostsBox = new VBox();
 		hostsBox.setAlignment(Pos.CENTER);
 		hostsBox.setSpacing(5);
-		hostsBox.setPadding(new Insets(10, 0, 0, 10));
-		hostsBox.getChildren().addAll(label, hosts, refresh);
+		hostsBox.getChildren().addAll(label, hosts, buttons);
+		hostsBox.setFillWidth(true);
+		VBox.setVgrow(hosts, Priority.ALWAYS);
 		
-		this.setLeft(hostsBox);
+		hbox.getChildren().addAll(hostsBox);
+		HBox.setHgrow(hostsBox, Priority.ALWAYS);
 	}
 	
 	private void initUsers() {
@@ -120,6 +150,8 @@ public class ServerView extends BorderPane {
 			}
 		});
 		
+		users.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+		
 		Button refresh = new Button("Refresh users");
 		refresh.setOnAction(e -> {
 			app.listUsers();
@@ -128,11 +160,13 @@ public class ServerView extends BorderPane {
 		
 		final VBox usersBox = new VBox();
 		usersBox.setAlignment(Pos.CENTER);
-		usersBox.setSpacing(2);
-		usersBox.setPadding(new Insets(10, 0, 0, 10));
+		usersBox.setSpacing(5);
 		usersBox.getChildren().addAll(label, users, refresh);
+		usersBox.setFillWidth(true);
+		VBox.setVgrow(users, Priority.ALWAYS);
 		
-		this.setRight(usersBox);
+		hbox.getChildren().addAll(usersBox);
+		HBox.setHgrow(usersBox, Priority.ALWAYS);
 	}
 	
 	public void activate() {

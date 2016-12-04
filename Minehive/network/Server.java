@@ -349,7 +349,9 @@ public class Server extends Entity {
 				dirPath = dirPaths[0].getPath();
 				dirPath = dirPath.substring(1, dirPath.length());
 			}
+			
 			Path hostJarPath;
+			System.out.println("bla bla bla" + dirPath);
 			String hJPString = null;
 			try {
 				hostJarPath = Paths.get(dirPath, Host.JAR_NAME);
