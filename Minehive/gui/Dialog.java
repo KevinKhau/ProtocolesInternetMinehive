@@ -58,7 +58,7 @@ public class Dialog {
 			e.printStackTrace(printer);
 			String exceptionText = writer.toString();
 			
-			Label label = new Label("Stacktrace:");
+			Label label = new Label("StackTrace:");
 			
 			TextArea textArea = new TextArea(exceptionText);
 			textArea.setEditable(false);

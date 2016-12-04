@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <ranking>
     <player username="Kevin" password="Khau">
-        <points>97</points>
+        <points>426</points>
     </player>
     <player username="AlHassane" password="Megninta">
         <points>80</points>
@@ -25,9 +25,9 @@
         <points>30</points>
     </player>
     <player username="Tomek" password="Lecocq">
-        <points>-694</points>
+        <points>-3104</points>
     </player>
     <player username="Helmi" password="Zegaya">
-        <points>100</points>
+        <points>-718</points>
     </player>
 </ranking>

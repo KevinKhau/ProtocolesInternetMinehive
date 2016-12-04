@@ -42,7 +42,6 @@ public class ClientApp extends Application {
 	ServerState serverState = ServerState.OFFLINE;
 	HostState hostState = HostState.OFFLINE;
 
-	public volatile boolean waitingResponse = false;
 	public volatile boolean running = true;
 
 	public TFSocket socket;
@@ -208,7 +207,7 @@ public class ClientApp extends Application {
 					handleMessage(rcv);
 				} catch (IOException | IllegalArgumentException e) {
 					disconnect();
-					Dialog.exception(e, "Connection with Server lost");
+					Dialog.exception(e, "Connection with Server lost : " + e.getMessage());
 				}
 			}
 		}
@@ -275,8 +274,8 @@ public class ClientApp extends Application {
 		}
 		
 		public synchronized void disconnect() {
-			serverState = ServerState.OFFLINE;
-			if (socket != null) {
+			if (socket != null && serverState != ServerState.OFFLINE) {
+				serverState = ServerState.OFFLINE;
 				socket.send(Message.LEAV);
 				socket.close();
 			}
@@ -288,10 +287,6 @@ public class ClientApp extends Application {
 	}
 	
 	public void joinHost(String IP, int port) {
-		if (serverHandler != null && serverState != ServerState.OFFLINE) {
-			serverHandler.disconnect();
-		}
-		
 		this.login = new Login(this);
 		this.hostView = new HostView(this);
 		loading = new Loading(this, hostView, login);
@@ -302,6 +297,9 @@ public class ClientApp extends Application {
 		}
 		IP = StringUtil.truncateAddress(IP);
 		if (connectHost(IP, port)) {
+			if (serverHandler != null && serverState != ServerState.OFFLINE) {
+				serverHandler.disconnect();
+			}
 			this.hostHandler = new HostHandler();
 			new Thread(hostHandler).start();
 			loginHost(username, password);

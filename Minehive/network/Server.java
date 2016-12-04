@@ -4,6 +4,7 @@ import static util.Message.validArguments;
 import static util.PlayersManager.getPlayersFromXML;
 import static util.PlayersManager.writePlayer;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.URL;
@@ -294,12 +295,10 @@ public class Server extends Entity {
 			}
 			hostsDataHelper.put(hd.name, hd);
 			try {
-				if (!Params.DEBUG_HOST) {
-					launchHost(hd);
-				}
+				launchHost(hd);
 			} catch (Exception e) {
 				e.printStackTrace();
-				socket.send(Message.NWNO, null, "Problème technique : Le serveur n'a pas pu lancer un hôte de partie. " + e.getMessage());
+				socket.send(Message.NWNO, null, "Problème technique : Le serveur n'a pas pu lancer un hôte de partie ; " + e.getMessage());
 				hostsDataHelper.remove(hd.name);
 				return;
 			}
@@ -334,26 +333,38 @@ public class Server extends Entity {
 		/**
 		 * Lance un nouveau processus Hôte indépendant.
 		 * @param hostData
+		 * @throws IOException 
 		 */
-		private void launchHost(HostData hostData) throws NullPointerException {
-			try {
-				String dirPath = null;
-				URL[] dirPaths = ((URLClassLoader) Thread.currentThread().getContextClassLoader()).getURLs();
-				if (dirPaths == null || dirPaths.length == 0) {
-					dirPath = "DIR_BIN";
-				} else {
-					dirPath = dirPaths[0].getPath();
-					dirPath = dirPath.substring(1, dirPath.length());
-				}
-				Path hostJarPath = Paths.get(dirPath, Host.JAR_NAME);
-				String args = String.join(" ", serverIP.getHostAddress(), String.valueOf(serverPort_Host),
-						hostData.name, hostData.IP.getHostAddress(), String.valueOf(hostData.port));
-				System.out.println(args);
-				Runtime.getRuntime().exec("java -jar " + hostJarPath.toString() + " " + args);
-				System.out.println("Host should be launched.");
-			} catch (IOException e) {
-				e.printStackTrace();
+		private void launchHost(HostData hostData) throws NullPointerException, IOException {
+			String dirPath = null;
+			URL[] dirPaths = ((URLClassLoader) Thread.currentThread().getContextClassLoader()).getURLs();
+			if (dirPaths == null || dirPaths.length == 0) {
+				dirPath = Params.BIN.toString();
+			} else {
+				dirPath = dirPaths[0].getPath();
+				dirPath = dirPath.substring(1, dirPath.length());
 			}
+			Path hostJarPath = Paths.get(dirPath, Host.JAR_NAME);
+			if (!hostJarPath.toFile().exists()) {
+				throw new FileNotFoundException("Unresolved Host path : " + hostJarPath);
+			}
+			String args = String.join(" ", serverIP.getHostAddress(), String.valueOf(serverPort_Host),
+					hostData.name, hostData.IP.getHostAddress(), String.valueOf(hostData.port));
+			String cmd = "java -jar " + hostJarPath.toString() + " " + args;
+			if (!Params.DEBUG_HOST) {
+				System.out.println(cmd);
+				ProcessBuilder pb = new ProcessBuilder(cmd.split(" "));
+				pb.redirectInput(hostData.inLog.toFile());
+				pb.redirectOutput(hostData.outLog.toFile());
+				pb.redirectError(hostData.errorLog.toFile());
+				pb.start();
+			} else {
+				System.out.println(hostJarPath.toString());
+				System.out.println(args);
+				System.out.println(cmd);
+				System.out.println("DEBUG HOST MODE. Please launch the host manually with the above information.");
+			}
+			System.out.println("Host should be launched.");
 		}
 
 		/**
@@ -403,7 +414,7 @@ public class Server extends Entity {
 			}
 			String matchName = message.getArg(0);
 			senderData = hostsDataHelper.get(matchName);
-			if (senderData == null || !Params.DEBUG_HOST) {
+			if (senderData == null) {
 				socket.send(Message.IDNO, null, "Nom de partie inconnu.");
 				disconnect();
 				return;
