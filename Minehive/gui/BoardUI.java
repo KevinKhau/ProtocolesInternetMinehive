@@ -6,11 +6,9 @@ import game.Board;
 import javafx.event.EventHandler;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
-import network.Client;
 
 /* FUTURE Temps constants... */
 public class BoardUI extends Pane {
@@ -267,7 +265,7 @@ public class BoardUI extends Pane {
 			try {
 				revealSquare(x, lineNumber, Integer.parseInt(contents[x]), null);
 			} catch (NumberFormatException e) {
-				// THINK Alternative nécessaire ?
+				// Le contenu n'est pas un entier, donc probablement X : case cachée !
 			}
 		}
 	}

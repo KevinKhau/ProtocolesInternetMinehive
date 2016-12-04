@@ -375,7 +375,7 @@ public class ClientApp extends Application {
 			case Message.BACK:
 				break;
 
-			/* JOIN */ // TODO all messages
+			/* JOIN */
 			case Message.JNNO:
 				Dialog.error("Host response", "Identification failed", reception.getContent());
 				loading.previous();
@@ -413,6 +413,7 @@ public class ClientApp extends Application {
 
 				// FUTURE distinction entre déconnecté et inactif
 			/* Fin de partie */
+			/* TODO Pop-up stylée de fin de partie */
 			case Message.SCPC:
 				break;
 			case Message.ENDC:
@@ -443,7 +444,7 @@ public class ClientApp extends Application {
 		}
 	}
 
-	/** FUTURE Présume que les dimensions du plateau sont 30*16. Pas future-proof !! */
+	/** FUTURE Présume que les dimensions du plateau Host sont 30*16. Pas future-proof !! */
 	public void spam() {
 		for (int y = 0; y < Board.HEIGHT; y++) {
 			for (int x = 0; x < Board.WIDTH; x++) {

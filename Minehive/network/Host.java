@@ -40,7 +40,7 @@ public class Host extends Entity {
 	public static final int ACTIVE_DELAY = 30000;
 	public static final int CONNECTED_DELAY = 10000;
 
-	String password = "Chocobo"; // TODO set password
+	String password = "Chocobo";
 
 	InetAddress serverIP;
 	int serverPort;
@@ -80,7 +80,7 @@ public class Host extends Entity {
 					System.exit(1);
 				}
 				new Host(InetAddress.getLocalHost(), 7777, "Partie_1", InetAddress.getLocalHost(),
-						Integer.parseInt(args[0]), null); // TEST
+						Integer.parseInt(args[0]), null);
 			} catch (UnknownHostException e1) {
 				e1.printStackTrace();
 			}
@@ -325,7 +325,6 @@ public class Host extends Entity {
 							socket.send(Message.JNNO, null, "Vous semblez déjà en train de jouer.");
 							inGamePlayer = null;
 							continue;
-							// THINK kick() ?
 						}
 					}
 					inGamePlayer.setActive();
@@ -371,7 +370,6 @@ public class Host extends Entity {
 				lineContent.add(0, String.valueOf(y));
 				String[] args = lineContent.stream().toArray(String[]::new);
 				socket.send(Message.BDIT, args);
-				LOGGER.config(new Message(Message.BDIT, args, null).toString()); // TEST delete
 			}
 
 			/* Send in-game players data */
@@ -390,7 +388,6 @@ public class Host extends Entity {
 		protected void handleMessage(Message reception) {
 			switch (reception.getType()) {
 			case Message.CLIC:
-				socket.send(Message.LATE, null, "Case déjà déminée."); // TEST
 				int abscissa = reception.getArgAsInt(0);
 				int ordinate = reception.getArgAsInt(1);
 

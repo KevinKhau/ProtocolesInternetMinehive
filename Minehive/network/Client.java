@@ -7,6 +7,8 @@ import java.util.NoSuchElementException;
 
 import util.Message;
 
+/** Use graphical interface ClientApp instead! */
+@Deprecated
 public class Client extends Entity {
 
 	public static final String NAME = "Client";
@@ -22,10 +24,9 @@ public class Client extends Entity {
 	public Client() {
 		super(NAME);
 		setAddress();
-		/* TEST pour tester avec d'autres machines */
+		/* Pour tester avec d'autres machines */
 		// destIP = setAddress("192.168.137.67");
 		while (true) {
-			// TODO proposer communication soit avec serveur, soit avec hôte
 			linkServer();
 			linkHost();
 		}

@@ -1,13 +1,12 @@
 package gui;
 
-import java.util.Random;
+import static util.ColorUtils.sub;
 
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.scene.paint.Color;
-import static util.ColorUtils.sub;
 
 public class UIInGamePlayer {
 	private Color color;

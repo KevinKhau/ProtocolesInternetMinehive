@@ -13,7 +13,6 @@ import javafx.scene.text.Text;
 
 public class Login extends GridPane {
 	private ClientApp app;
-	private String err;
 	private TextField username;
 	private PasswordField password;
 	private TextField inetAddress;
@@ -21,8 +20,6 @@ public class Login extends GridPane {
 	public Login(ClientApp clientApp) {
 		this.app = clientApp;
 		
-		err = "";
-
 		this.setAlignment(Pos.CENTER);
 		this.setVgap(4);
 
@@ -51,9 +48,7 @@ public class Login extends GridPane {
 		button.setPrefWidth(300);
 		this.add(button, 0, 5);
 
-		inetAddress.setText("localhost"); // TEST
-		username.setText("Kevin");
-		password.setText("Khau");
+		inetAddress.setText("localhost");
 
 		button.setOnAction(new EventHandler<ActionEvent>() {
 			@Override

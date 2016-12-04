@@ -34,7 +34,7 @@ public class Board {
 	private static final byte REVEAL_MASK = (byte) 0b11011111;
 
 	private static final byte MINE_BIT = (byte) 0b01000000;
-	private static final byte DEFUSE_MINE = (byte) 0b10111111;
+//	private static final byte DEFUSE_MINE = (byte) 0b10111111;
 
 	private boolean first;
 
