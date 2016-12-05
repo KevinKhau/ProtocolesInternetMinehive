@@ -1,35 +1,3 @@
-<<<<<<< HEAD
-<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<ranking>
-    <player username="Kevin" password="Khau">
-        <points>40</points>
-    </player>
-    <player username="AlHassane" password="Megninta">
-        <points>80</points>
-    </player>
-    <player username="Aylin" password="Kocoglu">
-        <points>90</points>
-    </player>
-    <player username="Christophe" password="Lam">
-        <points>20</points>
-    </player>
-    <player username="Adil" password="Champion">
-        <points>10</points>
-    </player>
-    <player username="Somaya" password="Benkhemis">
-        <points>70</points>
-    </player>
-    <player username="Valloris" password="Cylly">
-        <points>30</points>
-    </player>
-    <player username="Tomek" password="Lecocq">
-        <points>-1890</points>
-    </player>
-    <player username="Helmi" password="Zegaya">
-        <points>100</points>
-    </player>
-</ranking>
-=======
 <?xml version="1.0" encoding="UTF-8"?>
 
 <ranking machine="Agito">
@@ -79,4 +47,3 @@
 		</points>
 	</player>
 </ranking>
->>>>>>> 4acd909932a5982d988929829c0f95047b1fc062
