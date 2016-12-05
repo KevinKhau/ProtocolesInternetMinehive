@@ -67,7 +67,6 @@ public class Host extends Entity {
 	}
 
 	public static void main(String[] args) {
-		System.out.println("Hello world!");
 		Path launchLogPath = null;
 		try {
 			launchLogPath = Paths.get(Params.LOG.toString(), "HostLaunch" + "Log.xml");
@@ -190,9 +189,8 @@ public class Host extends Entity {
 				serverCommunicator.communicatorSocket.send(Message.SCPS,
 						new String[] { igp.username, valueOf(igp.totalPoints) });
 			}
-			if (igp.handler.running) {
-				igp.handler.socket.send(Message.SCPC, igp.publicData(), comment);
-			}
+			inGamePlayers.values().stream().filter(igp2 -> igp2.handler.running)
+					.forEach(igp2 -> igp2.handler.socket.send(Message.SCPC, igp.publicData(), comment));
 		});
 
 		/* Conclusion END? */
