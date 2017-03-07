@@ -1,79 +1,25 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <ranking>
-    <player username="A" password="A">
+    <player username="AlHassane" password="Megninta">
+        <points>80</points>
+    </player>
+    <player username="HeisenLoulou" password="LAM2">
         <points>0</points>
     </player>
-    <player username="lm" password="ll">
-        <points>0</points>
-    </player>
-    <player username="B" password="B">
-        <points>0</points>
-    </player>
-    <player username="Alhassane" password="ll">
-        <points>0</points>
-    </player>
-    <player username="C" password="C">
-        <points>0</points>
-    </player>
-    <player username="D" password="D">
-        <points>0</points>
-    </player>
-    <player username="E" password="E">
-        <points>0</points>
+    <player username="Somaya" password="Benkhemis">
+        <points>70</points>
     </player>
     <player username="Valloris" password="Cylly">
         <points>30</points>
     </player>
     <player username="Tomek" password="Lecocq">
-        <points>714</points>
-    </player>
-    <player username="L" password="L">
-        <points>0</points>
-    </player>
-    <player username="alhassane" password="ll">
-        <points>0</points>
-    </player>
-    <player username="R" password="R">
-        <points>0</points>
-    </player>
-    <player username="S" password="S">
-        <points>0</points>
-    </player>
-    <player username="T" password="T">
-        <points>0</points>
-    </player>
-    <player username="W" password="W">
-        <points>0</points>
-    </player>
-    <player username="lam" password="ll">
-        <points>0</points>
-    </player>
-    <player username="Y" password="Y">
-        <points>0</points>
-    </player>
-    <player username="Z" password="Z">
-        <points>0</points>
-    </player>
-    <player username="AlHassane" password="Megninta">
-        <points>80</points>
-    </player>
-    <player username="christophe" password="ll">
-        <points>0</points>
-    </player>
-    <player username="lass" password="ll">
-        <points>9</points>
-    </player>
-    <player username="Somaya" password="Benkhemis">
-        <points>70</points>
-    </player>
-    <player username="adil" password="champion">
-        <points>0</points>
+        <points>-1072</points>
     </player>
     <player username="Helmi" password="Zegaya">
         <points>100</points>
     </player>
     <player username="Kevin" password="Khau">
-        <points>40</points>
+        <points>610</points>
     </player>
     <player username="Aylin" password="Kocoglu">
         <points>90</points>
@@ -81,10 +27,16 @@
     <player username="Christophe" password="Lam">
         <points>20</points>
     </player>
-    <player username="la" password="l">
+    <player username="jordan" password="koko03">
         <points>0</points>
     </player>
     <player username="Adil" password="Champion">
         <points>10</points>
+    </player>
+    <player username="billel" password="momomomo">
+        <points>0</points>
+    </player>
+    <player username="jojo" password="koko12">
+        <points>0</points>
     </player>
 </ranking>

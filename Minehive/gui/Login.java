@@ -37,9 +37,6 @@ public class Login extends GridPane {
 		init();
 		initEvent();
 		
-		// TODO remove
-		username.setText("Tomek");
-		password.setText("Lecocq");
 	}
 	
 	private void init() {
