@@ -16,7 +16,7 @@ import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-import data.Player;
+import data.Person;
 
 public final class PlayersManager {
 
@@ -24,7 +24,7 @@ public final class PlayersManager {
 
 	// Pour tester rapidement si tout fonctionne
 	public static void main(String[] args) {
-		 Player test = getPlayer("Tomek");
+		 Person test = getPlayer("Tomek");
 		 System.out.println(test.username + " " + test.password + " " +
 		 test.totalPoints);
 		 test.totalPoints = 80;
@@ -37,7 +37,7 @@ public final class PlayersManager {
 	 * 
 	 * @return Liste des joueurs
 	 */
-	public static HashMap<String, Player> getPlayersFromXML() {
+	public static HashMap<String, Person> getPlayersFromXML() {
 		try {
 			JAXBContext context = JAXBContext.newInstance(Ranking.class);
 
@@ -51,7 +51,7 @@ public final class PlayersManager {
 		return new HashMap<>();
 	}
 
-	public static void savePlayersToXML(HashMap<String, Player> players) {
+	public static void savePlayersToXML(HashMap<String, Person> players) {
 		try {
 			Ranking ranking = new Ranking(toList(players));
 
@@ -68,7 +68,7 @@ public final class PlayersManager {
 	 * De préférence, obtenir un joueur directement d'une liste plutôt que
 	 * passer par un chargement entier du fichier
 	 */
-	public static Player getPlayer(String username) {
+	public static Person getPlayer(String username) {
 		return getPlayersFromXML().get(username);
 	}
 
@@ -83,20 +83,20 @@ public final class PlayersManager {
 	 * @param player
 	 *            Joueur à ajouter
 	 */
-	public static void writePlayer(Player player) {
-		HashMap<String, Player> players = getPlayersFromXML();
+	public static void writePlayer(Person player) {
+		HashMap<String, Person> players = getPlayersFromXML();
 		players.put(player.username, player);
 		savePlayersToXML(players);
 	}
 
-	private static HashMap<String, Player> toHashMap(List<Player> list) {
-		HashMap<String, Player> map = new HashMap<String, Player>();
+	private static HashMap<String, Person> toHashMap(List<Person> list) {
+		HashMap<String, Person> map = new HashMap<String, Person>();
 		list.stream().filter(p -> p != null).forEach(p -> map.put(p.username, p));
 		return map;
 	}
 
-	private static List<Player> toList(HashMap<String, Player> map) {
-		return new ArrayList<Player>(map.values());
+	private static List<Person> toList(HashMap<String, Person> map) {
+		return new ArrayList<Person>(map.values());
 	}
 
 	@XmlRootElement(name = "ranking")
@@ -105,8 +105,8 @@ public final class PlayersManager {
 		@XmlAttribute(name = "machine", required = true)
 		String machine;
 
-		@XmlElement(name = "player", type = Player.class)
-		List<Player> players;
+		@XmlElement(name = "player", type = Person.class)
+		List<Person> players;
 
 		/**
 		 * Constructeur vide pour JAXB
@@ -115,7 +115,7 @@ public final class PlayersManager {
 		private Ranking() {
 		}
 		
-		public Ranking(List<Player> players) {
+		public Ranking(List<Person> players) {
 			this.players = players;
 		}
 

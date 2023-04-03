@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import data.HostData;
-import data.Player;
+import data.Person;
 import util.Message;
 import util.Params;
 import util.PlayersManager;
@@ -43,15 +43,15 @@ public class Server extends Entity {
 	public static final String ALL = "ALL";
 	public static final int MAX_ONLINE = 110;
 
-	Map<String, Player> users = getPlayersFromXML();
-	Map<Player, ClientHandler> available = new ConcurrentHashMap<>();
+	Map<String, Person> users = getPlayersFromXML();
+	Map<Person, ClientHandler> available = new ConcurrentHashMap<>();
 
 	Map<String, HostData> hostsDataHelper = new ConcurrentHashMap<>();
 	Map<HostData, SenderHandler> hosts = new ConcurrentHashMap<>();
 
-	Map<Player, HostData> inGame = new ConcurrentHashMap<>();
+	Map<Person, HostData> inGame = new ConcurrentHashMap<>();
 	
-	Map<String, Player> kickedHelper = new ConcurrentHashMap<>();
+	Map<String, Person> kickedHelper = new ConcurrentHashMap<>();
 	
 	public static final int ACTIVE_DELAY = 300000;
 	
@@ -99,7 +99,7 @@ public class Server extends Entity {
 		}
 	}
 
-	public boolean addAvailable(Player player, ClientHandler handler) {
+	public boolean addAvailable(Person player, ClientHandler handler) {
 		if (!isFull() || available.containsKey(player)) {
 			ClientHandler h = available.get(player);
 			if (h != null) {
@@ -111,7 +111,7 @@ public class Server extends Entity {
 		return false;
 	}
 
-	public void addInGame(Player player, HostData hostData) {
+	public void addInGame(Person player, HostData hostData) {
 		inGame.put(player, hostData);
 	}
 
@@ -130,7 +130,7 @@ public class Server extends Entity {
 			System.err.println("Message anormal reçu. Nom de joueur requis.");
 			return null;
 		}
-		Player p = users.get(username);
+		Person p = users.get(username);
 		if (p == null) {
 			System.err.println("Utilisateur '" + username + "'inexistant.");
 			return null;
@@ -149,10 +149,10 @@ public class Server extends Entity {
 		/**
 		 * Correspond à l'entityData casté. Initialisé lors de identification()
 		 */
-		Player player;
+		Person player;
 
 		public ClientHandler(TFSocket socket) {
-			super(socket, Player.NAME);
+			super(socket, Person.NAME);
 		}
 
 		/**
@@ -199,14 +199,14 @@ public class Server extends Entity {
 			senderData = users.get(username);
 			/* Première fois */
 			if (senderData == null) {
-				player = new Player(username, password, Player.INITIAL_POINTS);
+				player = new Person(username, password, Person.INITIAL_POINTS);
 				users.put(username, player);
 				writePlayer(player);
 				senderName = username;
 				socket.send(Message.IDOK, null, "Bienvenue " + username + " !");
 				return;
 			}
-			player = (Player) senderData;
+			player = (Person) senderData;
 			/* Mauvais mot de passe */
 			if (!player.password.equals(password)) {
 				socket.send(Message.IDNO, null, "Mauvais mot de passe");
@@ -334,7 +334,7 @@ public class Server extends Entity {
 
 			/* Liste spécifique de joueurs invités */
 			Arrays.asList(msg.getArgs()).forEach(playerName -> {
-				Player p = users.get(playerName);
+				Person p = users.get(playerName);
 				if (p != null) {
 					ClientHandler h = available.get(p);
 					if (h != null) {
@@ -411,7 +411,7 @@ public class Server extends Entity {
 		public void kick(String comment) {
 			socket.send(Message.KICK, null, comment);
 			disconnect();
-			kickedHelper.put(senderData.name, (Player) senderData);
+			kickedHelper.put(senderData.name, (Person) senderData);
 		}
 
 		@Override
@@ -498,7 +498,7 @@ public class Server extends Entity {
 							"Message anormale de l'hôte : Mot de passe non défini. Rappel : PLIN#MatchName#Username#Password");
 					break;
 				}
-				Player p = getPlayer(username);
+				Person p = getPlayer(username);
 				if (p == null) {
 					break;
 				}
@@ -519,7 +519,7 @@ public class Server extends Entity {
 				}
 				break;
 			case Message.SCPS:
-				Player p2 = getPlayer(reception.getArg(0));
+				Person p2 = getPlayer(reception.getArg(0));
 				if (p2 != null) {
 					inGame.remove(p2);
 					p2.totalPoints = reception.getArgAsInt(1);
@@ -538,12 +538,12 @@ public class Server extends Entity {
 			}
 		}
 
-		private Player getPlayer(String username) {
+		private Person getPlayer(String username) {
 			if (username == null) {
 				System.err.println("Message anormale de l'hôte : Nom d'utilisateur non défini.");
 				return null;
 			}
-			Player p = users.get(username);
+			Person p = users.get(username);
 			if (p == null) {
 				socket.send(Message.PLNO, new String[] { username }, "Utilisateur inexistant.");
 				return null;
@@ -562,7 +562,7 @@ public class Server extends Entity {
 				hostsDataHelper.remove(senderData.name);
 				hosts.remove(senderData);
 				String playerCreator = ((HostData) senderData).creator; 
-				Player creator = users.get(playerCreator);
+				Person creator = users.get(playerCreator);
 				if (creator != null) {
 					creator.permission = true;
 				}

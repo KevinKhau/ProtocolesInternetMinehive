@@ -17,7 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.FileHandler;
 import java.util.logging.Logger;
 
-import data.Player;
+import data.Person;
 import game.Board;
 import network.Communicator.State;
 import util.Message;
@@ -52,8 +52,8 @@ public class Host extends Entity {
 	Board board = new Board();
 	volatile int multiplicator = 0;
 
-	volatile Map<String, Player> standingByHelper = new ConcurrentHashMap<>();
-	volatile Map<Player, PlayerHandler> standingBy = new ConcurrentHashMap<>();
+	volatile Map<String, Person> standingByHelper = new ConcurrentHashMap<>();
+	volatile Map<Person, PlayerHandler> standingBy = new ConcurrentHashMap<>();
 
 	volatile Map<String, InGamePlayer> inGamePlayers = new ConcurrentHashMap<>();
 
@@ -207,7 +207,7 @@ public class Host extends Entity {
 
 	}
 
-	class InGamePlayer extends Player {
+	class InGamePlayer extends Person {
 
 		public static final String NAME = "Jouer Actif";
 
@@ -219,7 +219,7 @@ public class Host extends Entity {
 		private volatile int foundMines = 0;
 
 		/** Nouveau joueur */
-		private InGamePlayer(Player player, PlayerHandler handler) {
+		private InGamePlayer(Person player, PlayerHandler handler) {
 			super(player.username, player.password);
 			LOGGER.info("Nouveau joueur connecté " + player);
 			this.handler = handler;
@@ -344,7 +344,7 @@ public class Host extends Entity {
 				}
 
 				/* Nouvelle connexion */
-				Player p = new Player(username, password);
+				Person p = new Person(username, password);
 				standingByHelper.put(p.username, p);
 				standingBy.put(p, this);
 				serverCommunicator.communicate(
@@ -530,7 +530,7 @@ public class Host extends Entity {
 				if (username == null) {
 					return;
 				}
-				Player waitingPlayer = standingByHelper.remove(username);
+				Person waitingPlayer = standingByHelper.remove(username);
 				if (waitingPlayer != null) {
 					PlayerHandler ph = standingBy.remove(waitingPlayer);
 					if (ph == null) {
@@ -552,7 +552,7 @@ public class Host extends Entity {
 				if (username == null) {
 					return;
 				}
-				Player waitingPlayer = standingByHelper.remove(username);
+				Person waitingPlayer = standingByHelper.remove(username);
 				if (waitingPlayer != null) {
 					PlayerHandler ph = standingBy.remove(waitingPlayer);
 					if (ph == null) {
@@ -661,7 +661,7 @@ public class Host extends Entity {
 			}
 		}
 
-		public void playerNotFound(Player standingByPlayer) {
+		public void playerNotFound(Person standingByPlayer) {
 			if (standingByPlayer != null) {
 				System.err.println("Le joueur " + standingByPlayer.name + " ne semble plus connecté.");
 			}

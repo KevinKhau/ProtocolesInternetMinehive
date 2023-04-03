@@ -4,7 +4,7 @@ import javax.xml.bind.annotation.*;
 
 @XmlAccessorType(XmlAccessType.FIELD)
 @XmlRootElement(name = "player")
-public class Player extends EntityData {
+public class Person extends EntityData {
 	public static final String NAME = "Joueur";
 	public static final int INITIAL_POINTS = 0;
 	
@@ -22,11 +22,11 @@ public class Player extends EntityData {
 	public boolean permission = true;
 	
 	// Necessary for JAXB
-	public Player() {
+	public Person() {
 		super(NAME);
 	}
 	
-	public Player(String username, String password) {
+	public Person(String username, String password) {
 		super(NAME);
 		this.username = username;
 		this.password = password;
@@ -37,7 +37,7 @@ public class Player extends EntityData {
 		return "Player [username=" + username + ", password=" + password + ", totalPoints=" + totalPoints + "]";
 	}
 
-	public Player(String username, String password, int points) {
+	public Person(String username, String password, int points) {
 		super(NAME);
 		this.username = username;
 		this.password = password;
@@ -70,6 +70,6 @@ public class Player extends EntityData {
 	
 	@Override
 	public boolean equals(Object obj) {
-		return (obj instanceof Player) && ((Player) obj).username == this.username;
+		return (obj instanceof Person) && ((Person) obj).username == this.username;
 	}
 }

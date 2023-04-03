@@ -21,6 +21,9 @@
     <player username="Kevin" password="Khau">
         <points>610</points>
     </player>
+    <player username="Kévin" password="Khau">
+        <points>0</points>
+    </player>
     <player username="Aylin" password="Kocoglu">
         <points>90</points>
     </player>
